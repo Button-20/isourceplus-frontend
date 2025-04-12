@@ -6,11 +6,13 @@ import "./index.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { AppProvider } from "./contexts/app.context";
+import { Toaster } from "sonner";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AppProvider>
       <RouterProvider router={appRoutes} />
+      <Toaster richColors/>
     </AppProvider>
   </StrictMode>
 );
