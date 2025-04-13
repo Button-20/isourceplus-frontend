@@ -18,8 +18,20 @@ export const orgDetailsFormSchema = z.object({
 })
 
 export const orgVerDocsFormSchema = z.object({
-    orgVerDocs: z.string()
-})
+    orgVerDocs: z
+      .array(z.any())  // Accepts an array of files
+      .nonempty("At least one document is required")
+      .refine(
+        (files) => files.every((file) => file.size <= 4 * 1024 * 1024),
+        "Each file must be less than 4MB"
+      )
+      .refine(
+        (files) => files.every((file) => 
+          ['image/png', 'image/jpeg', 'application/pdf'].includes(file.type)
+        ),
+        "Only PNG, JPG, and PDF files are allowed"
+      )
+  });
 
 export const orgAdminAccountFormSchema = z.object({
     accountFullName: z.string(),

@@ -3,6 +3,13 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 
 export function ProtectedOnBoardingRoute() {
+    const {user,token} = useAuth();
+
+    if (!user || !token) {
+        return <Navigate to="/login" replace />;
+    }
+
+
     return <Outlet />
 }
 

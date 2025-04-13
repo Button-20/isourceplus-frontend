@@ -137,6 +137,59 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const logout = async() =>{
+    setError(null);
+    setLoading(true);
+
+    try {
+      // Get CSRF token from cookies (may exist from page load)
+      let csrfToken = getCookie("csrftoken");
+
+      // If no token, proceed anyway - the signup request will set it
+      if (!csrfToken) {
+        console.warn("CSRF token not found in cookies - proceeding anyway");
+      }
+
+      // Make the logout request
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/v1/account_auth/logout/",
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(csrfToken && { "X-CSRFToken": csrfToken }), // Only include if we have it
+          },
+          withCredentials: true,
+        }
+      );
+
+      // The response will set cookies automatically (as seen in Postman)
+      setUser(null);
+      setToken(null);
+
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("access_token");
+
+      toast.success("Logout successful.");
+
+      return response.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.email?.[0] ||
+        error.response?.data?.password1?.[0] ||
+        error.response?.data?.password2?.[0] ||
+        error.response?.data?.detail ||
+        error.message ||
+        "Logout failed. Please try again.";
+
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+        setLoading(false);
+      }
+  }
+
   return (
     <AppContext.Provider
       value={{
@@ -152,6 +205,7 @@ export const AppProvider = ({ children }) => {
         setLoading,
         signup,
         login,
+        logout,
         error,
         setError,
       }}

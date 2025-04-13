@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import PaystackPop from "@paystack/inline-js";
 import { Input } from "@/components/ui/input";
@@ -59,10 +59,15 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { AppContext } from "@/contexts/app.context";
+import { useNavigate } from "react-router";
+import { toast } from "sonner";
 
 export function OnBoardingOrgRolePage() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const navigate = useNavigate()
+
   const steps = [
     {
       icon: Building2,
@@ -97,6 +102,10 @@ export function OnBoardingOrgRolePage() {
   const handleSubmit = () => {
     if (selectedRole) {
       console.log(`Selected role: ${selectedRole}`);
+      navigate("/onboarding/details");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      toast.error("Please select a role to continue.");
     }
   };
 
@@ -216,7 +225,7 @@ export function OnBoardingOrgRolePage() {
                   </div>
 
                   <div className="mt-8 flex">
-                    <Button type="submit" className="gap-6">
+                    <Button type="submit" className="gap-6" onClick={handleSubmit}>
                       Continue <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
@@ -233,6 +242,9 @@ export function OnBoardingOrgRolePage() {
 export function OnBoardingOrgDetailsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { currency } = useContext(AppContext);
+
+  const navigate = useNavigate();
+
   const steps = [
     {
       icon: Building2,
@@ -267,6 +279,8 @@ export function OnBoardingOrgDetailsPage() {
 
   const onSubmit = (values) => {
     console.log(values);
+    navigate("/onboarding/verification");
+    window.scrollTo({ top: 0, behavior: "smooth" });    
   };
 
   return (
@@ -737,7 +751,10 @@ export function OnBoardingOrgDetailsPage() {
 }
 
 export function OnBoardingOrgVerificationPage() {
+  const [files, setFiles] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate()
+
   const steps = [
     {
       icon: Building2,
@@ -765,18 +782,31 @@ export function OnBoardingOrgVerificationPage() {
     },
   ];
 
-  const [files, setFiles] = useState(null);
+
   const dropZoneConfig = {
     maxFiles: 5,
-    maxSize: 1024 * 1024 * 4,
+    maxSize: 1024 * 1024 * 4, // 4MB
     multiple: true,
   };
   const form = useForm({
     resolver: zodResolver(orgVerDocsFormSchema),
+    defaultValues: {
+      orgVerDocs: [],
+    }
   });
 
+  useEffect(()=>{
+    form.setValue("orgVerDocs", files)
+  }, [files, form])
+  
   const onSubmit = (values) => {
-    console.log(values);
+    try {
+      console.log("Submitting form with values:", values);
+      navigate("/onboarding/subscription");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      console.error("Form submission error:", error);
+    }
   };
 
   return (
@@ -913,6 +943,7 @@ export function OnBoardingOrgVerificationPage() {
 }
 
 export function OnBoardingOrgSubscriptionPlanPage() {
+  const navigate = useNavigate()
   const steps = [
     {
       icon: Building2,
@@ -949,23 +980,8 @@ export function OnBoardingOrgSubscriptionPlanPage() {
 
   const handleContinue = () => {
     if (selectedPlan) {
-      const paystack = new PaystackPop();
-
-      paystack.newTransaction({
-        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-        email: "plan@email.com", // passing user-email
-        amount: 40000,
-        planCode: "PLN_bly7g95mandrtz8", // pass planCode from plan
-        onSuccess: (transaction) => {
-          console.log(transaction);
-        },
-        onCancel: () => {
-          console.log("onCancel");
-        },
-        onError: (error) => {
-          console.log("Error: ", error.message);
-        },
-      });
+      navigate("/onboarding/account");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
   const plans = userRole === "supplier" ? supplierPlans : buyerPlans;
@@ -1131,6 +1147,9 @@ export function OnBoardingOrgSubscriptionPlanPage() {
 }
 
 export function OnBoardingOrgAdminAccountPage() {
+
+  const navigate = useNavigate();
+
   const [isLoading, setIsLoading] = useState(false);
   const steps = [
     {
@@ -1165,6 +1184,9 @@ export function OnBoardingOrgAdminAccountPage() {
 
   const onSubmit = (values) => {
     console.log(values);
+
+    navigate('/dashboard');
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
