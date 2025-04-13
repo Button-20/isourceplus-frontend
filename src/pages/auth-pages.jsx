@@ -27,15 +27,23 @@ import {
 import { FaFacebook, FaLinkedin } from "react-icons/fa";
 import { GiMailbox } from "react-icons/gi";
 import { AppContext, useAuth } from "@/contexts/app.context";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 export function LoginPage() {
-  const { login, loading, error, setError } = useAuth();
+  const { login, loading, error, setError ,user,token} = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
+
+  
+  useEffect(() => {
+    if (user && token) {
+      navigate("/onboarding");
+    }
+  }, [user, navigate]);
+
 
   const [displayPassword, setDisplayPassword] = useState(false);
 
@@ -49,7 +57,7 @@ export function LoginPage() {
 
     try {
       await login(email, password);
-      navigate("/onboarding");
+      // navigate("/onboarding");
     } catch (err) {
       setError(
         err.response?.data?.message || "Login failed. Please try again."
@@ -214,13 +222,19 @@ export function LoginPage() {
 }
 
 export function SignUpPage() {
-  const { signup, loading, error } = useAuth();
+  const { signup, loading, error ,user,token} = useAuth();
 
   const [email, setEmail] = useState("");
   const [password1, setPassword1] = useState("");
   const [password2, setPassword2] = useState("");
   const [displayPassword, setDisplayPassword] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user&&token) {
+      navigate("/onboarding");
+    }
+  }, [user, navigate]);
 
   const handleDisplayPassword = () => {
     setDisplayPassword(!displayPassword);
@@ -232,7 +246,7 @@ export function SignUpPage() {
 
     try {
       await signup(email, password1, password2);
-      navigate("/onboarding");
+      // navigate("/onboarding");
     } catch (error) {
       console.error("Signup error:", error);
     }

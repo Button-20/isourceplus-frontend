@@ -4,7 +4,10 @@ import { LandingPage } from "./pages/landing-page";
 import { AboutPage } from "./pages/about-page";
 import { LoginPage, SignUpPage } from "./pages/auth-pages";
 import { MarketplacePage } from "./pages/marketplace-page";
-import { ProtectedOnBoardingRoute } from "./components/protected-routes";
+import {
+  ProtectedAuthRoute,
+  ProtectedOnBoardingRoute,
+} from "./components/protected-routes";
 import {
   OnBoardingOrgRolePage,
   OnBoardingOrgDetailsPage,
@@ -22,8 +25,14 @@ export const appRoutes = createBrowserRouter([
   { path: "/marketplace", element: <MarketplacePage /> },
   { path: "/store", element: <Store /> },
   { path: "/about", element: <AboutPage /> },
-  { path: "/login", element: <LoginPage /> },
-  { path: "/signup", element: <SignUpPage /> },
+
+  {
+    element: <ProtectedAuthRoute />,
+    children: [
+      { path: "/login", element: <LoginPage /> },
+      { path: "/signup", element: <SignUpPage /> },
+    ],
+  },
   {
     path: "/onboarding",
     element: <ProtectedOnBoardingRoute />,
