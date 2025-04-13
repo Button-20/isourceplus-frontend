@@ -55,7 +55,7 @@ export function NavUser({ user }) {
                   <span className="truncate font-semibold">
                     {user?.fullname || "User Name"}
                   </span>
-                  <span className="truncate text-xs">{user?.user_email || "user@gmail.com"}</span>
+                  <span className="truncate text-xs">{user || "user@gmail.com"}</span>
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
               </SidebarMenuButton>
@@ -76,7 +76,7 @@ export function NavUser({ user }) {
                     <span className="truncate font-semibold">
                       {user?.fullname || "User Name"}
                     </span>
-                    <span className="truncate text-xs">{user?.email || "user@gmail.com"}</span>
+                    <span className="truncate text-xs">{user || "user@gmail.com"}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
