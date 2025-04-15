@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
@@ -30,7 +30,7 @@ import { AppContext, useAuth } from "@/contexts/app.context";
 import { useContext, useEffect, useState } from "react";
 
 export function LoginPage() {
-  const { login, loading, error, setError ,user,token} = useAuth();
+  const { login, loading, error, setError ,user,token,googleLogin} = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,9 +39,11 @@ export function LoginPage() {
 
   
   useEffect(() => {
+    
     if (user && token) {
       navigate("/onboarding");
     }
+
   }, [user, navigate]);
 
 
@@ -65,6 +67,10 @@ export function LoginPage() {
       console.error("Login error:", err);
     }
   };
+
+  const handleGoogleLogin = async () => {
+    await googleLogin()
+  }
 
   return (
     <>
@@ -204,7 +210,7 @@ export function LoginPage() {
           LinkedIn
         </Button>
 
-        <Button variant="outline" className="">
+        <Button variant="outline" onClick={handleGoogleLogin} className="">
           <MailIcon />
           Gmail
         </Button>

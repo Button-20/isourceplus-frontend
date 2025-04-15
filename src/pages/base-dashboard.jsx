@@ -23,7 +23,9 @@ export function BaseDashBoard() {
   const {user,token} = useAuth();
   const location = useLocation()
 
-  if (!user && !token) {
+  
+
+  if (!user && !token  ) {
     return <Navigate state={{from:location}} to="/login" replace />; 
   }
 

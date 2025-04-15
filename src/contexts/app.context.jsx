@@ -137,6 +137,56 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async () => {
+    setError(null);
+    setLoading(true);
+  
+    try {
+      // Open Google OAuth in a popup window
+      const width = 500;
+      const height = 600;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      
+      const popup = window.open(
+        "http://127.0.0.1:8000/api/v1/auth/google/",
+        "Google OAuth",
+        `width=${width},height=${height},top=${top},left=${left}`
+      );
+  
+      // Listen for messages from the popup
+      return new Promise((resolve, reject) => {
+        const messageListener = (event) => {
+          // Check origin for security
+          if (event.origin !== "http://127.0.0.1:8000") return;
+          
+          if (event.data.type === "OAUTH_SUCCESS") {
+            const { access_token, user } = event.data;
+            setToken(access_token);
+            setUser(user.email);
+            localStorage.setItem("access_token", access_token);
+            localStorage.setItem("user_email", user.email);
+            popup.close();
+            window.removeEventListener("message", messageListener);
+            resolve(user);
+          } else if (event.data.type === "OAUTH_ERROR") {
+            setError(event.data.message);
+            popup.close();
+            window.removeEventListener("message", messageListener);
+            reject(new Error(event.data.message));
+          }
+        };
+  
+        window.addEventListener("message", messageListener);
+      });
+    } catch (error) {
+      setError(error.message || "Google login failed");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async() =>{
     setError(null);
     setLoading(true);
@@ -205,6 +255,7 @@ export const AppProvider = ({ children }) => {
         setLoading,
         signup,
         login,
+        googleLogin,
         logout,
         error,
         setError,

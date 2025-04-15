@@ -5,6 +5,8 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 export function ProtectedOnBoardingRoute() {
     const {user,token} = useAuth();
 
+     
+
     if (!user || !token) {
         return <Navigate to="/login" replace />;
     }
@@ -18,6 +20,7 @@ export const ProtectedAuthRoute = () => {
     const location = useLocation()
     const {user,token} = useAuth();
 
+   
     if (user && token) {
         return <Navigate to="/onboarding" state={{ from: location }} replace />;
     }
