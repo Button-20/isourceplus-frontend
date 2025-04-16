@@ -42,7 +42,7 @@ export function ForgotPasswordPage() {
         toast.success("Password reset link sent to your email");
       }
     } catch (error) {
-        console.error("Error sending password reset link:", error);
+      console.error("Error sending password reset link:", error);
       const errorMessage =
         error.response?.data?.email?.[0] ||
         error.response?.data?.detail ||
@@ -51,6 +51,41 @@ export function ForgotPasswordPage() {
       toast.error(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendLink = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let csrfToken = getCookie("csrftoken");
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/v1/account_auth/registration/resend-email/",
+        {
+          email: email.trim(),
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(csrfToken && { "X-CSRFToken": csrfToken }),
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (response.status === 200) {
+        setSuccess(true);
+        toast.success("Password reset link sent to your email");
+      }
+    } catch (error) {
+      console.error("Error resending password reset link:", error);
+      const errorMessage =
+        error.response?.data?.email?.[0] ||
+        error.response?.data?.detail ||
+        "Failed to resend reset link. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -102,12 +137,20 @@ export function ForgotPasswordPage() {
             {loading ? "Sending..." : "Send reset link"}
           </Button>
         </form>
+        {/* resend link */}
+        <p className="text-sm text-gray-500 text-center">
+          Didn't receive the email?{" "}
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="text-black hover:underline"
+          >
+            Resend link
+          </button>
+        </p>
         {error && <p className="text-sm text-red-500 text-center">{error}</p>}
         <div className="text-center text-sm">
-          <Link
-            to="/login"
-            className="font-medium text-black hover:underline"
-          >
+          <Link to="/login" className="font-medium text-black hover:underline">
             Back to login
           </Link>
         </div>
