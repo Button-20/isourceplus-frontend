@@ -187,6 +187,13 @@ export function LoginPage() {
         </Button>
       </form>
 
+      {/* forgot password */}
+      <div className="flex justify-end mt-4">
+        <Link to="/forgot-password" className="text-sm text-gray-600">
+          Forgot Password?
+        </Link>
+      </div>
+
       {error && (
         <div className="text-red-500 text-sm mt-2">
           {typeof error === "string" ? error : "An error occurred"}

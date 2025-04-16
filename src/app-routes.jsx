@@ -19,6 +19,8 @@ import { BaseDashBoard } from "./pages/base-dashboard";
 import { DashBoardHome } from "./pages/dashboard-home";
 import WatchNow from "./pages/watch_now_page.pages";
 import Store from "./pages/store";
+import { ForgotPasswordPage } from "./pages/forgot-password";
+import { ResetPasswordConfirmPage } from "./pages/reset_password_confirm";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -31,6 +33,8 @@ export const appRoutes = createBrowserRouter([
     children: [
       { path: "/login", element: <LoginPage /> },
       { path: "/signup", element: <SignUpPage /> },
+      { path: "/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "/password/reset/confirm/:uid/:token", element: <ResetPasswordConfirmPage /> },
     ],
   },
   {
