@@ -8,7 +8,9 @@ import { SlideLeft, SlideRight } from "@/utility/animation";
 import Lottie from "lottie-react";
 
 const Hero = () => {
-  const { tailwindValues, primaryText } = useContext(AppContext);
+
+  const primaryText = "text-indigo-600";
+
   const primaryBtn =
     "bg-black text-white font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-[1rem] md:px-[2rem] rounded-md hover:!scale-110 duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[0.9rem]";
 

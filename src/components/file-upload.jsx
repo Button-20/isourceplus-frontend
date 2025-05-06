@@ -22,7 +22,7 @@ export const FileUploader = forwardRef(
     (
         {
             className,
-            dropzoneOptions,
+            dropzoneOptions = {},
             value,
             onValueChange,
             reSelect,
@@ -36,6 +36,8 @@ export const FileUploader = forwardRef(
         const [isFileTooBig, setIsFileTooBig] = useState(false);
         const [isLOF, setIsLOF] = useState(false);
         const [activeIndex, setActiveIndex] = useState(-1);
+
+        // Safe destructuring with defaults
         const {
             accept = {
                 "image/*": [".jpg", ".jpeg", ".png", ".gif"],
@@ -43,6 +45,7 @@ export const FileUploader = forwardRef(
             maxFiles = 1,
             maxSize = 4 * 1024 * 1024,
             multiple = true,
+            ...restOptions
         } = dropzoneOptions;
 
         const reSelectAll = maxFiles === 1 ? true : reSelect;
@@ -57,61 +60,8 @@ export const FileUploader = forwardRef(
             [value, onValueChange],
         );
 
-        const handleKeyDown = useCallback(
-            (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                if (!value) return;
-
-                const moveNext = () => {
-                    const nextIndex = activeIndex + 1;
-                    setActiveIndex(nextIndex > value.length - 1 ? 0 : nextIndex);
-                };
-
-                const movePrev = () => {
-                    const nextIndex = activeIndex - 1;
-                    setActiveIndex(nextIndex < 0 ? value.length - 1 : nextIndex);
-                };
-
-                const prevKey =
-                    orientation === "horizontal"
-                        ? direction === "ltr"
-                            ? "ArrowLeft"
-                            : "ArrowRight"
-                        : "ArrowUp";
-
-                const nextKey =
-                    orientation === "horizontal"
-                        ? direction === "ltr"
-                            ? "ArrowRight"
-                            : "ArrowLeft"
-                        : "ArrowDown";
-
-                if (e.key === nextKey) {
-                    moveNext();
-                } else if (e.key === prevKey) {
-                    movePrev();
-                } else if (e.key === "Enter" || e.key === "Space") {
-                    if (activeIndex === -1) {
-                        dropzoneState.inputRef.current?.click();
-                    }
-                } else if (e.key === "Delete" || e.key === "Backspace") {
-                    if (activeIndex !== -1) {
-                        removeFileFromSet(activeIndex);
-                        if (value.length - 1 === 0) {
-                            setActiveIndex(-1);
-                            return;
-                        }
-                        movePrev();
-                    }
-                } else if (e.key === "Escape") {
-                    setActiveIndex(-1);
-                }
-            },
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            [value, activeIndex, removeFileFromSet],
-        );
+        // Create a ref to store the dropzone state
+        const dropzoneStateRef = useRef(null);
 
         const onDrop = useCallback(
             (acceptedFiles, rejectedFiles) => {
@@ -151,8 +101,7 @@ export const FileUploader = forwardRef(
                     }
                 }
             },
-
-            [reSelectAll, value],
+            [reSelectAll, value, maxFiles, maxSize, onValueChange],
         );
 
         useEffect(() => {
@@ -164,9 +113,13 @@ export const FileUploader = forwardRef(
             setIsLOF(false);
         }, [value, maxFiles]);
 
-        const opts = dropzoneOptions
-            ? dropzoneOptions
-            : { accept, maxFiles, maxSize, multiple };
+        const opts = {
+            accept,
+            maxFiles,
+            maxSize,
+            multiple,
+            ...restOptions
+        };
 
         const dropzoneState = useDropzone({
             ...opts,
@@ -174,6 +127,66 @@ export const FileUploader = forwardRef(
             onDropRejected: () => setIsFileTooBig(true),
             onDropAccepted: () => setIsFileTooBig(false),
         });
+
+        // Store dropzoneState in ref
+        useEffect(() => {
+            dropzoneStateRef.current = dropzoneState;
+        }, [dropzoneState]);
+
+        const handleKeyDown = useCallback(
+            (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!value) return;
+
+                const moveNext = () => {
+                    const nextIndex = activeIndex + 1;
+                    setActiveIndex(nextIndex > value.length - 1 ? 0 : nextIndex);
+                };
+
+                const movePrev = () => {
+                    const nextIndex = activeIndex - 1;
+                    setActiveIndex(nextIndex < 0 ? value.length - 1 : nextIndex);
+                };
+
+                const prevKey =
+                    orientation === "horizontal"
+                        ? direction === "ltr"
+                            ? "ArrowLeft"
+                            : "ArrowRight"
+                        : "ArrowUp";
+
+                const nextKey =
+                    orientation === "horizontal"
+                        ? direction === "ltr"
+                            ? "ArrowRight"
+                            : "ArrowLeft"
+                        : "ArrowDown";
+
+                if (e.key === nextKey) {
+                    moveNext();
+                } else if (e.key === prevKey) {
+                    movePrev();
+                } else if (e.key === "Enter" || e.key === "Space") {
+                    if (activeIndex === -1) {
+                        dropzoneStateRef.current?.inputRef.current?.click();
+                    }
+                } else if (e.key === "Delete" || e.key === "Backspace") {
+                    if (activeIndex !== -1) {
+                        removeFileFromSet(activeIndex);
+                        if (value.length - 1 === 0) {
+                            setActiveIndex(-1);
+                            return;
+                        }
+                        movePrev();
+                    }
+                } else if (e.key === "Escape") {
+                    setActiveIndex(-1);
+                }
+            },
+            [value, activeIndex, removeFileFromSet, orientation, direction],
+        );
 
         return (
             <FileUploaderContext.Provider

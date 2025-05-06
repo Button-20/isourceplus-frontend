@@ -8,7 +8,6 @@ import { SlideLeft, SlideRight } from "@/utility/animation";
 import AnimatedHeading from "../animated_heading.components";
 
 const About = () => {
-  const { tailwindValues, primaryBtn, primaryText } = useContext(AppContext);
 
   const navigate = useNavigate();
 

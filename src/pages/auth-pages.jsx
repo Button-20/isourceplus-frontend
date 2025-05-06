@@ -1,4 +1,4 @@
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
@@ -37,14 +37,16 @@ export function LoginPage() {
 
   const navigate = useNavigate();
 
-  
-  useEffect(() => {
-    
-    if (user && token) {
-      navigate("/onboarding");
-    }
+  const location = useLocation()
 
-  }, [user, navigate]);
+  
+  // useEffect(() => {
+    
+  //   if (user && token) {
+  //     navigate("/onboarding");
+  //   }
+
+  // }, [user, navigate]);
 
 
   const [displayPassword, setDisplayPassword] = useState(false);
@@ -59,7 +61,9 @@ export function LoginPage() {
 
     try {
       await login(email, password);
-      // navigate("/onboarding");
+     
+      const from  = location.state?.from?.pathname || "/dashboard"
+      navigate(from, {replace: true})
     } catch (err) {
       setError(
         err.response?.data?.message || "Login failed. Please try again."
@@ -243,11 +247,11 @@ export function SignUpPage() {
   const [displayPassword, setDisplayPassword] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (user&&token) {
-      navigate("/onboarding");
-    }
-  }, [user, navigate]);
+  // useEffect(() => {
+  //   if (user&&token) {
+  //     navigate("/onboarding");
+  //   }
+  // }, [user, navigate]);
 
   const handleDisplayPassword = () => {
     setDisplayPassword(!displayPassword);
@@ -259,7 +263,7 @@ export function SignUpPage() {
 
     try {
       await signup(email, password1, password2);
-      // navigate("/onboarding");
+      navigate("/onboarding/user");
     } catch (error) {
       console.error("Signup error:", error);
     }

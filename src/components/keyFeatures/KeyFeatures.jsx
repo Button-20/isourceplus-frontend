@@ -7,7 +7,9 @@ import { SlideLeft } from "@/utility/animation";
 import AnimatedHeading from "../animated_heading.components";
 
 const SecurityFeatures = () => {
-  const { primaryBg } = useContext(AppContext);
+
+  
+  const primaryBg = "bg-indigo-600";
 
   const fallbackData = [
     {

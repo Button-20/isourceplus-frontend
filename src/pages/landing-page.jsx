@@ -9,6 +9,7 @@ import Pricing from "@/components/Pricing";
 import Features from "@/components/security_compliance/security1";
 import Testimonial from "@/components/Testimonials/Testimonial";
 import Timeline from "@/components/timeline/Timeline";
+import { useApiContext } from "@/contexts/api.context";
 import { useState, useEffect } from "react";
 
 const bgStyle = {

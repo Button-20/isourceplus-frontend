@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import { LandingPage } from "./pages/landing-page";
 import { AboutPage } from "./pages/about-page";
@@ -21,6 +21,12 @@ import WatchNow from "./pages/watch_now_page.pages";
 import Store from "./pages/store";
 import { ForgotPasswordPage } from "./pages/forgot-password";
 import { ResetPasswordConfirmPage } from "./pages/reset_password_confirm";
+import OnboardingPage from "./pages/OnboardingPage";
+import ProfilePage from "./pages/ProfilePage";
+import TransporterPage from "./pages/TransporterPage";
+import CompanyPage from "./pages/CompanyPage";
+import CompanyChoices from "./pages/CompanyChoices";
+import LastPathTracker from "./components/util/LastPathTracker";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -29,23 +35,30 @@ export const appRoutes = createBrowserRouter([
   { path: "/about", element: <AboutPage /> },
 
   {
-    element: <ProtectedAuthRoute />,
+    element: <><LastPathTracker/><ProtectedAuthRoute /></>,
     children: [
       { path: "/login", element: <LoginPage /> },
       { path: "/signup", element: <SignUpPage /> },
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
-      { path: "/password/reset/confirm/:uid/:token", element: <ResetPasswordConfirmPage /> },
+      {
+        path: "/password/reset/confirm/:uid/:token",
+        element: <ResetPasswordConfirmPage />,
+      },
     ],
   },
   {
     path: "/onboarding",
     element: <ProtectedOnBoardingRoute />,
     children: [
-      { index: true, element: <OnBoardingOrgRolePage /> },
-      { path: "details", element: <OnBoardingOrgDetailsPage /> },
-      { path: "verification", element: <OnBoardingOrgVerificationPage /> },
-      { path: "subscription", element: <OnBoardingOrgSubscriptionPlanPage /> },
-      { path: "account", element: <OnBoardingOrgAdminAccountPage /> },
+      { index: true, element: <Navigate to={"user"} /> },
+      { path: "user", element: <ProfilePage /> },
+      { path: "transporter", element: <TransporterPage /> },
+      { path: "companies", element: <CompanyChoices /> },
+      { path: "company", element: <CompanyPage /> },
+      // { path: "details", element: <OnBoardingOrgDetailsPage /> },
+      // { path: "verification", element: <OnBoardingOrgVerificationPage /> },
+      // { path: "subscription", element: <OnBoardingOrgSubscriptionPlanPage /> },
+      // { path: "account", element: <OnBoardingOrgAdminAccountPage /> },
     ],
   },
   {

@@ -1,12 +1,68 @@
 import { getCookie } from "@/utility/getCookie";
+import { registerLogoutHandler } from "@/utils/apiService";
 import axios from "axios";
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { set } from "react-hook-form";
+import { useLocation } from "react-router";
 import { toast } from "sonner";
 
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
+  const BASE_URL = "http://127.0.0.1:8000/api/v1/";
+
+  const authAxios = axios.create({
+    baseURL: BASE_URL,
+    withCredentials: true,
+  });
+
+  // Add request interceptor to include access token
+  authAxios.interceptors.request.use((config) => {
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Add CSRF token for modifying requests (POST/PUT/PATCH/DELETE)
+    if (
+      ["post", "put", "patch", "delete"].includes(config.method.toLowerCase())
+    ) {
+      const csrfToken = getCookie("csrftoken");
+      if (csrfToken) {
+        config.headers["X-CSRFToken"] = csrfToken;
+      }
+    }
+
+    return config;
+  });
+
+  // Add response interceptor to handle token refresh
+  authAxios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const originalRequest = error.config;
+
+      if (
+        error.response?.status === 403 &&
+        error.response?.data?.code === "token_not_valid"
+      ) {
+        console.log("Access token invalid, attempting refresh...");
+        try {
+          const newToken = await refreshToken();
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return authAxios(originalRequest);
+        } catch (refreshError) {
+          console.error("Refresh failed:", refreshError);
+          logout(); // Force re-authentication
+          return Promise.reject(
+            new Error("Session expired. Please login again.")
+          );
+        }
+      }
+
+      return Promise.reject(error);
+    }
+  );
+
   const tailwindValues = {
     secondary: "gray-600",
     primary: "indigo-600",
@@ -24,6 +80,13 @@ export const AppProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  //route
+  const [lastPath, setLastPath] = useState(null);
+
+  // onboarding
+  const [currentCompany, setCurrentCompany] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
 
   const signup = async (email, password1, password2) => {
     setError(null);
@@ -140,26 +203,26 @@ export const AppProvider = ({ children }) => {
   const googleLogin = async () => {
     setError(null);
     setLoading(true);
-  
+
     try {
       // Open Google OAuth in a popup window
       const width = 500;
       const height = 600;
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
-      
+
       const popup = window.open(
         "http://127.0.0.1:8000/api/v1/auth/google/",
         "Google OAuth",
         `width=${width},height=${height},top=${top},left=${left}`
       );
-  
+
       // Listen for messages from the popup
       return new Promise((resolve, reject) => {
         const messageListener = (event) => {
           // Check origin for security
           if (event.origin !== "http://127.0.0.1:8000") return;
-          
+
           if (event.data.type === "OAUTH_SUCCESS") {
             const { access_token, user } = event.data;
             setToken(access_token);
@@ -176,7 +239,7 @@ export const AppProvider = ({ children }) => {
             reject(new Error(event.data.message));
           }
         };
-  
+
         window.addEventListener("message", messageListener);
       });
     } catch (error) {
@@ -187,7 +250,36 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const logout = async() =>{
+  const refreshToken = async () => {
+    try {
+      console.log("Refresh token attempt. Current token:", token);
+      const response = await axios.post(
+        BASE_URL + "account_auth/token/refresh/",
+        {}, // Empty body since refresh token is in cookies
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true, // This sends cookies
+        }
+      );
+
+      const newAccessToken = response.data.access;
+      setToken(newAccessToken);
+      localStorage.setItem("access_token", newAccessToken);
+      return newAccessToken;
+    } catch (error) {
+      // If refresh fails, logout the user
+      console.error("Refresh token failed:", error);
+      if (error.response?.status === 401) {
+        toast.error("Session expired. Please login again.");
+      }
+      logout();
+      throw error;
+    }
+  };
+
+  const logout = async () => {
     setError(null);
     setLoading(true);
 
@@ -236,9 +328,13 @@ export const AppProvider = ({ children }) => {
       toast.error(errorMessage);
       throw error;
     } finally {
-        setLoading(false);
-      }
-  }
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    registerLogoutHandler(logout);
+  }, [logout]);
 
   return (
     <AppContext.Provider
@@ -259,6 +355,10 @@ export const AppProvider = ({ children }) => {
         logout,
         error,
         setError,
+        currentCompany,
+        setCurrentCompany,
+        authAxios,
+        setLastPath
       }}
     >
       {children}

@@ -58,15 +58,17 @@ import {
   ArrowRight,
   CheckCircle,
 } from "lucide-react";
-import { AppContext } from "@/contexts/app.context";
+import { AppContext, useAuth } from "@/contexts/app.context";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
 export function OnBoardingOrgRolePage() {
   const [selectedRole, setSelectedRole] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const navigate = useNavigate()
+  const { createUserProfile, getCompanies, setCurrentCompany, loading } =
+    useAuth();
+
+  const navigate = useNavigate();
 
   const steps = [
     {
@@ -99,11 +101,22 @@ export function OnBoardingOrgRolePage() {
     setSelectedRole(roleId);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (selectedRole) {
       console.log(`Selected role: ${selectedRole}`);
-      navigate("/onboarding/details");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+     
+        await createUserProfile({
+          job_title: "lead buyer",
+        });
+
+        const companiesResponse = await getCompanies();
+        if (companiesResponse.results.length > 0) {
+          setCurrentCompany(companiesResponse.results[0]);
+        }
+
+        navigate("/onboarding/details");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+     
     } else {
       toast.error("Please select a role to continue.");
     }
@@ -225,7 +238,12 @@ export function OnBoardingOrgRolePage() {
                   </div>
 
                   <div className="mt-8 flex">
-                    <Button type="submit" className="gap-6" onClick={handleSubmit}>
+                    <Button
+                      type="submit"
+                      className="gap-6"
+                      onClick={handleSubmit}
+                      disabled={loading}
+                    >
                       Continue <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
@@ -280,7 +298,7 @@ export function OnBoardingOrgDetailsPage() {
   const onSubmit = (values) => {
     console.log(values);
     navigate("/onboarding/verification");
-    window.scrollTo({ top: 0, behavior: "smooth" });    
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -753,7 +771,7 @@ export function OnBoardingOrgDetailsPage() {
 export function OnBoardingOrgVerificationPage() {
   const [files, setFiles] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const steps = [
     {
@@ -782,7 +800,6 @@ export function OnBoardingOrgVerificationPage() {
     },
   ];
 
-
   const dropZoneConfig = {
     maxFiles: 5,
     maxSize: 1024 * 1024 * 4, // 4MB
@@ -792,13 +809,13 @@ export function OnBoardingOrgVerificationPage() {
     resolver: zodResolver(orgVerDocsFormSchema),
     defaultValues: {
       orgVerDocs: [],
-    }
+    },
   });
 
-  useEffect(()=>{
-    form.setValue("orgVerDocs", files)
-  }, [files, form])
-  
+  useEffect(() => {
+    form.setValue("orgVerDocs", files);
+  }, [files, form]);
+
   const onSubmit = (values) => {
     try {
       console.log("Submitting form with values:", values);
@@ -943,7 +960,7 @@ export function OnBoardingOrgVerificationPage() {
 }
 
 export function OnBoardingOrgSubscriptionPlanPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const steps = [
     {
       icon: Building2,
@@ -1147,7 +1164,6 @@ export function OnBoardingOrgSubscriptionPlanPage() {
 }
 
 export function OnBoardingOrgAdminAccountPage() {
-
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -1185,7 +1201,7 @@ export function OnBoardingOrgAdminAccountPage() {
   const onSubmit = (values) => {
     console.log(values);
 
-    navigate('/dashboard');
+    navigate("/dashboard");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

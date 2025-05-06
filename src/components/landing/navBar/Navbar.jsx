@@ -11,7 +11,7 @@ import { assets } from "@/assets/assets";
 
 const NavBar = () => {
   // local tailwind variables
-  const { tailwindValues, token } = useContext(AppContext);
+  const {  token } = useContext(AppContext);
 
   const navigate = useNavigate();
 
