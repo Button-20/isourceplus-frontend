@@ -27,6 +27,7 @@ import TransporterPage from "./pages/TransporterPage";
 import CompanyPage from "./pages/CompanyPage";
 import CompanyChoices from "./pages/CompanyChoices";
 import LastPathTracker from "./components/util/LastPathTracker";
+import MobileVerificationPage from "./pages/MobileVerificationPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -52,6 +53,7 @@ export const appRoutes = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to={"user"} /> },
       { path: "user", element: <ProfilePage /> },
+      { path: "mobile-verification", element: <MobileVerificationPage /> },
       { path: "transporter", element: <TransporterPage /> },
       { path: "companies", element: <CompanyChoices /> },
       { path: "company", element: <CompanyPage /> },

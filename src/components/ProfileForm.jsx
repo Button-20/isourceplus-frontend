@@ -2,27 +2,62 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, Upload, User, CheckCircle, XCircle } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  User,
+  CheckCircle,
+  XCircle,
+  Shield,
+} from "lucide-react";
 import { useNavigate } from "react-router";
 
 const ProfileForm = ({ profileId }) => {
-  const { authAxios } = useAuth();
+  const { authAxios, BASE_URL } = useAuth();
   const [formValues, setFormValues] = useState({
     job_title: "",
     job_position: "",
     cell_1: "",
     cell_2: "",
     social_links: "",
+    cell_1_is_verified: false,
+    cell_2_is_verified: false,
   });
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  // Check if job title qualifies for company creation
-  const canCreateCompany = ["lead buyer", "sales manager"].includes(formValues.job_title?.toLowerCase());
+  const canCreateCompany = ["lead buyer", "sales manager"].includes(
+    formValues.job_title?.toLowerCase()
+  );
+
+  const isAdmin = formValues.job_title?.toLowerCase() === "admin";
+
+  const handleVerifyNumber = async (numberType) => {
+    const number = formValues[numberType];
+
+    if (!number) {
+      toast.error("Please enter a phone number fist");
+      return;
+    }
+
+    try {
+      await authAxios.get(
+        `send-verification-code/?phone=${encodeURIComponent(number)}`
+      );
+      navigate(
+        `/onboarding/mobile-verification/?phone=${encodeURIComponent(
+          number
+        )}&number_type=${numberType}`
+      );
+    } catch (error) {
+      console.log(error);
+      toast.error(error);
+    }
+  };
 
   useEffect(() => {
     if (!profileId) return;
@@ -37,6 +72,8 @@ const ProfileForm = ({ profileId }) => {
           cell_1: data.cell_1 || "",
           cell_2: data.cell_2 || "",
           social_links: data.social_links || "",
+          cell_1_is_verified: data.cell_1_is_verified || false,
+          cell_2_is_verified: data.cell_2_is_verified || false,
         });
         if (data.profile_photo) {
           setPhotoPreview(data.profile_photo);
@@ -71,18 +108,43 @@ const ProfileForm = ({ profileId }) => {
     try {
       const data = new FormData();
       Object.entries(formValues).forEach(([key, val]) => {
-        if (val !== "") data.append(key, val);
+        if (val !== "" && !key.endsWith("_is_verified")) {
+          data.append(key, val);
+        }
       });
       if (photoFile) data.append("profile_photo", photoFile);
 
-      await authAxios.patch(
-        `user-profiles/${profileId}/`,
-        data,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+      const response = await authAxios.patch(`user-profiles/${profileId}/`, data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      toast.success("Profile updated successfully!");
-      navigate('/onboarding/companies')
+      // Check if we have unverified numbers that were just added/updated
+      const updatedCell1 = data.get("cell_1");
+      const updatedCell2 = data.get("cell_2");
+      const needsVerification =
+        (updatedCell1 && !response.data.cell_1_is_verified) ||
+        (updatedCell2 && !response.data.cell_2_is_verified);
+
+      if (needsVerification) {
+        // Redirect to verification for the first unverified number
+        const numberToVerify =
+          updatedCell1 && !response.data.cell_1_is_verified
+            ? updatedCell1
+            : updatedCell2;
+        const numberType =
+          updatedCell1 && !response.data.cell_1_is_verified
+            ? "cell_1"
+            : "cell_2";
+
+        navigate(
+          `/onboarding/mobile-verification/?phone=${encodeURIComponent(
+            numberToVerify
+          )}&number_type=${numberType}`
+        );
+      } else {
+        toast.success("Profile updated successfully!");
+        navigate("/onboarding/companies");
+      }
     } catch (error) {
       console.error("Update failed:", error);
       toast.error("Failed to update profile.");
@@ -103,21 +165,23 @@ const ProfileForm = ({ profileId }) => {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Profile Picture Section */}
       <div className="border-b border-gray-200 pb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Profile Image</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">
+          Profile Image
+        </h2>
         <div className="flex items-center space-x-6">
           <div className="relative group">
             <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
               {photoPreview ? (
-                <img 
-                  src={photoPreview} 
-                  alt="Profile" 
+                <img
+                  src={photoPreview}
+                  alt="Profile"
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <User className="w-10 h-10 text-gray-400" />
               )}
             </div>
-            <label 
+            <label
               htmlFor="profile-photo"
               className="absolute bottom-0 right-0 bg-black text-white p-1.5 rounded-full cursor-pointer hover:bg-gray-800 transition-colors"
             >
@@ -132,9 +196,11 @@ const ProfileForm = ({ profileId }) => {
             </label>
           </div>
           <div>
-            <p className="text-sm text-gray-600">JPG, GIF or PNG. Max size 2MB</p>
-            <button 
-              type="button" 
+            <p className="text-sm text-gray-600">
+              JPG, GIF or PNG. Max size 2MB
+            </p>
+            <button
+              type="button"
               className="text-sm text-red-600 hover:text-red-800 mt-2"
               onClick={() => setPhotoPreview(null)}
             >
@@ -144,29 +210,66 @@ const ProfileForm = ({ profileId }) => {
         </div>
       </div>
 
-      {/* Job Title Section with Special Notice */}
+      {/* exceptions */}
       <div className="border-b border-gray-200 pb-6">
         <div className="flex justify-between items-start mb-4">
-          <h2 className="text-lg font-medium text-gray-900">Professional Information</h2>
-          <div className={`flex items-center text-sm ${canCreateCompany ? 'text-green-600' : 'text-red-600'}`}>
-            {canCreateCompany ? (
-              <>
-                <CheckCircle className="w-4 h-4 mr-1" />
-                <span>Can create company</span>
-              </>
-            ) : (
-              <>
-                <XCircle className="w-4 h-4 mr-1" />
-                <span>Cannot create company</span>
-              </>
-            )}
+          <h2 className="text-lg font-medium text-gray-900">
+            Professional Information
+          </h2>
+          <div className="flex flex-col items-end space-y-2">
+            <div
+              className={`flex items-center text-sm ${
+                canCreateCompany ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {canCreateCompany ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  <span>Can create company</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-1" />
+                  <span>Cannot create company</span>
+                </>
+              )}
+            </div>
+            <div
+              className={`flex items-center text-sm ${
+                isAdmin ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {isAdmin ? (
+                <>
+                  <Shield className="w-4 h-4 mr-1" />
+                  <span>Can create transporter</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-1" />
+                  <span>Cannot create transporter</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-md mb-4">
-          <p className="text-sm text-blue-800">
-            <span className="font-semibold">Note:</span> Only <span className="font-semibold">"Lead Buyer"</span> or <span className="font-semibold">"Sales Manager"</span> roles can create company profiles.
-          </p>
+        <div className="space-y-4 mb-4">
+          <div className="bg-blue-50 p-4 rounded-md">
+            <p className="text-sm text-blue-800">
+              <span className="font-semibold">Note:</span> Only{" "}
+              <span className="font-semibold">"Lead Buyer"</span> or{" "}
+              <span className="font-semibold">"Sales Manager"</span> roles can
+              create company profiles.
+            </p>
+          </div>
+          <div className="bg-purple-50 p-4 rounded-md">
+            <p className="text-sm text-purple-800">
+              <span className="font-semibold">Important:</span> Only users with{" "}
+              <span className="font-semibold">"Admin"</span> role can create
+              transporter profiles.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -182,6 +285,7 @@ const ProfileForm = ({ profileId }) => {
               required
             >
               <option value="">Select your job title</option>
+              <option value="admin">Admin</option>
               <option value="lead buyer">Lead buyer</option>
               <option value="sales manager">Sales manager</option>
               <option value="sourcing_officer">Sourcing officer</option>
@@ -211,12 +315,32 @@ const ProfileForm = ({ profileId }) => {
 
       {/* Contact Information */}
       <div className="border-b border-gray-200 pb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">
+          Contact Information
+        </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Primary Phone <span className="text-red-500">*</span>
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Primary Phone <span className="text-red-500">*</span>
+              </label>
+              {formValues.cell_1 && !formValues.cell_1_is_verified && (
+                <button
+                  type="button"
+                  onClick={() => handleVerifyNumber("cell_1")}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                >
+                  Verify
+                </button>
+              )}
+              {formValues.cell_1_is_verified && (
+                <span className="inline-flex items-center text-xs text-green-600">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Verified
+                </span>
+              )}
+            </div>
+
             <input
               type="tel"
               name="cell_1"
@@ -230,9 +354,26 @@ const ProfileForm = ({ profileId }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Secondary Phone
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Secondary Phone
+              </label>
+              {formValues.cell_2 && !formValues.cell_2_is_verified && (
+                <button
+                  type="button"
+                  onClick={() => handleVerifyNumber("cell_2")}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                >
+                  Verify
+                </button>
+              )}
+              {formValues.cell_2_is_verified && (
+                <span className="inline-flex items-center text-xs text-green-600">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Verified
+                </span>
+              )}
+            </div>
             <input
               type="tel"
               name="cell_2"
@@ -248,7 +389,9 @@ const ProfileForm = ({ profileId }) => {
 
       {/* Social Links */}
       <div className="pb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Social Profiles</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">
+          Social Profiles
+        </h2>
         <div className="space-y-4">
           {/* LinkedIn */}
           <div>
@@ -262,13 +405,18 @@ const ProfileForm = ({ profileId }) => {
               <input
                 type="text"
                 name="linkedin"
-                value={formValues.social_links.includes('linkedin.com') ? 
-                      formValues.social_links.split('linkedin.com/in/')[1] || '' : ''}
+                value={
+                  formValues.social_links.includes("linkedin.com")
+                    ? formValues.social_links.split("linkedin.com/in/")[1] || ""
+                    : ""
+                }
                 onChange={(e) => {
-                  const linkedinValue = e.target.value ? `linkedin.com/in/${e.target.value}` : '';
-                  setFormValues(prev => ({
+                  const linkedinValue = e.target.value
+                    ? `linkedin.com/in/${e.target.value}`
+                    : "";
+                  setFormValues((prev) => ({
                     ...prev,
-                    social_links: linkedinValue
+                    social_links: linkedinValue,
                   }));
                 }}
                 className="flex-1 block w-full rounded-none rounded-r-md border border-gray-300 p-2 focus:ring-black focus:border-black"
@@ -289,13 +437,18 @@ const ProfileForm = ({ profileId }) => {
               <input
                 type="text"
                 name="twitter"
-                value={formValues.social_links.includes('twitter.com') ? 
-                      formValues.social_links.split('twitter.com/')[1] || '' : ''}
+                value={
+                  formValues.social_links.includes("twitter.com")
+                    ? formValues.social_links.split("twitter.com/")[1] || ""
+                    : ""
+                }
                 onChange={(e) => {
-                  const twitterValue = e.target.value ? `twitter.com/${e.target.value}` : '';
-                  setFormValues(prev => ({
+                  const twitterValue = e.target.value
+                    ? `twitter.com/${e.target.value}`
+                    : "";
+                  setFormValues((prev) => ({
                     ...prev,
-                    social_links: twitterValue
+                    social_links: twitterValue,
                   }));
                 }}
                 className="flex-1 block w-full rounded-none rounded-r-md border border-gray-300 p-2 focus:ring-black focus:border-black"

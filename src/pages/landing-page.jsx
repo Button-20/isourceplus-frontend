@@ -10,6 +10,7 @@ import Features from "@/components/security_compliance/security1";
 import Testimonial from "@/components/Testimonials/Testimonial";
 import Timeline from "@/components/timeline/Timeline";
 import { useApiContext } from "@/contexts/api.context";
+import Cookies from "js-cookie";
 import { useState, useEffect } from "react";
 
 const bgStyle = {
@@ -20,8 +21,27 @@ const bgStyle = {
   backgroundAttachment: "fixed",
 };
 
+  
+
 export function LandingPage() {
   const [backgroundFilter, setBackgroundFilter] = useState("none");
+
+  useEffect(() => {
+    // This will show all accessible cookies
+    console.log('Raw cookies:', document.cookie);
+    
+    // Manually check for your token
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('token='))
+      ?.split('=')[1];
+    console.log('Manual token check:', cookieValue);
+  }, []);
+
+  useEffect(() => {
+    console.log('All cookies:', Cookies.get());
+    console.log('token:',   Cookies.get('token'));
+  }, []);
 
   useEffect(() => {
     const updateBackgroundFilter = () => {

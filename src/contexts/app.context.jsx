@@ -1,7 +1,14 @@
 import { getCookie } from "@/utility/getCookie";
 import { registerLogoutHandler } from "@/utils/apiService";
 import axios from "axios";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import Cookies from "js-cookie";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { set } from "react-hook-form";
 import { useLocation } from "react-router";
 import { toast } from "sonner";
@@ -11,57 +18,45 @@ export const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const BASE_URL = "http://127.0.0.1:8000/api/v1/";
 
-  const authAxios = axios.create({
-    baseURL: BASE_URL,
-    withCredentials: true,
-  });
+  // ── 1) Axios instance for your protected API calls ─────────
+  const authAxios = useMemo(() => {
+    const inst = axios.create({
+      baseURL: BASE_URL,
+      withCredentials: true,
+    });
 
-  // Add request interceptor to include access token
-  authAxios.interceptors.request.use((config) => {
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // Always attach latest access token
+    inst.interceptors.request.use((cfg) => {
+      const token = localStorage.getItem("access_token");
+      if (token) cfg.headers.Authorization = `Bearer ${token}`;
+      return cfg;
+    });
 
-    // Add CSRF token for modifying requests (POST/PUT/PATCH/DELETE)
-    if (
-      ["post", "put", "patch", "delete"].includes(config.method.toLowerCase())
-    ) {
-      const csrfToken = getCookie("csrftoken");
-      if (csrfToken) {
-        config.headers["X-CSRFToken"] = csrfToken;
-      }
-    }
-
-    return config;
-  });
-
-  // Add response interceptor to handle token refresh
-  authAxios.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      const originalRequest = error.config;
-
-      if (
-        error.response?.status === 403 &&
-        error.response?.data?.code === "token_not_valid"
-      ) {
-        console.log("Access token invalid, attempting refresh...");
-        try {
-          const newToken = await refreshToken();
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          return authAxios(originalRequest);
-        } catch (refreshError) {
-          console.error("Refresh failed:", refreshError);
-          logout(); // Force re-authentication
-          return Promise.reject(
-            new Error("Session expired. Please login again.")
-          );
+    // Retry once on 403/token_invalid
+    inst.interceptors.response.use(
+      (res) => res,
+      async (err) => {
+        const orig = err.config;
+        if (
+          err.response?.status === 403 &&
+          err.response?.data?.code === "token_not_valid" &&
+          !orig._retry
+        ) {
+          orig._retry = true;
+          try {
+            const newTok = await refreshToken();
+            orig.headers.Authorization = `Bearer ${newTok}`;
+            return inst(orig);
+          } catch {
+            /* refreshAccessToken calls logout() on failure */
+          }
         }
+        return Promise.reject(err);
       }
+    );
 
-      return Promise.reject(error);
-    }
-  );
+    return inst;
+  }, []);
 
   const tailwindValues = {
     secondary: "gray-600",
@@ -130,6 +125,7 @@ export const AppProvider = ({ children }) => {
       return data;
     } catch (error) {
       const errorMessage =
+        error.response?.data?.non_field_errors?.[0] ||
         error.response?.data?.email?.[0] ||
         error.response?.data?.password1?.[0] ||
         error.response?.data?.password2?.[0] ||
@@ -150,7 +146,7 @@ export const AppProvider = ({ children }) => {
 
     try {
       // Get CSRF token from cookies (may exist from page load)
-      let csrfToken = getCookie("csrftoken");
+      let csrfToken = Cookies.get("csrftoken");
 
       // If no token, proceed anyway - the signup request will set it
       if (!csrfToken) {
@@ -250,34 +246,89 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // const refreshAccessToken = async () => {
+  //   try {
+  //     const res = await axios.post(
+  //       `${BASE_URL}account_auth/token/refresh/`,
+  //       {}, // Empty body since refresh token is in HttpOnly cookie
+  //       {
+  //         withCredentials: true,
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //         },
+  //       }
+  //     );
+
+  //     if (res.data?.access) {
+  //       const { access } = res.data;
+  //       setToken(access);
+  //       localStorage.setItem('access_token', access);
+  //       return access;
+  //     }
+  //     throw new Error('No access token in response');
+  //   } catch (error) {
+  //     console.error('Refresh failed:', error);
+  //     logout();
+  //     throw new Error('Refresh failed');
+  //   }
+  // };
+
+  // ── 4) Kick‐off one early refresh to prime CSRF & get tokens ──
+  // useEffect(() => {
+  //   refreshAccessToken().catch(() => {
+  //     /* ignore on startup */
+  //   });
+  // }, []);
+
   const refreshToken = async () => {
     try {
       console.log("Refresh token attempt. Current token:", token);
+      const csrf = getCookie("csrftoken");
       const response = await axios.post(
-        BASE_URL + "account_auth/token/refresh/",
-        {}, // Empty body since refresh token is in cookies
+        `${BASE_URL}account_auth/token/refresh/`,
+        {}, // empty body
         {
           headers: {
             "Content-Type": "application/json",
+            ...(csrf && { "X-CSRFToken": csrf }),
           },
-          withCredentials: true, // This sends cookies
+          withCredentials: true, // sends your HttpOnly refresh-cookie
         }
       );
 
       const newAccessToken = response.data.access;
       setToken(newAccessToken);
       localStorage.setItem("access_token", newAccessToken);
+      console.log("new access token.", newAccessToken);
+
       return newAccessToken;
     } catch (error) {
       // If refresh fails, logout the user
       console.error("Refresh token failed:", error);
       if (error.response?.status === 401) {
         toast.error("Session expired. Please login again.");
+        logout();
       }
       logout();
       throw error;
     }
   };
+
+  useEffect(() => {
+    if (!token) return;
+
+    const interval = setInterval(async () => {
+      try {
+        await refreshToken();
+        console.log("Token refreshed successfully");
+      } catch (error) {
+        console.error("Auto-refresh failed:", error);
+        clearInterval(interval);
+      }
+    }, 4.5 * 60 * 1000); // 4.5 minutes (before 5-minute expiry)
+
+    return () => clearInterval(interval);
+  }, [token]);
 
   const logout = async () => {
     setError(null);
@@ -358,7 +409,8 @@ export const AppProvider = ({ children }) => {
         currentCompany,
         setCurrentCompany,
         authAxios,
-        setLastPath
+        setLastPath,
+        BASE_URL
       }}
     >
       {children}
