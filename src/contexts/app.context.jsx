@@ -281,12 +281,13 @@ export const AppProvider = ({ children }) => {
   // }, []);
 
   const refreshToken = async () => {
+    const refresh = getCookie('isource-plus-refresh-token')
     try {
-      console.log("Refresh token attempt. Current token:", token);
+      // console.log("Refresh token attempt. Current token:", token);
       const csrf = getCookie("csrftoken");
       const response = await axios.post(
         `${BASE_URL}account_auth/token/refresh/`,
-        {}, // empty body
+        {refresh}, // empty body
         {
           headers: {
             "Content-Type": "application/json",
@@ -297,18 +298,20 @@ export const AppProvider = ({ children }) => {
       );
 
       const newAccessToken = response.data.access;
+      // console.log( 'response.data.access',response.data.access)
       setToken(newAccessToken);
       localStorage.setItem("access_token", newAccessToken);
-      console.log("new access token.", newAccessToken);
+      // console.log("new access token.", newAccessToken);
 
       return newAccessToken;
     } catch (error) {
       // If refresh fails, logout the user
       console.error("Refresh token failed:", error);
-      if (error.response?.status === 401) {
-        toast.error("Session expired. Please login again.");
-        logout();
-      }
+      // if (error.response?.status === 401) {
+      //   toast.error("Session expired. Please login again.");
+      //   logout();
+      // }
+       toast.error("Session expired. Please login again.");
       logout();
       throw error;
     }
@@ -320,7 +323,7 @@ export const AppProvider = ({ children }) => {
     const interval = setInterval(async () => {
       try {
         await refreshToken();
-        console.log("Token refreshed successfully");
+        // console.log("Token refreshed successfully");
       } catch (error) {
         console.error("Auto-refresh failed:", error);
         clearInterval(interval);
@@ -410,7 +413,7 @@ export const AppProvider = ({ children }) => {
         setCurrentCompany,
         authAxios,
         setLastPath,
-        BASE_URL
+        BASE_URL,refreshToken
       }}
     >
       {children}

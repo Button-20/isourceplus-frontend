@@ -11,9 +11,10 @@ import {
   Shield,
 } from "lucide-react";
 import { useNavigate } from "react-router";
+import { getCookie } from "@/utility/getCookie";
 
 const ProfileForm = ({ profileId }) => {
-  const { authAxios, BASE_URL } = useAuth();
+  const { authAxios, BASE_URL ,refreshToken} = useAuth();
   const [formValues, setFormValues] = useState({
     job_title: "",
     job_position: "",
@@ -29,6 +30,11 @@ const ProfileForm = ({ profileId }) => {
   const [fetching, setFetching] = useState(true);
 
   const navigate = useNavigate();
+
+  // refreshToken()
+
+  // const refresh = getCookie('isource-plus-refresh-token')
+  // console.log('isource-plus-refresh-token',refresh)
 
   const canCreateCompany = ["lead buyer", "sales manager"].includes(
     formValues.job_title?.toLowerCase()
