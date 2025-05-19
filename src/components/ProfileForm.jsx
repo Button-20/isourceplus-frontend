@@ -14,7 +14,7 @@ import { useNavigate } from "react-router";
 import { getCookie } from "@/utility/getCookie";
 
 const ProfileForm = ({ profileId }) => {
-  const { authAxios, BASE_URL ,refreshToken} = useAuth();
+  const { authAxios, BASE_URL, refreshToken } = useAuth();
   const [formValues, setFormValues] = useState({
     job_title: "",
     job_position: "",
@@ -112,6 +112,14 @@ const ProfileForm = ({ profileId }) => {
     setLoading(true);
 
     try {
+      // Get CSRF token from cookies (may exist from page load)
+      let csrfToken = getCookie("csrftoken");
+
+      // If no token, proceed anyway - the signup request will set it
+      if (!csrfToken) {
+        console.warn("CSRF token not found in cookies - proceeding anyway");
+      }
+
       const data = new FormData();
       Object.entries(formValues).forEach(([key, val]) => {
         if (val !== "" && !key.endsWith("_is_verified")) {
@@ -120,9 +128,16 @@ const ProfileForm = ({ profileId }) => {
       });
       if (photoFile) data.append("profile_photo", photoFile);
 
-      const response = await authAxios.patch(`user-profiles/${profileId}/`, data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await authAxios.patch(
+        `user-profiles/${profileId}/`,
+        data,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "X-CSRFToken": csrfToken,
+          },
+        }
+      );
 
       // Check if we have unverified numbers that were just added/updated
       const updatedCell1 = data.get("cell_1");
@@ -153,7 +168,7 @@ const ProfileForm = ({ profileId }) => {
       }
     } catch (error) {
       console.error("Update failed:", error);
-      toast.error("Failed to update profile.");
+      toast.error(error.response?.data?.detail || "Failed to update profile.");
     } finally {
       setLoading(false);
     }
@@ -328,7 +343,8 @@ const ProfileForm = ({ profileId }) => {
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="block text-sm font-medium text-gray-700">
-                Primary Phone <span className="text-red-500">*</span>
+                Primary Phone 
+                {/* <span className="text-red-500">*</span> */}
               </label>
               {formValues.cell_1 && !formValues.cell_1_is_verified && (
                 <button
@@ -355,7 +371,7 @@ const ProfileForm = ({ profileId }) => {
               onChange={handleChange}
               className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
               placeholder="+1234567890"
-              required
+              // required
             />
           </div>
 

@@ -1,8 +1,14 @@
-import React, { useState } from "react";
+import { useAuth } from "@/contexts/app.context";
+import React, { useEffect, useState } from "react";
 import { FaBuilding, FaTruck, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router";
 
 const CompanyChoices = () => {
+  const { authAxios } = useAuth();
+  const [profileId, setProfileId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [jobTitle, setJobTitle] = useState(null);
+
   const [selectedChoice, setSelectedChoice] = useState(null);
 
   const navigate = useNavigate();
@@ -11,19 +17,59 @@ const CompanyChoices = () => {
     setSelectedChoice(choice);
   };
 
+  useEffect(() => {
+    async function fetchProfileId() {
+      try {
+        const res = await authAxios.get("user-profiles/");
+        const profile = res.data.results[0];
+        setProfileId(profile.id);
+        console.log("profileid", profileId);
+      } catch (error) {
+        console.error("Could not fetch user profile", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProfileId();
+  }, [authAxios]);
+
+  useEffect(() => {
+    if (!profileId) return;
+
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const res = await authAxios.get(`user-profiles/${profileId}/`);
+        const data = res.data;
+        console.log("profileData", res.data.job_title);
+        setJobTitle(res.data.job_title);
+      } catch (error) {
+        console.error("Failed to load profile:", error);
+        toast.error("Failed to load profile.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [authAxios, profileId]);
+
   const handleNext = () => {
     if (selectedChoice) {
       console.log(`Selected: ${selectedChoice}`);
-      
-      if (!selectedChoice) return
-      
-      if(selectedChoice === "company") {
+
+      if (!selectedChoice) return;
+
+      if (selectedChoice === "company") {
         navigate("/onboarding/company");
       } else if (selectedChoice === "transport") {
         navigate("/onboarding/transporter");
       }
     }
   };
+
+  const isCompanyDisabled = jobTitle === "admin";
+  const isTransportDisabled =
+    jobTitle === "sales manager" || jobTitle === "lead buyer";
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -40,12 +86,22 @@ const CompanyChoices = () => {
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Company Card */}
           <div
-            className={`border-2 rounded-xl p-8 transition-all duration-300 cursor-pointer ${
-              selectedChoice === "company"
-                ? "border-black bg-gray-50 shadow-lg"
-                : "border-gray-200 hover:border-gray-400"
-            }`}
-            onClick={() => handleChoiceSelect("company")}
+            className={`
+      border-2 rounded-xl p-8 transition-all duration-300
+      ${
+        isCompanyDisabled
+          ? "opacity-50 cursor-not-allowed pointer-events-none"
+          : "cursor-pointer"
+      }
+      ${
+        selectedChoice === "company"
+          ? "border-black bg-gray-50 shadow-lg"
+          : "border-gray-200 hover:border-gray-400"
+      }
+    `}
+            onClick={() => {
+              if (!isCompanyDisabled) handleChoiceSelect("company");
+            }}
           >
             <div className="flex justify-center mb-6">
               <div
@@ -105,12 +161,22 @@ const CompanyChoices = () => {
 
           {/* Transport Company Card */}
           <div
-            className={`border-2 rounded-xl p-8 transition-all duration-300 cursor-pointer ${
-              selectedChoice === "transport"
-                ? "border-black bg-gray-50 shadow-lg"
-                : "border-gray-200 hover:border-gray-400"
-            }`}
-            onClick={() => handleChoiceSelect("transport")}
+            className={`
+      border-2 rounded-xl p-8 transition-all duration-300
+      ${
+        isTransportDisabled
+          ? "opacity-50 cursor-not-allowed pointer-events-none"
+          : "cursor-pointer"
+      }
+      ${
+        selectedChoice === "transport"
+          ? "border-black bg-gray-50 shadow-lg"
+          : "border-gray-200 hover:border-gray-400"
+      }
+    `}
+            onClick={() => {
+              if (!isTransportDisabled) handleChoiceSelect("transport");
+            }}
           >
             <div className="flex justify-center mb-6">
               <div

@@ -4,11 +4,12 @@ import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { Loader2, Upload, Check, X, Building2 } from "lucide-react";
 import { useNavigate } from "react-router";
+import { getCookie } from "@/utility/getCookie";
 
 const CompanyForm = () => {
   const { authAxios } = useAuth();
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const [values, setValues] = useState({
     name: "",
@@ -69,8 +70,14 @@ const CompanyForm = () => {
         if (file) formData.append(k, file);
       });
 
+      const csrfToken = getCookie("csrftoken");
+      console.log("cookie", csrfToken);
+
       const res = await authAxios.post("companies/", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "X-CSRFToken": csrfToken,
+        },
       });
 
       toast.success("Company registered successfully!");
@@ -93,7 +100,7 @@ const CompanyForm = () => {
       setFilePreviews({ logo: null, image_front_view: null });
     } catch (err) {
       console.error("Registration failed:", err);
-      toast.error(err.response?.data[0] || "Registration failed");
+      toast.error(err.response?.data || "Registration failed");
     } finally {
       setSubmitting(false);
     }

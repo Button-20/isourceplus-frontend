@@ -26,15 +26,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/app.context";
+import { useNavigate } from "react-router";
 
 export function NavUser({ user }) {
   const { isMobile } = useSidebar();
-  const { logout } = useAuth()
+  const { logout } = useAuth();
   const [logoutDialog, setLogoutDialog] = useState(false);
 
-  const handleLogout =async () => {
-	await logout()
-	setLogoutDialog(false);
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout();
+    setLogoutDialog(false);
   };
 
   return (
@@ -48,14 +51,22 @@ export function NavUser({ user }) {
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user?.profileImage || "https://www.flaticon.com/free-icons/avatar"} alt="profile" />
+                  <AvatarImage
+                    src={
+                      user?.profileImage ||
+                      "https://www.flaticon.com/free-icons/avatar"
+                    }
+                    alt="profile"
+                  />
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">
                     {user?.fullname || "User Name"}
                   </span>
-                  <span className="truncate text-xs">{user || "user@gmail.com"}</span>
+                  <span className="truncate text-xs">
+                    {user || "user@gmail.com"}
+                  </span>
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
               </SidebarMenuButton>
@@ -69,14 +80,22 @@ export function NavUser({ user }) {
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={user?.profileImage || "https://www.flaticon.com/free-icons/avatar"} alt="profile" />
+                    <AvatarImage
+                      src={
+                        user?.profileImage ||
+                        "https://www.flaticon.com/free-icons/avatar"
+                      }
+                      alt="profile"
+                    />
                     <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
                       {user?.fullname || "User Name"}
                     </span>
-                    <span className="truncate text-xs">{user || "user@gmail.com"}</span>
+                    <span className="truncate text-xs">
+                      {user || "user@gmail.com"}
+                    </span>
                   </div>
                 </div>
               </DropdownMenuLabel>
@@ -88,7 +107,7 @@ export function NavUser({ user }) {
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings2 />
-                  Profile Settings
+                  <span onClick={()=>navigate('/onboarding/user')}>Profile Settings</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />

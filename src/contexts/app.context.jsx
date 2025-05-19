@@ -23,6 +23,8 @@ export const AppProvider = ({ children }) => {
     const inst = axios.create({
       baseURL: BASE_URL,
       withCredentials: true,
+      xsrfCookieName: "csrftoken", // name of the cookie Django sets
+      xsrfHeaderName: "X-CSRFToken", // name of the header Django expects
     });
 
     // Always attach latest access token
@@ -281,13 +283,13 @@ export const AppProvider = ({ children }) => {
   // }, []);
 
   const refreshToken = async () => {
-    const refresh = getCookie('isource-plus-refresh-token')
+    const refresh = getCookie("isource-plus-refresh-token");
     try {
       // console.log("Refresh token attempt. Current token:", token);
       const csrf = getCookie("csrftoken");
       const response = await axios.post(
         `${BASE_URL}account_auth/token/refresh/`,
-        {refresh}, // empty body
+        { refresh }, // empty body
         {
           headers: {
             "Content-Type": "application/json",
@@ -311,7 +313,7 @@ export const AppProvider = ({ children }) => {
       //   toast.error("Session expired. Please login again.");
       //   logout();
       // }
-       toast.error("Session expired. Please login again.");
+      toast.error("Session expired. Please login again.");
       logout();
       throw error;
     }
@@ -413,7 +415,8 @@ export const AppProvider = ({ children }) => {
         setCurrentCompany,
         authAxios,
         setLastPath,
-        BASE_URL,refreshToken
+        BASE_URL,
+        refreshToken,
       }}
     >
       {children}
