@@ -28,6 +28,8 @@ import CompanyPage from "./pages/CompanyPage";
 import CompanyChoices from "./pages/CompanyChoices";
 import LastPathTracker from "./components/util/LastPathTracker";
 import MobileVerificationPage from "./pages/MobileVerificationPage";
+import EmailVerificationPage from "./pages/EmailVerificationPage";
+import EmailVerifyKeyPage from "./components/EmailVerifyKeyPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -54,6 +56,8 @@ export const appRoutes = createBrowserRouter([
       { index: true, element: <Navigate to={"user"} /> },
       { path: "user", element: <ProfilePage /> },
       { path: "mobile-verification", element: <MobileVerificationPage /> },
+      { path: "email-verification", element: <EmailVerificationPage /> },
+      { path: "email-verify/:key", element: <EmailVerifyKeyPage /> },
       { path: "transporter", element: <TransporterPage /> },
       { path: "companies", element: <CompanyChoices /> },
       { path: "company", element: <CompanyPage /> },

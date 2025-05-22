@@ -75,8 +75,12 @@ export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     return localStorage.getItem("user_email") || null;
   });
+  const [baseData, setBaseData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const [profileId, setProfileId] = useState(null);
+  const [jobTitle, setJobTitle] = useState(null);
 
   //route
   const [lastPath, setLastPath] = useState(null);
@@ -118,6 +122,7 @@ export const AppProvider = ({ children }) => {
       const data = response.data;
 
       // The response will set cookies automatically (as seen in Postman)
+      setBaseData(data);
       setUser(data.user_email);
       setToken(data.access);
 
@@ -174,6 +179,7 @@ export const AppProvider = ({ children }) => {
       const data = response.data;
 
       // The response will set cookies automatically (as seen in Postman)
+      setBaseData(data);
       setUser(data.user_email);
       setToken(data.access);
 
@@ -247,40 +253,6 @@ export const AppProvider = ({ children }) => {
       setLoading(false);
     }
   };
-
-  // const refreshAccessToken = async () => {
-  //   try {
-  //     const res = await axios.post(
-  //       `${BASE_URL}account_auth/token/refresh/`,
-  //       {}, // Empty body since refresh token is in HttpOnly cookie
-  //       {
-  //         withCredentials: true,
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //         },
-  //       }
-  //     );
-
-  //     if (res.data?.access) {
-  //       const { access } = res.data;
-  //       setToken(access);
-  //       localStorage.setItem('access_token', access);
-  //       return access;
-  //     }
-  //     throw new Error('No access token in response');
-  //   } catch (error) {
-  //     console.error('Refresh failed:', error);
-  //     logout();
-  //     throw new Error('Refresh failed');
-  //   }
-  // };
-
-  // ── 4) Kick‐off one early refresh to prime CSRF & get tokens ──
-  // useEffect(() => {
-  //   refreshAccessToken().catch(() => {
-  //     /* ignore on startup */
-  //   });
-  // }, []);
 
   const refreshToken = async () => {
     const refresh = getCookie("isource-plus-refresh-token");
@@ -362,6 +334,7 @@ export const AppProvider = ({ children }) => {
       );
 
       // The response will set cookies automatically (as seen in Postman)
+      setBaseData(null);
       setUser(null);
       setToken(null);
 
@@ -392,6 +365,22 @@ export const AppProvider = ({ children }) => {
     registerLogoutHandler(logout);
   }, [logout]);
 
+  const fetchProfileId = async () => {
+    setLoading(true);
+    try {
+      const res = await authAxios.get("user-profiles/");
+      const profile = res.data.results[0];
+      console.log("profiles", profile);
+      setProfileId(profile.id);
+      setJobTitle(profile.job_title);
+      // useeffect for this console.log("profileid", profileId);
+    } catch (error) {
+      console.error("Could not fetch user profile", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -403,6 +392,7 @@ export const AppProvider = ({ children }) => {
         setToken,
         user,
         setUser,
+        setBaseData,
         loading,
         setLoading,
         signup,
@@ -417,6 +407,9 @@ export const AppProvider = ({ children }) => {
         setLastPath,
         BASE_URL,
         refreshToken,
+        jobTitle,
+        setJobTitle,
+        fetchProfileId,
       }}
     >
       {children}

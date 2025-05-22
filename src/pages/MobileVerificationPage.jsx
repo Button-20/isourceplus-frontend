@@ -19,10 +19,10 @@ const MobileVerificationPage = () => {
   const numberType = searchParams.get('number_type');
 
   useEffect(() => {
-    if (!phoneNumber) {
-      navigate('/onboarding/user');
-      return;
-    }
+    // if (!phoneNumber) {
+    //   navigate('/onboarding/user');
+    //   return;
+    // }
 
     // Start countdown for resend
     const timer = setInterval(() => {

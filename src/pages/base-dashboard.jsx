@@ -4,8 +4,8 @@ import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import { Link } from "react-router-dom";
-import { Home, Truck, ShoppingCart } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { Home, Truck, ShoppingCart, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import {
   Sidebar,
@@ -18,29 +18,61 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/app.context";
+import { FaSalesforce } from "react-icons/fa";
+import { MdAdminPanelSettings } from "react-icons/md";
 
 export function BaseDashBoard() {
-  const {user,token} = useAuth();
-  const location = useLocation()
+  const {
+    user,
+    token,
+    authAxios,
+    fetchProfileId,
+    loading,
+    setLoading,
+    jobTitle,
+    setJobTitle,
+  } = useAuth();
+  const [profileId, setProfileId] = useState(null);
 
-  
+  const location = useLocation();
 
-  if (!user && !token  ) {
-    return <Navigate state={{from:location}} to="/login" replace />; 
+  useEffect(() => {
+    fetchProfileId();
+  }, [authAxios]);
+
+  // useEffect(() => {
+  //   if (jobTitle && jobTitle !== null) {
+  //     console.log("job_title", jobTitle);
+  //   }
+  // }, [profileId]);
+
+  if (!user && !token) {
+    return <Navigate state={{ from: location }} to="/login" replace />;
   }
 
-  const user1 = { role: "buyer" };
+  const userJob = { role: "buyer" };
   const generateNavLinks = useCallback((userRole) => {
-    if (userRole === "buyer") {
-      return [{ title: "Home", url: "/dashboard/", icon: Home },];
+    if (userRole === "admin") {
+      return [
+        { title: "Home", url: "/dashboard/", icon: Home },
+        { title: "Add Employee", url: "/dashboard/", icon: Home },
+      ];
     }
 
     return [{ title: "Home", url: "/dashboard/", icon: Home }];
   }, []);
 
   const navLinks = useMemo(() => {
-    return generateNavLinks(user1.role);
-  }, [user1, generateNavLinks]);
+    return generateNavLinks(jobTitle);
+  }, [jobTitle, generateNavLinks]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black/25">
+        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -51,14 +83,19 @@ export function BaseDashBoard() {
               <SidebarMenuButton size="lg" asChild>
                 <Link to={"/dashboard"}>
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    {user1.role === "buyer" && (
+                    {jobTitle === "lead buyer" && (
                       <ShoppingCart className="size-4" />
                     )}
-                    {user1.role === "supplier" && <Truck className="size-4" />}
+                    {jobTitle === "sales manager" && (
+                      <FaSalesforce className="size-4" />
+                    )}
+                    {jobTitle === "admin" && (
+                      <MdAdminPanelSettings className="size-4" />
+                    )}
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">Source-Plus</span>
-                    <span className="truncate text-xs">{user1.role}</span>
+                    <span className="truncate text-xs">{jobTitle}</span>
                   </div>
                 </Link>
               </SidebarMenuButton>

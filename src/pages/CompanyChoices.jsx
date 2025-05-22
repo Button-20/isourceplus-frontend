@@ -22,6 +22,8 @@ const CompanyChoices = () => {
       try {
         const res = await authAxios.get("user-profiles/");
         const profile = res.data.results[0];
+        // console.log("profiles", res.data.results)
+        // console.log("profiles0", profile)
         setProfileId(profile.id);
         console.log("profileid", profileId);
       } catch (error) {
@@ -41,7 +43,7 @@ const CompanyChoices = () => {
       try {
         const res = await authAxios.get(`user-profiles/${profileId}/`);
         const data = res.data;
-        console.log("profileData", res.data.job_title);
+        console.log("profileData", res.data);
         setJobTitle(res.data.job_title);
       } catch (error) {
         console.error("Failed to load profile:", error);
