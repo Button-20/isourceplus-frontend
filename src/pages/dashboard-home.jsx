@@ -20,13 +20,13 @@ export function DashBoardHome({}) {
 
 
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black/25">
-        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
-      </div>
-    );
-  }
+//   if (loading) {
+//     return (
+//       <div className="min-h-screen flex items-center justify-center bg-black/25">
+//         <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+//       </div>
+//     );
+//   }
 
   return (
     <div>

@@ -89,6 +89,9 @@ export const AppProvider = ({ children }) => {
   const [currentCompany, setCurrentCompany] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
 
+  //dashboard
+  const [sidebarLoading, setSidebarLoading] = useState(false);
+
   //profile
   const [profileLoading, setProfileLoading] = useState(true);
 
@@ -369,6 +372,7 @@ export const AppProvider = ({ children }) => {
   }, [logout]);
 
   const fetchProfileId = async () => {
+    setSidebarLoading(true);
     setLoading(true);
     setProfileLoading(true);
     try {
@@ -383,6 +387,7 @@ export const AppProvider = ({ children }) => {
     } finally {
       setProfileLoading(false);
       setLoading(false);
+      setSidebarLoading(false);
     }
   };
 
@@ -421,6 +426,8 @@ export const AppProvider = ({ children }) => {
         fetchProfileId,
         profileLoading,
         setProfileLoading,
+        setSidebarLoading,
+        sidebarLoading,
       }}
     >
       {children}

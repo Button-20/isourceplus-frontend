@@ -9,7 +9,6 @@ import Pricing from "@/components/Pricing";
 import Features from "@/components/security_compliance/security1";
 import Testimonial from "@/components/Testimonials/Testimonial";
 import Timeline from "@/components/timeline/Timeline";
-import { useApiContext } from "@/contexts/api.context";
 import Cookies from "js-cookie";
 import { useState, useEffect } from "react";
 

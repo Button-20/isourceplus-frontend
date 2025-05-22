@@ -19,23 +19,21 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/app.context";
 import { FaPeopleArrows, FaSalesforce } from "react-icons/fa";
-import { MdAdd, MdAdminPanelSettings, MdPeopleAlt, MdPeopleOutline, MdPersonAdd, MdPersonAddAlt } from "react-icons/md";
+import {
+  MdAdd,
+  MdAdminPanelSettings,
+  MdPeopleAlt,
+  MdPeopleOutline,
+  MdPersonAdd,
+  MdPersonAddAlt,
+} from "react-icons/md";
 
 export function BaseDashBoard() {
-  const {
-    user,
-    token,
-    loading,
-    jobTitle,
-  } = useAuth();
+  const { user, token, loading, jobTitle, sidebarLoading, setSidebarLoading } =
+    useAuth();
   const [profileId, setProfileId] = useState(null);
 
   const location = useLocation();
-  
-  if (!user && !token) {
-    return <Navigate state={{ from: location }} to="/login" replace />;
-  }
-
 
   // useEffect(() => {
   //   if (jobTitle && jobTitle !== null) {
@@ -43,18 +41,20 @@ export function BaseDashBoard() {
   //   }
   // }, [profileId]);
 
-
-  const userJob = { role: "buyer" };
   const generateNavLinks = useCallback((userRole) => {
-    if (userRole === "admin") {
+   
       return [
         { title: "Home", url: "/dashboard/", icon: Home },
-        { title: "Add Employee", url: "/dashboard/employee/new/", icon: MdPersonAddAlt },
+        {
+          title: "Add Employee",
+          url: "/dashboard/employee/new/",
+          icon: MdPersonAddAlt,
+        },
         { title: "Employees", url: "/employees", icon: MdPersonAddAlt },
       ];
-    }
+    
 
-    return [{ title: "Home", url: "/dashboard", icon: Home }];
+   
   }, []);
 
   const navLinks = useMemo(() => {
@@ -63,55 +63,75 @@ export function BaseDashBoard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black/25">
-        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+      <div className=" flex">
+        loading dashboard<Loader2 className="animate-spin h-8 w-8 text-gray-500" />
       </div>
     );
   }
 
+  if (!user && !token) {
+    return <Navigate state={{ from: location }} to="/login" replace />;
+  }
+
   return (
-    <SidebarProvider>
+      <SidebarProvider>
+      {/* Sidebar with loading state */}
       <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild>
-                <Link to={"/dashboard"}>
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    {jobTitle === "lead buyer" && (
-                      <ShoppingCart className="size-4" />
-                    )}
-                    {jobTitle === "sales manager" && (
-                      <FaSalesforce className="size-4" />
-                    )}
-                    {jobTitle === "admin" && (
-                      <MdAdminPanelSettings className="size-4" />
-                    )}
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">Source-Plus</span>
-                    <span className="truncate text-xs">{jobTitle}</span>
-                  </div>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
+        {sidebarLoading ? (
+          <div className="flex h-full w-full items-center justify-center bg-sidebar-background">
+            <Loader2 className="animate-spin h-8 w-8 text-sidebar-foreground" />
+          </div>
+        ) : (
+          <>
+            <SidebarHeader>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton size="lg" asChild>
+                    <Link to={"/dashboard"}>
+                      <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                        {jobTitle === "lead buyer" && (
+                          <ShoppingCart className="size-4" />
+                        )}
+                        {jobTitle === "sales manager" && (
+                          <FaSalesforce className="size-4" />
+                        )}
+                        {jobTitle === "admin" && (
+                          <MdAdminPanelSettings className="size-4" />
+                        )}
+                      </div>
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-semibold">Source-Plus</span>
+                        <span className="truncate text-xs">{jobTitle}</span>
+                      </div>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarHeader>
 
-        <SidebarContent>
-          <NavMain items={navLinks} />
-          <NavSecondary className="mt-auto" />
-        </SidebarContent>
+            <SidebarContent>
+              <NavMain items={navLinks} />
+              <NavSecondary className="mt-auto" />
+            </SidebarContent>
 
-        <SidebarFooter>
-          <NavUser user={user} />
-        </SidebarFooter>
+            <SidebarFooter>
+              <NavUser user={user} />
+            </SidebarFooter>
+          </>
+        )}
       </Sidebar>
 
+      {/* Main content area - always visible */}
       <main style={{ width: "100%" }}>
         <SidebarTrigger className="m-5 mb-0" />
         <div className="p-5 pt-5">
-          <Outlet />
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </div>
       </main>
 
