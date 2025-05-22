@@ -30,6 +30,8 @@ import LastPathTracker from "./components/util/LastPathTracker";
 import MobileVerificationPage from "./pages/MobileVerificationPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
 import EmailVerifyKeyPage from "./components/EmailVerifyKeyPage";
+import AddNewEmployeePage from "./pages/AddNewEmployeePage";
+import AddExistingEmployeePage from "./pages/AddExistingEmployeePage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -38,7 +40,12 @@ export const appRoutes = createBrowserRouter([
   { path: "/about", element: <AboutPage /> },
 
   {
-    element: <><LastPathTracker/><ProtectedAuthRoute /></>,
+    element: (
+      <>
+        <LastPathTracker />
+        <ProtectedAuthRoute />
+      </>
+    ),
     children: [
       { path: "/login", element: <LoginPage /> },
       { path: "/signup", element: <SignUpPage /> },
@@ -70,7 +77,11 @@ export const appRoutes = createBrowserRouter([
   {
     path: "/dashboard",
     element: <BaseDashBoard />,
-    children: [{ index: true, element: <DashBoardHome /> }],
+    children: [
+      { index: true, element: <DashBoardHome /> },
+      { path: "employee/new", element: <AddNewEmployeePage /> },
+      { path: "employee/existing", element: <AddExistingEmployeePage /> },
+    ],
   },
   { path: "/watch-now", element: <WatchNow /> },
 ]);

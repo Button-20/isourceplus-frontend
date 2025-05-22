@@ -89,6 +89,9 @@ export const AppProvider = ({ children }) => {
   const [currentCompany, setCurrentCompany] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
 
+  //profile
+  const [profileLoading, setProfileLoading] = useState(true);
+
   const signup = async (email, password1, password2) => {
     setError(null);
     setLoading(true);
@@ -367,6 +370,7 @@ export const AppProvider = ({ children }) => {
 
   const fetchProfileId = async () => {
     setLoading(true);
+    setProfileLoading(true);
     try {
       const res = await authAxios.get("user-profiles/");
       const profile = res.data.results[0];
@@ -377,9 +381,14 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.error("Could not fetch user profile", error);
     } finally {
+      setProfileLoading(false);
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProfileId();
+  }, [authAxios]);
 
   return (
     <AppContext.Provider
@@ -410,6 +419,8 @@ export const AppProvider = ({ children }) => {
         jobTitle,
         setJobTitle,
         fetchProfileId,
+        profileLoading,
+        setProfileLoading,
       }}
     >
       {children}

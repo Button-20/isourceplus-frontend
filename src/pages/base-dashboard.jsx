@@ -18,27 +18,24 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/app.context";
-import { FaSalesforce } from "react-icons/fa";
-import { MdAdminPanelSettings } from "react-icons/md";
+import { FaPeopleArrows, FaSalesforce } from "react-icons/fa";
+import { MdAdd, MdAdminPanelSettings, MdPeopleAlt, MdPeopleOutline, MdPersonAdd, MdPersonAddAlt } from "react-icons/md";
 
 export function BaseDashBoard() {
   const {
     user,
     token,
-    authAxios,
-    fetchProfileId,
     loading,
-    setLoading,
     jobTitle,
-    setJobTitle,
   } = useAuth();
   const [profileId, setProfileId] = useState(null);
 
   const location = useLocation();
+  
+  if (!user && !token) {
+    return <Navigate state={{ from: location }} to="/login" replace />;
+  }
 
-  useEffect(() => {
-    fetchProfileId();
-  }, [authAxios]);
 
   // useEffect(() => {
   //   if (jobTitle && jobTitle !== null) {
@@ -46,20 +43,18 @@ export function BaseDashBoard() {
   //   }
   // }, [profileId]);
 
-  if (!user && !token) {
-    return <Navigate state={{ from: location }} to="/login" replace />;
-  }
 
   const userJob = { role: "buyer" };
   const generateNavLinks = useCallback((userRole) => {
     if (userRole === "admin") {
       return [
         { title: "Home", url: "/dashboard/", icon: Home },
-        { title: "Add Employee", url: "/dashboard/", icon: Home },
+        { title: "Add Employee", url: "/dashboard/employee/new/", icon: MdPersonAddAlt },
+        { title: "Employees", url: "/employees", icon: MdPersonAddAlt },
       ];
     }
 
-    return [{ title: "Home", url: "/dashboard/", icon: Home }];
+    return [{ title: "Home", url: "/dashboard", icon: Home }];
   }, []);
 
   const navLinks = useMemo(() => {
