@@ -90,10 +90,10 @@ export const AppProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
 
   //dashboard
-  const [sidebarLoading, setSidebarLoading] = useState(false);
+  const [sidebarLoading, setSidebarLoading] = useState(true);
 
   //profile
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const signup = async (email, password1, password2) => {
     setError(null);
@@ -372,11 +372,13 @@ export const AppProvider = ({ children }) => {
   }, [logout]);
 
   const fetchProfileId = async () => {
-    setSidebarLoading(true);
-    setLoading(true);
-    setProfileLoading(true);
     try {
+      setSidebarLoading(true);
+      // setLoading(true);
       const res = await authAxios.get("user-profiles/");
+      if (res.data.results.length === 0) {
+        throw new Error("No profile found");
+      }
       const profile = res.data.results[0];
       console.log("profiles", profile);
       setProfileId(profile.id);
@@ -385,8 +387,6 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.error("Could not fetch user profile", error);
     } finally {
-      setProfileLoading(false);
-      setLoading(false);
       setSidebarLoading(false);
     }
   };

@@ -56,6 +56,14 @@ const CompanyChoices = () => {
   }, [authAxios, profileId]);
 
   const handleNext = () => {
+    if (
+      !companyAllowed.includes(jobTitle) &&
+      !transportAllowed.includes(jobTitle)
+    ) {
+      navigate("/dashboard");
+      return;
+    }
+
     if (selectedChoice) {
       console.log(`Selected: ${selectedChoice}`);
 
@@ -69,9 +77,15 @@ const CompanyChoices = () => {
     }
   };
 
-  const isCompanyDisabled = jobTitle === "admin";
-  const isTransportDisabled =
-    jobTitle === "sales manager" || jobTitle === "lead buyer";
+  // const isCompanyDisabled = jobTitle === "admin";
+  // const isTransportDisabled =
+  //   jobTitle === "sales manager" || jobTitle === "lead buyer";
+
+  const transportAllowed = ["admin"];
+  const companyAllowed = ["sales manager", "lead buyer"];
+
+  const isCompanyDisabled = !companyAllowed.includes(jobTitle);
+  const isTransportDisabled = !transportAllowed.includes(jobTitle);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -191,9 +205,7 @@ const CompanyChoices = () => {
                 <FaTruck className="text-3xl" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-center mb-4">
-              Transport Company
-            </h2>
+            <h2 className="text-2xl font-bold text-center mb-4">Transporter</h2>
             <p className="text-gray-600 mb-6 text-center">
               Designed for logistics providers offering transportation services
               within the supply chain network.
@@ -243,11 +255,11 @@ const CompanyChoices = () => {
         <div className="mt-12 flex justify-center">
           <button
             onClick={handleNext}
-            disabled={!selectedChoice}
+            disabled={loading}
             className={`flex items-center px-6 py-3 rounded-md font-medium transition-colors ${
-              selectedChoice
-                ? "bg-black text-white hover:bg-gray-800"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              // selectedChoice
+                "bg-black text-white hover:bg-gray-800"
+                // : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
             Continue <FaChevronRight className="ml-2" />

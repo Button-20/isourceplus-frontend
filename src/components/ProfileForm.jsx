@@ -296,14 +296,14 @@ const ProfileForm = ({ profileId }) => {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Job Title <span className="text-red-500">*</span>
+              Job Title 
             </label>
             <select
               name="job_title"
               value={formValues.job_title}
               onChange={handleChange}
               className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
-              required
+            
             >
               <option value="">Select your job title</option>
               <option value="admin">Admin</option>

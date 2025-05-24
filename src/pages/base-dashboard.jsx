@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
@@ -29,44 +29,46 @@ import {
 } from "react-icons/md";
 
 export function BaseDashBoard() {
-  const { user, token, loading, jobTitle, sidebarLoading, setSidebarLoading } =
-    useAuth();
-  const [profileId, setProfileId] = useState(null);
+  const {
+    user,
+    token,
+    loading,
+    jobTitle,
+    sidebarLoading,
+    setSidebarLoading,
+    profileLoading,
+    authAxios,
+    fetchProfileId,
+  } = useAuth();
+  // const [profileId, setProfileId] = useState(null);
 
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   if (jobTitle && jobTitle !== null) {
-  //     console.log("job_title", jobTitle);
-  //   }
-  // }, [profileId]);
+  useEffect(() => {
+    fetchProfileId();
+  }, [authAxios]);
 
-  const generateNavLinks = useCallback((userRole) => {
-   
-      return [
-        { title: "Home", url: "/dashboard/", icon: Home },
-        {
-          title: "Add Employee",
-          url: "/dashboard/employee/new/",
-          icon: MdPersonAddAlt,
-        },
-        { title: "Employees", url: "/employees", icon: MdPersonAddAlt },
-      ];
-    
-
-   
-  }, []);
-
-  const navLinks = useMemo(() => {
-    return generateNavLinks(jobTitle);
-  }, [jobTitle, generateNavLinks]);
-
-  if (loading) {
+  if (loading || sidebarLoading) {
     return (
-      <div className=" flex">
-        loading dashboard<Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
       </div>
     );
+  }
+  let navLinks = [];
+  if (["admin", "lead buyer", "sales manager"].includes(jobTitle)) {
+    navLinks = [
+      { title: "Home", url: "/dashboard/", icon: Home },
+      {
+        title: "Add Employee",
+        url: "/dashboard/employee/new/",
+        icon: MdPersonAddAlt,
+      },
+      { title: "Employees", url: "/employees", icon: MdPersonAddAlt },
+    ];
+  } else {
+    navLinks = [{ title: "Home", url: "/dashboard/", icon: Home }];
   }
 
   if (!user && !token) {
@@ -74,7 +76,7 @@ export function BaseDashBoard() {
   }
 
   return (
-      <SidebarProvider>
+    <SidebarProvider>
       {/* Sidebar with loading state */}
       <Sidebar collapsible="icon">
         {sidebarLoading ? (
@@ -100,7 +102,9 @@ export function BaseDashBoard() {
                         )}
                       </div>
                       <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-semibold">Source-Plus</span>
+                        <span className="truncate font-semibold">
+                          Source-Plus
+                        </span>
                         <span className="truncate text-xs">{jobTitle}</span>
                       </div>
                     </Link>
