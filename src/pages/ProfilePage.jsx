@@ -5,14 +5,17 @@ import ProfileForm from "@/components/ProfileForm";
 import { Loader2, AlertCircle, Info, Bookmark, ShieldAlert } from "lucide-react";
 
 const ProfilePage = () => {
-  const { authAxios } = useAuth();
+  const { authAxios,baseData,userProfileId } = useAuth();
   const [profileId, setProfileId] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  console.log("baseData",baseData)
 
   useEffect(() => {
     async function fetchProfileId() {
       try {
         const res = await authAxios.get("user-profiles/");
+        console.log(res.data.results);
         const profile = res.data.results[0];
         setProfileId(profile.id);
       } catch (error) {
@@ -116,7 +119,7 @@ const ProfilePage = () => {
 
             {/* Main Form */}
             <div className="md:col-span-2">
-              <ProfileForm profileId={profileId} />
+              <ProfileForm profileId={userProfileId} />
             </div>
           </div>
         </div>

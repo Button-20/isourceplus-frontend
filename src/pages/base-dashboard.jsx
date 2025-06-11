@@ -4,7 +4,7 @@ import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import { Link } from "react-router-dom";
-import { Home, Truck, ShoppingCart, Loader2 } from "lucide-react";
+import { Home, Truck, ShoppingCart, Loader2, TruckIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -66,6 +66,13 @@ export function BaseDashBoard() {
         icon: MdPersonAddAlt,
       },
       { title: "Employees", url: "/employees", icon: MdPersonAddAlt },
+      {
+        title: "Branches ", icon: TruckIcon,
+        submenu: [
+          {title : "Add a Branch", url: "/dashboard/branches/new"},
+          {title : "View all Branches", url: "/dashboard/branches"},
+        ]
+      }
     ];
   } else {
     navLinks = [{ title: "Home", url: "/dashboard/", icon: Home }];

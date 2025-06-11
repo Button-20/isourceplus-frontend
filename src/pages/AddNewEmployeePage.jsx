@@ -81,7 +81,7 @@ export default function AddNewEmployeePage() {
       const data = err.response?.data || {};
       const message =
         data.detail ||
-        data.email?.[0] ||
+        data.error ||
         data.password?.[0] ||
         data.confirm_password?.[0] ||
         "Failed to create employee";
@@ -105,7 +105,9 @@ export default function AddNewEmployeePage() {
     );
   }
 
-  if (!user || !token || jobTitle !== "admin") {
+  const allowedTitles = ["admin","lead buyer","sales manager"]
+
+  if (!user || !token || !allowedTitles.includes(jobTitle) ) {
     return <Navigate to="/login" replace />;
   }
 

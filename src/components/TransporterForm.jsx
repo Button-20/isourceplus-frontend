@@ -79,64 +79,57 @@ const TransporterForm = () => {
     setFilePreviews((p) => ({ ...p, [name]: null }));
   };
 
+  const createTransporter = async () => {
+    const payload = {
+      ...values,
+      transport_mode: lists.transport_mode,
+      transport_means: lists.transport_means,
+    };
+
+    // JSON POST → DRF JSONParser sees real arrays
+    const res = await authAxios.post("transporters/", payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.data; // assume it contains { id: 42, ... }
+  };
+
+  const uploadFiles = async (transporterId) => {
+    const formData = new FormData();
+
+    // only append the files
+    Object.entries(files).forEach(([k, file]) => {
+      if (file) formData.append(k, file);
+    });
+
+    const csrfToken = getCookie("csrftoken");
+    await authAxios.patch(`transporters/${transporterId}/`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        "X-CSRFToken": csrfToken,
+      },
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
-      const formData = new FormData();
+      // 1) create transporter record (no files)
+      const created = await createTransporter();
 
-      Object.entries(values).forEach(([k, v]) => {
-        if (v) formData.append(k, v);
-      });
-
-      lists.transport_mode.forEach((mode) =>
-        formData.append("transport_mode", mode)
-      );
-      lists.transport_means.forEach((m) =>
-        formData.append("transport_means", m)
-      );
-
-      Object.entries(files).forEach(([k, file]) => {
-        if (file) formData.append(k, file);
-      });
-
-      const csrfToken = getCookie("csrftoken");
-      console.log("cookie", csrfToken)
-
-      const res = await authAxios.post("transporters/", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          "X-CSRFToken": csrfToken,
-        },
-      });
+      // 2) if any files selected, PATCH them up
+      if (files.logo || files.image_front_view || files.vehicle_image) {
+        await uploadFiles(created.id);
+      }
 
       toast.success("Transporter registered successfully!");
       navigate("/dashboard");
-
-      // Reset form
-      setValues({
-        name: "",
-        field: "",
-        type: "",
-        industry: "",
-        sector: "",
-        bio: "",
-        email: "",
-        office_line: "",
-        office_line_2: "",
-        web_address: "",
-      });
-      setLists({ transport_mode: [], transport_means: [] });
-      setFiles({ logo: null, image_front_view: null, vehicle_image: null });
-      setFilePreviews({
-        logo: null,
-        image_front_view: null,
-        vehicle_image: null,
-      });
     } catch (err) {
       console.error("Registration failed", err);
-      toast.error(err.response?.data?.detail || "Registration failed. Please try again.");
+      toast.error(
+        err.response?.data?.detail || "Registration failed. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }

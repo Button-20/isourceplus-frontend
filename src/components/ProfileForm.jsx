@@ -72,6 +72,7 @@ const ProfileForm = ({ profileId }) => {
       try {
         const res = await authAxios.get(`user-profiles/${profileId}/`);
         const data = res.data;
+        console.log("job_title raw:", data.job_title);
         setFormValues({
           job_title: data.job_title || "",
           job_position: data.job_position || "",
@@ -93,6 +94,11 @@ const ProfileForm = ({ profileId }) => {
     };
     fetchProfile();
   }, [authAxios, profileId]);
+
+  useEffect(() => {
+  console.log("job_title changed:", formValues.job_title);
+}, [formValues.job_title]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;

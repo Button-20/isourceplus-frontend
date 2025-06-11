@@ -75,6 +75,9 @@ export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     return localStorage.getItem("user_email") || null;
   });
+  const [userProfileId, setUserProfileId] = useState(() => {
+    return localStorage.getItem("profile_id") || null;
+  });
   const [baseData, setBaseData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -131,6 +134,7 @@ export const AppProvider = ({ children }) => {
       setBaseData(data);
       setUser(data.user_email);
       setToken(data.access);
+      setUserProfileId(data.profile_id);
 
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("access_token", data.access);
@@ -188,6 +192,7 @@ export const AppProvider = ({ children }) => {
       setBaseData(data);
       setUser(data.user_email);
       setToken(data.access);
+      setUserProfileId(data.profile_id);
 
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("access_token", data.access);
@@ -343,9 +348,11 @@ export const AppProvider = ({ children }) => {
       setBaseData(null);
       setUser(null);
       setToken(null);
+      setUserProfileId(null);
 
       localStorage.removeItem("user_email");
       localStorage.removeItem("access_token");
+      localStorage.removeItem("user_profile");
 
       toast.success("Logout successful.");
 
@@ -406,7 +413,10 @@ export const AppProvider = ({ children }) => {
         setToken,
         user,
         setUser,
+        userProfileId,
+        setUserProfileId,
         setBaseData,
+        baseData,
         loading,
         setLoading,
         signup,
