@@ -92,6 +92,10 @@ export const AppProvider = ({ children }) => {
   const [currentCompany, setCurrentCompany] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
 
+  //ids
+  const [companyId, setCompanyId] = useState(() => localStorage.getItem("company_id"));
+  const [transporterId, setTransporterId] = useState(() => localStorage.getItem("transporter_id"));
+
   //dashboard
   const [sidebarLoading, setSidebarLoading] = useState(true);
 
@@ -438,6 +442,10 @@ export const AppProvider = ({ children }) => {
         setProfileLoading,
         setSidebarLoading,
         sidebarLoading,
+        companyId,
+        setCompanyId,
+        transporterId,
+        setTransporterId,
       }}
     >
       {children}

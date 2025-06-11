@@ -7,7 +7,7 @@ import { useNavigate } from "react-router";
 import { getCookie } from "@/utility/getCookie";
 
 const CompanyForm = () => {
-  const { authAxios } = useAuth();
+  const { authAxios, companyId, setCompanyId } = useAuth();
 
   const navigate = useNavigate();
 
@@ -80,8 +80,18 @@ const CompanyForm = () => {
         },
       });
 
+      const results = res.data
+
+      console.log("raw",results)
+      // console.log("name",results.name)
+      // console.log("id",results.id)
+      // console.log("url",results.url)
+
       toast.success("Company registered successfully!");
-      navigate("/dashboard");
+      setCompanyId(results.id)
+      localStorage.setItem("company_id", results.id);
+      // console.log("company id", companyId)
+      // navigate("/dashboard");
 
       // Reset form
       setValues({
@@ -105,6 +115,9 @@ const CompanyForm = () => {
       setSubmitting(false);
     }
   };
+
+      // console.log("company id2", companyId)
+
 
   return (
     <form

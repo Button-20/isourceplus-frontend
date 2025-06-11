@@ -70,9 +70,9 @@ const CompanyChoices = () => {
       if (!selectedChoice) return;
 
       if (selectedChoice === "company") {
-        navigate("/onboarding/company");
+        navigate("/dashboard/company");
       } else if (selectedChoice === "transport") {
-        navigate("/onboarding/transporter");
+        navigate("/dashboard/transporter");
       }
     }
   };

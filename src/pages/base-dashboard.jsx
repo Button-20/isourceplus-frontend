@@ -4,7 +4,7 @@ import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import { Link } from "react-router-dom";
-import { Home, Truck, ShoppingCart, Loader2, TruckIcon } from "lucide-react";
+import { Home, Truck, ShoppingCart, Loader2, TruckIcon, Building2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -60,12 +60,19 @@ export function BaseDashBoard() {
   if (["admin", "lead buyer", "sales manager"].includes(jobTitle)) {
     navLinks = [
       { title: "Home", url: "/dashboard/", icon: Home },
+      { title: "Companies & Transporters", icon: Building2 ,
+        submenu: [
+          {title: "Account Type"  ,url: "/dashboard/companies",},
+          {title: "Edit Transporter"  ,url: "/dashboard/transporter/edit"},
+          {title: "Edit Company"  ,url: "/dashboard/company/edit"}
+        ]
+      },
       {
         title: "Add Employee",
         url: "/dashboard/employee/new/",
         icon: MdPersonAddAlt,
       },
-      { title: "Employees", url: "/employees", icon: MdPersonAddAlt },
+      { title: "Employees", url: "/dashboard/employees", icon: MdPersonAddAlt },
       {
         title: "Branches ", icon: TruckIcon,
         submenu: [

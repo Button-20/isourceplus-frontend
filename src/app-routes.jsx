@@ -32,6 +32,10 @@ import EmailVerificationPage from "./pages/EmailVerificationPage";
 import EmailVerifyKeyPage from "./components/EmailVerifyKeyPage";
 import AddNewEmployeePage from "./pages/AddNewEmployeePage";
 import AddExistingEmployeePage from "./pages/AddExistingEmployeePage";
+import AddBranch from "./pages/AddBranch";
+import AllBranches from "./pages/AllBranches";
+import Employees from "./pages/Employees";
+import EditCompany from "./pages/EditCompany";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -65,9 +69,7 @@ export const appRoutes = createBrowserRouter([
       { path: "mobile-verification", element: <MobileVerificationPage /> },
       { path: "email-verification", element: <EmailVerificationPage /> },
       { path: "email-verify/:key", element: <EmailVerifyKeyPage /> },
-      { path: "transporter", element: <TransporterPage /> },
-      { path: "companies", element: <CompanyChoices /> },
-      { path: "company", element: <CompanyPage /> },
+      
       // { path: "details", element: <OnBoardingOrgDetailsPage /> },
       // { path: "verification", element: <OnBoardingOrgVerificationPage /> },
       // { path: "subscription", element: <OnBoardingOrgSubscriptionPlanPage /> },
@@ -79,8 +81,15 @@ export const appRoutes = createBrowserRouter([
     element: <BaseDashBoard />,
     children: [
       { index: true, element: <DashBoardHome /> },
+      { path: "transporter", element: <TransporterPage /> },
+      { path: "companies", element: <CompanyChoices /> },
+      { path: "company", element: <CompanyPage /> },
+      { path: "company/edit", element: <EditCompany /> },
       { path: "employee/new", element: <AddNewEmployeePage /> },
       { path: "employee/existing", element: <AddExistingEmployeePage /> },
+      { path: "branches/new", element: <AddBranch /> },
+      { path: "branches", element: <AllBranches /> },
+      { path: "employees", element: <Employees /> },
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },

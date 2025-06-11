@@ -170,7 +170,7 @@ const ProfileForm = ({ profileId }) => {
         );
       } else {
         toast.success("Profile updated successfully!");
-        navigate("/onboarding/companies");
+        navigate("/dashboard");
       }
     } catch (error) {
       console.error("Update failed:", error);
