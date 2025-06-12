@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
+import { getCookie } from "@/utility/getCookie";
 
 const AddBranch = () => {
   const { authAxios, BASE_URL, primaryBtn } = useAuth();
@@ -61,7 +62,13 @@ const AddBranch = () => {
     };
 
     try {
-      await authAxios.post("branches/", payload);
+      const csrfToken = getCookie("csrftoken");
+
+      await authAxios.post("branches/", payload, {
+        headers: {
+          "X-CSRFToken": csrfToken,
+        },
+      });
       toast.success("Branch added successfully!");
       // optionally: clear form
       setName("");
@@ -76,7 +83,8 @@ const AddBranch = () => {
       setGps("");
       setStreetAddress("");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Error adding branch");
+        console.error(err)
+      toast.error(err.response?.data?.detail || err.response?.data?.location?.non_field_errors[0] || "Error adding branch");
     } finally {
       setSubmitting(false);
     }
@@ -94,7 +102,6 @@ const AddBranch = () => {
             type="text"
             value={name}
             onChange={handleNameChange}
-            
             className="w-full border px-3 py-2 rounded"
             placeholder="e.g. Accra Central"
           />
@@ -145,7 +152,6 @@ const AddBranch = () => {
               <select
                 value={region}
                 onChange={handleRegionChange}
-                
                 className="w-full border px-3 py-2 rounded"
               >
                 <option value="">Select region</option>
@@ -157,7 +163,6 @@ const AddBranch = () => {
               <select
                 value={district}
                 onChange={handleDistrictChange}
-                
                 className="w-full border px-3 py-2 rounded"
               >
                 <option value="">Select district</option>
@@ -169,7 +174,6 @@ const AddBranch = () => {
               <select
                 value={city}
                 onChange={handleCityChange}
-                
                 className="w-full border px-3 py-2 rounded"
               >
                 <option value="">Select city</option>
@@ -181,7 +185,6 @@ const AddBranch = () => {
               <select
                 value={town}
                 onChange={handleTownChange}
-                
                 className="w-full border px-3 py-2 rounded"
               >
                 <option value="">Select town</option>

@@ -96,6 +96,7 @@ const TransporterForm = () => {
     console.log("results", results);
 
     setTransporterId(results.id);
+    localStorage.setItem("transporter_id", results.id);
     console.log("transporterIdin", transporterId);
 
     return res.data;
