@@ -15,7 +15,7 @@ import { useNavigate } from "react-router";
 import { getCookie } from "@/utility/getCookie";
 
 const TransporterForm = () => {
-  const { authAxios } = useAuth();
+  const { authAxios, transporterId, setTransporterId } = useAuth();
   const navigate = useNavigate();
 
   const [values, setValues] = useState({
@@ -86,12 +86,21 @@ const TransporterForm = () => {
       transport_means: lists.transport_means,
     };
 
+    const csrfToken = getCookie("csrftoken");
     // JSON POST → DRF JSONParser sees real arrays
     const res = await authAxios.post("transporters/", payload, {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
     });
-    return res.data; // assume it contains { id: 42, ... }
+
+    const results = res.data;
+    console.log("results", results);
+
+    setTransporterId(results.id);
+    console.log("transporterIdin", transporterId);
+
+    return res.data;
   };
+  console.log("transporterIdout", transporterId);
 
   const uploadFiles = async (transporterId) => {
     const formData = new FormData();

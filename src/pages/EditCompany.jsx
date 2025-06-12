@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/app.context"; // for authAxios & BASE_URL
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 import { getCookie } from "@/utility/getCookie";
 
 const EditCompany = () => {
@@ -134,7 +134,7 @@ if (!companyId) {
       });
 
       toast.success("Company updated successfully!");
-      navigate("/dashboard/company"); // or wherever you want
+    //   navigate("/dashboard");
     } catch (err) {
       toast.error(err.response?.data?.detail || "Update failed");
     } finally {
@@ -152,17 +152,39 @@ if (!companyId) {
 
   return (
     <form onSubmit={handleSubmit} className="p-6 grid md:grid-cols-3 gap-8">
-      {/* Left Sidebar (progress / instructions) */}
+      {/* Left Sidebar (copy-paste from CompanyForm) */}
       <div className="md:col-span-1">
-        {/* …you can copy the sidebar from CompanyForm verbatim… */}
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h3 className="font-medium text-gray-900 mb-3">Edit Progress</h3>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
+            <div
+              className="bg-black h-2.5 rounded-full"
+              style={{ width: "100%" }}
+            ></div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-black rounded-full mr-2"></div>
+              <span className="text-sm">Basic Info</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-black rounded-full mr-2"></div>
+              <span className="text-sm">Contact</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-black rounded-full mr-2"></div>
+              <span className="text-sm">Media</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Form */}
       <div className="md:col-span-2 space-y-6">
-        {/* Company Info */}
-        <div className="border-b pb-6">
+        {/* Company Information */}
+        <div className="border-b border-gray-200 pb-6">
           <h2 className="text-lg font-medium mb-4">Company Information</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Name */}
             <div className="sm:col-span-2">
               <label className="block mb-1">Name *</label>
@@ -170,10 +192,11 @@ if (!companyId) {
                 name="name"
                 value={values.name}
                 onChange={handleChange}
-                
+                required
                 className="w-full border rounded p-2"
               />
             </div>
+
             {/* Type */}
             <div>
               <label className="block mb-1">Type *</label>
@@ -181,7 +204,7 @@ if (!companyId) {
                 name="type"
                 value={values.type}
                 onChange={handleChange}
-                
+                required
                 className="w-full border rounded p-2"
               >
                 <option value="">Select</option>
@@ -189,20 +212,193 @@ if (!companyId) {
                 <option value="supplier">Supplier</option>
               </select>
             </div>
-            {/* Field, Industry, Sector, Bio… copy CompanyForm inputs, using values.* & handleChange */}
+
+            {/* Field */}
+            <div>
+              <label className="block mb-1">Field of Operation</label>
+              <input
+                name="field"
+                value={values.field}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                placeholder="e.g. Logistics"
+              />
+            </div>
+
+            {/* Industry */}
+            <div>
+              <label className="block mb-1">Industry</label>
+              <input
+                name="industry"
+                value={values.industry}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                placeholder="e.g. Manufacturing"
+              />
+            </div>
+
+            {/* Sector */}
+            <div>
+              <label className="block mb-1">Sector</label>
+              <input
+                name="sector"
+                value={values.sector}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                placeholder="e.g. Procurement"
+              />
+            </div>
+
+            {/* Bio */}
+            <div className="sm:col-span-2">
+              <label className="block mb-1">Company Bio</label>
+              <textarea
+                name="bio"
+                rows={3}
+                value={values.bio}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                placeholder="Tell us about your company..."
+              />
+            </div>
           </div>
         </div>
 
-        {/* Contact Info */}
-        <div className="border-b pb-6">
+        {/* Contact Information */}
+        <div className="border-b border-gray-200 pb-6">
           <h2 className="text-lg font-medium mb-4">Contact Information</h2>
-          {/* Email, office_line, office_line_2, web_address */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Email */}
+            <div className="sm:col-span-2">
+              <label className="block mb-1">Email *</label>
+              <input
+                type="email"
+                name="email"
+                value={values.email}
+                onChange={handleChange}
+                required
+                className="w-full border rounded p-2"
+              />
+            </div>
+
+            {/* Primary Phone */}
+            <div>
+              <label className="block mb-1">Primary Phone *</label>
+              <input
+                name="office_line"
+                value={values.office_line}
+                onChange={handleChange}
+                required
+                className="w-full border rounded p-2"
+                placeholder="+233..."
+              />
+            </div>
+
+            {/* Secondary Phone */}
+            <div>
+              <label className="block mb-1">Secondary Phone</label>
+              <input
+                name="office_line_2"
+                value={values.office_line_2}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                placeholder="Optional"
+              />
+            </div>
+
+            {/* Website */}
+            <div className="sm:col-span-2">
+              <label className="block mb-1">Website</label>
+              <input
+                type="url"
+                name="web_address"
+                value={values.web_address}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                placeholder="https://..."
+              />
+            </div>
+          </div>
         </div>
 
         {/* Media Uploads */}
-        <div>
+        <div className="pb-6">
           <h2 className="text-lg font-medium mb-4">Media Uploads</h2>
-          {/* Copy the file-upload blocks for logo & front view, using handleFileChange & removeFile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Logo */}
+            <div>
+              <label className="block mb-2">Company Logo</label>
+              <div className="flex items-center">
+                <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 p-4 w-full">
+                  {filePreviews.logo ? (
+                    <img
+                      src={filePreviews.logo}
+                      alt="Logo preview"
+                      className="h-20 w-20 object-contain"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <Upload className="w-6 h-6 mb-2" />
+                      <span className="text-xs">Click to upload</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    name="logo"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+                {filePreviews.logo && (
+                  <button
+                    type="button"
+                    onClick={() => removeFile("logo")}
+                    className="ml-2 text-red-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Front View */}
+            <div>
+              <label className="block mb-2">Front View Image</label>
+              <div className="flex items-center">
+                <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 p-4 w-full">
+                  {filePreviews.image_front_view ? (
+                    <img
+                      src={filePreviews.image_front_view}
+                      alt="Front view preview"
+                      className="h-20 w-20 object-contain"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <Upload className="w-6 h-6 mb-2" />
+                      <span className="text-xs">Click to upload</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    name="image_front_view"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+                {filePreviews.image_front_view && (
+                  <button
+                    type="button"
+                    onClick={() => removeFile("image_front_view")}
+                    className="ml-2 text-red-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Submit Button */}
@@ -210,7 +406,7 @@ if (!companyId) {
           <button
             type="submit"
             disabled={submitting}
-            className={`bg-black text-white py-2 px-6 rounded flex items-center disabled:opacity-50`}
+            className="bg-black text-white py-2 px-6 rounded flex items-center disabled:opacity-50"
           >
             {submitting ? (
               <>
@@ -225,6 +421,7 @@ if (!companyId) {
       </div>
     </form>
   );
+
 };
 
 export default EditCompany;
