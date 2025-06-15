@@ -22,6 +22,7 @@ import { FaPeopleArrows, FaSalesforce } from "react-icons/fa";
 import {
   MdAdd,
   MdAdminPanelSettings,
+  MdOutlinePeopleAlt,
   MdPeopleAlt,
   MdPeopleOutline,
   MdPersonAdd,
@@ -67,12 +68,19 @@ export function BaseDashBoard() {
           {title: "Edit Company"  ,url: "/dashboard/company/edit"}
         ]
       },
-      {
-        title: "Add Employee",
-        url: "/dashboard/employee/new/",
-        icon: MdPersonAddAlt,
+      { title: "Employees", icon: MdOutlinePeopleAlt ,
+        submenu: [
+          {title: "Add Employee"  ,url: "/dashboard/employee/new/",},
+          {title: "Transport employees"  ,url: "transporter/employees"},
+          {title: "Company employees"  ,url: "/dashboard/company/edit"}
+        ]
       },
-      { title: "Employees", url: "/dashboard/employees", icon: MdPersonAddAlt },
+      // {
+      //   title: "Add Employee",
+      //   url: "/dashboard/employee/new/",
+      //   icon: MdPersonAddAlt,
+      // },
+      // { title: "Employees", url: "/dashboard/employees", icon: MdPersonAddAlt },
       {
         title: "Branches ", icon: TruckIcon,
         submenu: [
