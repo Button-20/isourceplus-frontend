@@ -70,7 +70,8 @@ const AddBranch = () => {
         },
       });
       toast.success("Branch added successfully!");
-      // optionally: clear form
+      navigate('/dashboard/branches')
+
       setName("");
       setOfficeLine("");
       setOfficeLine2("");

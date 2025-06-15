@@ -37,6 +37,7 @@ import AllBranches from "./pages/AllBranches";
 import Employees from "./pages/Employees";
 import EditCompany from "./pages/EditCompany";
 import EditTransporter from "./pages/EditTransporter";
+import BranchDetails from "./pages/BranchDetails";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -91,6 +92,7 @@ export const appRoutes = createBrowserRouter([
       { path: "employee/existing", element: <AddExistingEmployeePage /> },
       { path: "branches/new", element: <AddBranch /> },
       { path: "branches", element: <AllBranches /> },
+      { path: "branches/:id", element: <BranchDetails /> },
       { path: "employees", element: <Employees /> },
     ],
   },
