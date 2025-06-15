@@ -93,8 +93,12 @@ export const AppProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
 
   //ids
-  const [companyId, setCompanyId] = useState(() => localStorage.getItem("company_id"));
-  const [transporterId, setTransporterId] = useState(() => localStorage.getItem("transporter_id"));
+  const [companyId, setCompanyId] = useState(() =>
+    localStorage.getItem("company_id")
+  );
+  const [transporterId, setTransporterId] = useState(() =>
+    localStorage.getItem("transporter_id")
+  );
 
   //dashboard
   const [sidebarLoading, setSidebarLoading] = useState(true);
@@ -142,6 +146,7 @@ export const AppProvider = ({ children }) => {
 
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("access_token", data.access);
+      localStorage.setItem("profile_id", data.profile_id);
 
       return data;
     } catch (error) {
@@ -200,6 +205,7 @@ export const AppProvider = ({ children }) => {
 
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("access_token", data.access);
+      localStorage.setItem("profile_id", data.profile_id);
 
       return data;
     } catch (error) {
@@ -357,6 +363,9 @@ export const AppProvider = ({ children }) => {
       localStorage.removeItem("user_email");
       localStorage.removeItem("access_token");
       localStorage.removeItem("user_profile");
+      localStorage.removeItem("company_id");
+      localStorage.removeItem("transporter_id");
+      localStorage.removeItem("profile_id");
 
       toast.success("Logout successful.");
 
@@ -382,30 +391,44 @@ export const AppProvider = ({ children }) => {
     registerLogoutHandler(logout);
   }, [logout]);
 
-  const fetchProfileId = async () => {
+  // const fetchProfileId = async () => {
+  //   try {
+  //     setSidebarLoading(true);
+  //     // setLoading(true);
+  //     const res = await authAxios.get("user-profiles/");
+  //     if (res.data.results.length === 0) {
+  //       throw new Error("No profile found");
+  //     }
+  //     const profile = res.data.results[0];
+  //     console.log("profiles", profile);
+  //     setProfileId(profile.id);
+  //     setJobTitle(profile.job_title);
+  //     // useeffect for this console.log("profileid", profileId);
+  //   } catch (error) {
+  //     console.error("Could not fetch user profile", error);
+  //   } finally {
+  //     setSidebarLoading(false);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   fetchProfileId();
+  // }, [authAxios]);
+
+  const fetchProfileInfo = async () => {
     try {
       setSidebarLoading(true);
       // setLoading(true);
-      const res = await authAxios.get("user-profiles/");
-      if (res.data.results.length === 0) {
-        throw new Error("No profile found");
-      }
-      const profile = res.data.results[0];
-      console.log("profiles", profile);
-      setProfileId(profile.id);
+      const res = await authAxios.get(`user-profiles/${userProfileId}`);
+
+      const profile = res.data;
       setJobTitle(profile.job_title);
-      // useeffect for this console.log("profileid", profileId);
     } catch (error) {
       console.error("Could not fetch user profile", error);
     } finally {
       setSidebarLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchProfileId();
-  }, [authAxios]);
-
   return (
     <AppContext.Provider
       value={{
@@ -437,7 +460,6 @@ export const AppProvider = ({ children }) => {
         refreshToken,
         jobTitle,
         setJobTitle,
-        fetchProfileId,
         profileLoading,
         setProfileLoading,
         setSidebarLoading,
@@ -446,6 +468,7 @@ export const AppProvider = ({ children }) => {
         setCompanyId,
         transporterId,
         setTransporterId,
+        fetchProfileInfo,
       }}
     >
       {children}

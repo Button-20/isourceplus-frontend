@@ -1,22 +1,23 @@
 import { useAuth } from "@/contexts/app.context";
-import {
-  User,
-  Mail,
-  Calendar,
-  CheckCircle,
+import { 
+  User, 
+  Mail, 
+  Calendar, 
+  CheckCircle, 
   XCircle,
   Plus,
   ArrowLeft,
   Clock,
   Activity,
   Shield,
+  Briefcase
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-const AllTransporterEmployees = () => {
-  const { authAxios, transporterId } = useAuth();
+const CompanyEmployees = () => {
+  const { authAxios,companyId } = useAuth();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,31 +28,26 @@ const AllTransporterEmployees = () => {
     const fetchEmployees = async () => {
       try {
         setLoading(true);
-        const response = await authAxios.get(
-          `transporters/${transporterId}/all-employees`
-        );
+        const response = await authAxios.get(`companies/${companyId}/all-employees`);
         setEmployees(response.data.all_employees);
       } catch (err) {
-        setError(err.message || "Failed to fetch employees");
-        toast.error(err.response.data?.detail || "Failed to load employees");
-        console.error("Error fetching employees:", err);
+        setError(err.message || 'Failed to fetch employees');
+        toast.error('Failed to load company employees');
+        console.error('Error fetching employees:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchEmployees();
-  }, [authAxios]);
+  }, [authAxios, companyId]);
 
   if (loading) {
     return (
       <div className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse"
-            >
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse">
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
@@ -81,25 +77,26 @@ const AllTransporterEmployees = () => {
     return (
       <div className="p-4">
         <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
-          <div className="text-red-500 mb-4">Error loading employees</div>
-          <button
-            onClick={() => navigate("/dashboard")}
+          <div className="text-red-500 mb-4">Error loading company employees</div>
+          <button 
+            onClick={() => navigate(-1)}
             className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center justify-center gap-2"
           >
             <ArrowLeft size={16} />
-            Back to Dashboard
+            Back to Previous Page
           </button>
         </div>
       </div>
     );
   }
 
-  const filteredEmployees = employees.filter((employee) =>
+  const filteredEmployees = employees.filter(employee =>
     employee.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "short", day: "numeric" };
+    if (!dateString) return 'Never';
+    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
@@ -107,7 +104,12 @@ const AllTransporterEmployees = () => {
     <div className="p-4">
       {/* Header with search and add button */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Team Members</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Company Employees</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {employees.length} {employees.length === 1 ? 'employee' : 'employees'} registered
+          </p>
+        </div>
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
             <input
@@ -144,15 +146,15 @@ const AllTransporterEmployees = () => {
       {filteredEmployees.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
           <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <User className="text-gray-400" size={40} />
+            <Briefcase className="text-gray-400" size={40} />
           </div>
           <h3 className="text-lg font-medium text-gray-700 mb-2">
-            {searchTerm ? "No matching employees found" : "No employees yet"}
+            {searchTerm ? 'No matching employees found' : 'No employees in this company yet'}
           </h3>
           <p className="text-gray-500 mb-4">
-            {searchTerm
-              ? "Try a different search term"
-              : "Add your first team member to get started"}
+            {searchTerm 
+              ? 'Try a different search term' 
+              : 'Add employees to build your team'}
           </p>
           <Link
             to="/dashboard/employee/new"
@@ -177,7 +179,7 @@ const AllTransporterEmployees = () => {
                   </div>
                   <div>
                     <h2 className="font-semibold text-gray-800">
-                      {employee.email.split("@")[0]}
+                      {employee.email.split('@')[0]}
                     </h2>
                     <p className="text-sm text-gray-500">{employee.email}</p>
                   </div>
@@ -193,8 +195,7 @@ const AllTransporterEmployees = () => {
                       <XCircle className="text-yellow-500" size={18} />
                     )}
                     <span className="text-sm">
-                      Email{" "}
-                      {employee.email_is_verified ? "Verified" : "Not Verified"}
+                      {employee.email_is_verified ? 'Verified' : 'Unverified'} Email
                     </span>
                   </div>
 
@@ -206,7 +207,7 @@ const AllTransporterEmployees = () => {
                       <Shield className="text-gray-400" size={18} />
                     )}
                     <span className="text-sm">
-                      {employee.is_active ? "Active" : "Inactive"} Account
+                      {employee.is_active ? 'Active' : 'Inactive'} Account
                     </span>
                   </div>
 
@@ -216,9 +217,7 @@ const AllTransporterEmployees = () => {
                     <div>
                       <p className="text-sm text-gray-500">Last Login</p>
                       <p className="text-sm font-medium">
-                        {employee.last_login
-                          ? formatDate(employee.last_login)
-                          : "Never"}
+                        {formatDate(employee.last_login)}
                       </p>
                     </div>
                   </div>
@@ -227,7 +226,7 @@ const AllTransporterEmployees = () => {
                   <div className="flex items-center gap-3">
                     <Calendar className="text-gray-500" size={18} />
                     <div>
-                      <p className="text-sm text-gray-500">Member Since</p>
+                      <p className="text-sm text-gray-500">Joined Company</p>
                       <p className="text-sm font-medium">
                         {formatDate(employee.created_at)}
                       </p>
@@ -241,7 +240,7 @@ const AllTransporterEmployees = () => {
                     to={`/dashboard/employees/${employee.id}`}
                     className="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                   >
-                    View details
+                    View profile
                     <svg
                       className="w-4 h-4"
                       fill="none"
@@ -266,4 +265,4 @@ const AllTransporterEmployees = () => {
   );
 };
 
-export default AllTransporterEmployees;
+export default CompanyEmployees;

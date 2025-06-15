@@ -5,27 +5,26 @@ import ProfileForm from "@/components/ProfileForm";
 import { Loader2, AlertCircle, Info, Bookmark, ShieldAlert } from "lucide-react";
 
 const ProfilePage = () => {
-  const { authAxios,baseData,userProfileId } = useAuth();
-  const [profileId, setProfileId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { authAxios,baseData,userProfileId,loading } = useAuth();
+  // const [profileId, setProfileId] = useState(null);
 
   console.log("baseData",baseData)
 
-  useEffect(() => {
-    async function fetchProfileId() {
-      try {
-        const res = await authAxios.get("user-profiles/");
-        console.log(res.data.results);
-        const profile = res.data.results[0];
-        setProfileId(profile.id);
-      } catch (error) {
-        console.error("Could not fetch user profile", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProfileId();
-  }, [authAxios]);
+  // useEffect(() => {
+  //   async function fetchProfileId() {
+  //     try {
+  //       const res = await authAxios.get("user-profiles/");
+  //       console.log(res.data.results);
+  //       const profile = res.data.results[0];
+  //       setProfileId(profile.id);
+  //     } catch (error) {
+  //       console.error("Could not fetch user profile", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   }
+  //   fetchProfileId();
+  // }, [authAxios]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -36,7 +35,7 @@ const ProfilePage = () => {
     </div>
   );
 
-  if (!profileId) return (
+  if (!userProfileId) return (
     <div className="max-w-lg mx-auto p-6 text-center bg-white rounded-lg shadow-sm mt-10">
       <ShieldAlert className="w-10 h-10 text-red-500 mx-auto mb-3" />
       <h2 className="text-xl font-medium">Profile Not Found</h2>

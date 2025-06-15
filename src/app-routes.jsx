@@ -8,20 +8,12 @@ import {
   ProtectedAuthRoute,
   ProtectedOnBoardingRoute,
 } from "./components/protected-routes";
-import {
-  OnBoardingOrgRolePage,
-  OnBoardingOrgDetailsPage,
-  OnBoardingOrgVerificationPage,
-  OnBoardingOrgSubscriptionPlanPage,
-  OnBoardingOrgAdminAccountPage,
-} from "./pages/onboarding-pages";
 import { BaseDashBoard } from "./pages/base-dashboard";
 import { DashBoardHome } from "./pages/dashboard-home";
 import WatchNow from "./pages/watch_now_page.pages";
 import Store from "./pages/store";
 import { ForgotPasswordPage } from "./pages/forgot-password";
 import { ResetPasswordConfirmPage } from "./pages/reset_password_confirm";
-import OnboardingPage from "./pages/OnboardingPage";
 import ProfilePage from "./pages/ProfilePage";
 import TransporterPage from "./pages/TransporterPage";
 import CompanyPage from "./pages/CompanyPage";
@@ -39,6 +31,7 @@ import EditCompany from "./pages/EditCompany";
 import EditTransporter from "./pages/EditTransporter";
 import BranchDetails from "./pages/BranchDetails";
 import AllTransporterEmployees from "./pages/TransporterEmployees";
+import CompanyEmployees from "./pages/CompanyEmployees";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -96,6 +89,7 @@ export const appRoutes = createBrowserRouter([
       { path: "branches/:id", element: <BranchDetails /> },
       { path: "employees", element: <Employees /> },
       { path: "transporter/employees", element: <AllTransporterEmployees /> },
+      { path: "company/employees", element: <CompanyEmployees /> },
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },

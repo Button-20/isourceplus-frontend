@@ -4,8 +4,7 @@ import { FaBuilding, FaTruck, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router";
 
 const CompanyChoices = () => {
-  const { authAxios } = useAuth();
-  const [profileId, setProfileId] = useState(null);
+  const { authAxios,userProfileId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [jobTitle, setJobTitle] = useState(null);
 
@@ -17,31 +16,31 @@ const CompanyChoices = () => {
     setSelectedChoice(choice);
   };
 
-  useEffect(() => {
-    async function fetchProfileId() {
-      try {
-        const res = await authAxios.get("user-profiles/");
-        const profile = res.data.results[0];
-        // console.log("profiles", res.data.results)
-        // console.log("profiles0", profile)
-        setProfileId(profile.id);
-        console.log("profileid", profileId);
-      } catch (error) {
-        console.error("Could not fetch user profile", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProfileId();
-  }, [authAxios]);
+  // useEffect(() => {
+  //   async function fetchProfileId() {
+  //     try {
+  //       const res = await authAxios.get("user-profiles/");
+  //       const profile = res.data.results[0];
+  //       // console.log("profiles", res.data.results)
+  //       // console.log("profiles0", profile)
+  //       setProfileId(profile.id);
+  //       console.log("profileid", profileId);
+  //     } catch (error) {
+  //       console.error("Could not fetch user profile", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   }
+  //   fetchProfileId();
+  // }, [authAxios]);
 
   useEffect(() => {
-    if (!profileId) return;
+    if (!userProfileId) return;
 
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const res = await authAxios.get(`user-profiles/${profileId}/`);
+        const res = await authAxios.get(`user-profiles/${userProfileId}/`);
         const data = res.data;
         console.log("profileData", res.data);
         setJobTitle(res.data.job_title);
@@ -53,7 +52,7 @@ const CompanyChoices = () => {
       }
     };
     fetchProfile();
-  }, [authAxios, profileId]);
+  }, [authAxios, userProfileId]);
 
   const handleNext = () => {
     if (

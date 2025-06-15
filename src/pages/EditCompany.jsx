@@ -48,6 +48,7 @@ if (!companyId) {
   // loading flags
   const [loading, setLoading] = useState(true); // initial GET
   const [submitting, setSubmitting] = useState(false); // PATCH
+  
 
 
 
@@ -126,12 +127,14 @@ if (!companyId) {
       // CSRF
       const csrfToken = getCookie("csrftoken");
 
-      await authAxios.patch(`companies/${companyId}/`, formData, {
+     const res =  await authAxios.patch(`companies/${companyId}/`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           "X-CSRFToken": csrfToken,
         },
       });
+
+      console.log("response: ",res.data)
 
       toast.success("Company updated successfully!");
     //   navigate("/dashboard");

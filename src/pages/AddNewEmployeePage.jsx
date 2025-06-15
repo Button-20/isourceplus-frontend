@@ -82,8 +82,7 @@ export default function AddNewEmployeePage() {
       const message =
         data.detail ||
         data.error ||
-        data.password?.[0] ||
-        data.confirm_password?.[0] ||
+       data.email[0]
         "Failed to create employee";
       toast.error(message);
       console.log(err);
@@ -92,18 +91,18 @@ export default function AddNewEmployeePage() {
     }
   };
 
-  if (profileLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-        <div className="flex flex-col items-center">
-          <Loader2 className="animate-spin h-10 w-10 text-white mb-4" />
-          <span className="text-white font-medium">
-            Loading your dashboard...
-          </span>
-        </div>
-      </div>
-    );
-  }
+  // if (profileLoading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+  //       <div className="flex flex-col items-center">
+  //         <Loader2 className="animate-spin h-10 w-10 text-white mb-4" />
+  //         <span className="text-white font-medium">
+  //           Loading your dashboard...
+  //         </span>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   const allowedTitles = ["admin","lead buyer","sales manager"]
 
@@ -211,7 +210,7 @@ export default function AddNewEmployeePage() {
             <button
               type="submit"
               disabled={profileLoading}
-              className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              className="w-full bg-black text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             >
               {profileLoading ? (
                 <>

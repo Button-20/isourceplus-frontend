@@ -4,7 +4,14 @@ import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import { Link } from "react-router-dom";
-import { Home, Truck, ShoppingCart, Loader2, TruckIcon, Building2 } from "lucide-react";
+import {
+  Home,
+  Truck,
+  ShoppingCart,
+  Loader2,
+  TruckIcon,
+  Building2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -39,7 +46,7 @@ export function BaseDashBoard() {
     setSidebarLoading,
     profileLoading,
     authAxios,
-    fetchProfileId,
+    fetchProfileInfo,
   } = useAuth();
   // const [profileId, setProfileId] = useState(null);
 
@@ -47,7 +54,7 @@ export function BaseDashBoard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchProfileId();
+    fetchProfileInfo();
   }, [authAxios]);
 
   if (loading || sidebarLoading) {
@@ -57,23 +64,56 @@ export function BaseDashBoard() {
       </div>
     );
   }
+
+  let companiesSubmenu = [
+    { title: "Account Type", url: "/dashboard/companies" },
+  ];
+
+  if (jobTitle === "admin") {
+    companiesSubmenu.push({
+      title: "Edit Transporter",
+      url: "/dashboard/transporter/edit",
+    });
+  }
+
+  if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
+    companiesSubmenu.push({
+      title: "Edit Company",
+      url: "/dashboard/company/edit",
+    });
+  }
+
+  let employeesSubmenu = [
+    { title: "Add Employee", url: "/dashboard/employee/new/" },
+  ];
+
+  if (jobTitle === "admin") {
+    employeesSubmenu.push({
+      title: "Transport employees",
+      url: "transporter/employees",
+    });
+  }
+
+  if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
+    employeesSubmenu.push({
+      title: "Company employees",
+      url: "company/employees",
+    });
+  }
+
   let navLinks = [];
   if (["admin", "lead buyer", "sales manager"].includes(jobTitle)) {
     navLinks = [
       { title: "Home", url: "/dashboard/", icon: Home },
-      { title: "Companies & Transporters", icon: Building2 ,
-        submenu: [
-          {title: "Account Type"  ,url: "/dashboard/companies",},
-          {title: "Edit Transporter"  ,url: "/dashboard/transporter/edit"},
-          {title: "Edit Company"  ,url: "/dashboard/company/edit"}
-        ]
+      {
+        title: "Companies & Transporters",
+        icon: Building2,
+        submenu: companiesSubmenu,
       },
-      { title: "Employees", icon: MdOutlinePeopleAlt ,
-        submenu: [
-          {title: "Add Employee"  ,url: "/dashboard/employee/new/",},
-          {title: "Transport employees"  ,url: "transporter/employees"},
-          {title: "Company employees"  ,url: "/dashboard/company/edit"}
-        ]
+      {
+        title: "Employees",
+        icon: MdOutlinePeopleAlt,
+        submenu: employeesSubmenu,
       },
       // {
       //   title: "Add Employee",
@@ -82,12 +122,13 @@ export function BaseDashBoard() {
       // },
       // { title: "Employees", url: "/dashboard/employees", icon: MdPersonAddAlt },
       {
-        title: "Branches ", icon: TruckIcon,
+        title: "Branches ",
+        icon: TruckIcon,
         submenu: [
-          {title : "Add a Branch", url: "/dashboard/branches/new"},
-          {title : "View all Branches", url: "/dashboard/branches"},
-        ]
-      }
+          { title: "Add a Branch", url: "/dashboard/branches/new" },
+          { title: "View all Branches", url: "/dashboard/branches" },
+        ],
+      },
     ];
   } else {
     navLinks = [{ title: "Home", url: "/dashboard/", icon: Home }];
@@ -96,6 +137,7 @@ export function BaseDashBoard() {
   if (!user && !token) {
     return <Navigate state={{ from: location }} to="/login" replace />;
   }
+  console.log("jobTitle", jobTitle);
 
   return (
     <SidebarProvider>
@@ -161,7 +203,7 @@ export function BaseDashBoard() {
         </div>
       </main>
 
-      <Toaster />
+      {/* <Toaster /> */}
     </SidebarProvider>
   );
 }

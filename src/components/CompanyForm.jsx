@@ -7,7 +7,7 @@ import { useNavigate } from "react-router";
 import { getCookie } from "@/utility/getCookie";
 
 const CompanyForm = () => {
-  const { authAxios, companyId, setCompanyId } = useAuth();
+  const { authAxios, companyId, setCompanyId, jobTitle } = useAuth();
 
   const navigate = useNavigate();
 
@@ -207,8 +207,8 @@ const CompanyForm = () => {
                 className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
               >
                 <option value="">Select type</option>
-                <option value="buyer">Buyer</option>
-                <option value="supplier">Supplier</option>
+                {jobTitle === "lead buyer" && <option value="buyer">Buyer</option>}
+                {jobTitle === "sales manager" &&<option value="supplier">Supplier</option>}
               </select>
             </div>
 
