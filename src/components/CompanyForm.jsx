@@ -110,7 +110,7 @@ const CompanyForm = () => {
       setFilePreviews({ logo: null, image_front_view: null });
     } catch (err) {
       console.error("Registration failed:", err);
-      toast.error(err.response?.data.detail || "Registration failed");
+      toast.error(err.response?.data.detail || err.response?.data[0] || "Registration failed");
     } finally {
       setSubmitting(false);
     }

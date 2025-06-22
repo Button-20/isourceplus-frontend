@@ -24,6 +24,8 @@ const CompanyEmployees = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // console.log(companyId, "Company ID in CompanyEmployees");
+
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
@@ -239,6 +241,9 @@ const CompanyEmployees = () => {
                   <Link
                     to={`/dashboard/employees/${employee.id}`}
                     className="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                    title={`View details for ${employee.email}`}
+                    aria-label={`View details for ${employee.email}`}
+                    state={{employee}}
                   >
                     View profile
                     <svg
