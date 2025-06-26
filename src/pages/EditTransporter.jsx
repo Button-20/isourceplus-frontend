@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/app.context";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Upload, X } from "lucide-react";
+import { Check, Loader2, Upload, X } from "lucide-react";
 import { getCookie } from "@/utility/getCookie";
 
 export default function EditTransporter() {
@@ -37,13 +37,11 @@ export default function EditTransporter() {
   });
   const [files, setFiles] = useState({
     logo: null,
-    image_front_view: null,
-    vehicle_image: null,
+    vehicle_images: [], // Array to store multiple vehicle image files
   });
   const [filePreviews, setFilePreviews] = useState({
     logo: null,
-    image_front_view: null,
-    vehicle_image: null,
+    vehicle_images: [], // Array to store preview URLs for vehicle images
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -71,8 +69,11 @@ export default function EditTransporter() {
         });
         setFilePreviews({
           logo: data.logo || null,
-          image_front_view: data.image_front_view || null,
-          vehicle_image: data.vehicle_image || null,
+          vehicle_images: data.vehicle_images?.map((img) => img.file) || [], // Map to array of file URLs
+        });
+        setFiles({
+          logo: null, // Files are for new uploads, not existing images
+          vehicle_images: [], // Initialize empty for new uploads
         });
       } catch {
         toast.error("Failed to load transporter data");
@@ -81,6 +82,20 @@ export default function EditTransporter() {
       }
     })();
   }, [authAxios, transporterId]);
+
+  useEffect(() => {
+    return () => {
+      // Clean up object URLs
+      filePreviews.vehicle_images.forEach((preview) => {
+        if (preview && preview.startsWith("blob:")) {
+          URL.revokeObjectURL(preview);
+        }
+      });
+      if (filePreviews.logo && filePreviews.logo.startsWith("blob:")) {
+        URL.revokeObjectURL(filePreviews.logo);
+      }
+    };
+  }, [filePreviews]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -94,24 +109,70 @@ export default function EditTransporter() {
       return { ...prev, [name]: Array.from(set) };
     });
   };
-  const handleFileChange = (e) => {
+  const handleFileChange = (e, index = null) => {
     const { name, files } = e.target;
     const file = files[0];
-    setFiles((f) => ({ ...f, [name]: file }));
-    setFilePreviews((p) => ({ ...p, [name]: URL.createObjectURL(file) }));
+    if (file) {
+      // Validate file size (<2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("File size must be under 2MB");
+        return;
+      }
+      // Validate file type (JPG, PNG)
+      if (!["image/jpeg", "image/png"].includes(file.type)) {
+        toast.error("Only JPG and PNG formats are accepted");
+        return;
+      }
+      if (name === "logo") {
+        setFiles((f) => ({ ...f, logo: file }));
+        setFilePreviews((p) => ({ ...p, logo: URL.createObjectURL(file) }));
+      } else if (name === "vehicle_image" && index !== null) {
+        setFiles((f) => {
+          const newVehicleImages = [...f.vehicle_images];
+          newVehicleImages[index] = file;
+          return { ...f, vehicle_images: newVehicleImages };
+        });
+        setFilePreviews((p) => {
+          const newPreviews = [...p.vehicle_images];
+          newPreviews[index] = URL.createObjectURL(file);
+          return { ...p, vehicle_images: newPreviews };
+        });
+      }
+    }
   };
-  const removeFile = (name) => {
-    setFiles((f) => ({ ...f, [name]: null }));
-    setFilePreviews((p) => ({ ...p, [name]: null }));
+
+  // Function to add a new vehicle image slot
+  const addVehicleImageSlot = () => {
+    setFiles((f) => ({ ...f, vehicle_images: [...f.vehicle_images, null] }));
+    setFilePreviews((p) => ({
+      ...p,
+      vehicle_images: [...p.vehicle_images, null],
+    }));
+  };
+  const removeFile = (name, index = null) => {
+    if (name === "logo") {
+      setFiles((f) => ({ ...f, logo: null }));
+      setFilePreviews((p) => ({ ...p, logo: null }));
+    } else if (name === "vehicle_image" && index !== null) {
+      setFiles((f) => {
+        const newVehicleImages = [...f.vehicle_images];
+        newVehicleImages.splice(index, 1); // Remove at index
+        return { ...f, vehicle_images: newVehicleImages };
+      });
+      setFilePreviews((p) => {
+        const newPreviews = [...p.vehicle_images];
+        newPreviews.splice(index, 1); // Remove at index
+        return { ...p, vehicle_images: newPreviews };
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-
     try {
       const csrfToken = getCookie("csrftoken");
-      // 1) patch JSON fields
+      // 1) Patch JSON fields
       await authAxios.patch(
         `transporters/${transporterId}/`,
         {
@@ -126,30 +187,33 @@ export default function EditTransporter() {
           },
         }
       );
-
-      // 2) patch files if any
+      // 2) Patch files if any
       const formData = new FormData();
-      Object.entries(files).forEach(([k, file]) => {
-        if (file) formData.append(k, file);
+      if (files.logo) {
+        formData.append("logo", files.logo);
+      }
+      files.vehicle_images.forEach((file, index) => {
+        if (file) {
+          formData.append(`vehicle_images[${index}][file]`, file);
+        }
       });
-      if (
-        formData.has("logo") ||
-        formData.has("image_front_view") ||
-        formData.has("vehicle_image")
-      ) {
-        const csrf = getCookie("csrftoken");
+      if (files.logo || files.vehicle_images.some((file) => file)) {
         await authAxios.patch(`transporters/${transporterId}/`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
-            "X-CSRFToken": csrf,
+            "X-CSRFToken": csrfToken,
           },
         });
       }
-
       toast.success("Transporter updated successfully!");
-    //   navigate("/dashboard");
+      // navigate("/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Update failed");
+      console.error("Update error:", err);
+      toast.error(
+        err.response?.data?.vehicle_images?.[0] ||
+          err.response?.data?.detail ||
+          "Update failed"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -175,6 +239,18 @@ export default function EditTransporter() {
               style={{ width: "100%" }}
             />
           </div>
+        </div>
+
+        <div
+          title="Add Business Documents"
+          className="bg-black hover:bg-gray-800 p-2 text-white mt-4 rounded-lg border"
+        >
+          <Link
+            to="/dashboard/transporter/add-business-docs"
+            className="font-medium mb-3"
+          >
+            Add Documents
+          </Link>
         </div>
       </div>
 
@@ -330,45 +406,123 @@ export default function EditTransporter() {
         {/* Media Uploads */}
         <div>
           <h2 className="text-lg font-medium mb-4">Media Uploads</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {["logo", "image_front_view", "vehicle_image"].map((name) => (
-              <div key={name}>
-                <label className="block mb-2">
-                  {name.replace("_", " ").toUpperCase()}
-                </label>
+          <p className="text-sm text-gray-600 mb-4">
+            Upload up to three vehicle images to showcase your transport means.
+          </p>
+          <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <h3 className="font-medium text-gray-900 mb-3">
+              Upload Guidelines
+            </h3>
+            <ul className="text-sm text-gray-600 space-y-2">
+              <li className="flex items-start">
+                <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                <span>Logo should be square (1:1 ratio)</span>
+              </li>
+              <li className="flex items-start">
+                <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                <span>Images must be under 2MB</span>
+              </li>
+              <li className="flex items-start">
+                <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                <span>Acceptable formats: JPG, PNG</span>
+              </li>
+            </ul>
+          </div>
+          <div className="pb-6">
+            <h2 className="text-lg font-medium mb-4">Media Uploads</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Upload a logo and as many vehicle images as needed to showcase
+              your transport means.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {/* Logo Upload */}
+              <div>
+                <label className="block mb-2">Logo</label>
                 <div className="flex items-center">
                   <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 p-4 w-full hover:bg-gray-100">
-                    {filePreviews[name] ? (
+                    {filePreviews.logo ? (
                       <img
-                        src={filePreviews[name]}
+                        src={filePreviews.logo}
+                        alt="Logo preview"
                         className="h-20 w-20 object-contain"
                       />
                     ) : (
                       <div className="text-center">
-                        <Upload className="w-6 h-6 mb-2" />
-                        <span className="text-xs">Click to upload</span>
+                        <Upload className="w-6 h-6 mb-2 text-gray-500" />
+                        <span className="text-xs text-gray-500">
+                          Click to upload logo
+                        </span>
                       </div>
                     )}
                     <input
                       type="file"
-                      name={name}
+                      name="logo"
                       accept="image/*"
-                      onChange={handleFileChange}
+                      onChange={(e) => handleFileChange(e)}
                       className="hidden"
                     />
                   </label>
-                  {filePreviews[name] && (
+                  {filePreviews.logo && (
                     <button
                       type="button"
-                      onClick={() => removeFile(name)}
-                      className="ml-2 text-red-600"
+                      onClick={() => removeFile("logo")}
+                      className="ml-2 text-red-600 hover:text-red-800"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   )}
                 </div>
               </div>
-            ))}
+              {/* Vehicle Images */}
+              {filePreviews.vehicle_images.map((preview, index) => (
+                <div key={index}>
+                  <label className="block mb-2">
+                    Vehicle Image {index + 1}
+                  </label>
+                  <div className="flex items-center">
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 p-4 w-full hover:bg-gray-100">
+                      {preview ? (
+                        <img
+                          src={preview}
+                          alt={`Vehicle preview ${index + 1}`}
+                          className="h-20 w-20 object-contain"
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <Upload className="w-6 h-6 mb-2 text-gray-500" />
+                          <span className="text-xs text-gray-500">
+                            Click to upload vehicle
+                          </span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        name="vehicle_image"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, index)}
+                        className="hidden"
+                      />
+                    </label>
+                    {preview && (
+                      <button
+                        type="button"
+                        onClick={() => removeFile("vehicle_image", index)}
+                        className="ml-2 text-red-600 hover:text-red-800"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addVehicleImageSlot}
+              className="mt-4 bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300"
+            >
+              Add Vehicle Image
+            </button>
           </div>
         </div>
 

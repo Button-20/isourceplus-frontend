@@ -1,4 +1,3 @@
-// components/TransporterForm.jsx
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
@@ -38,14 +37,16 @@ const TransporterForm = () => {
 
   const [files, setFiles] = useState({
     logo: null,
-    image_front_view: null,
     vehicle_image: null,
+    vehicle_image_2: null,
+    vehicle_image_3: null,
   });
 
   const [filePreviews, setFilePreviews] = useState({
     logo: null,
-    image_front_view: null,
     vehicle_image: null,
+    vehicle_image_2: null,
+    vehicle_image_3: null,
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -69,6 +70,16 @@ const TransporterForm = () => {
     const { name, files } = e.target;
     const file = files[0];
     if (file) {
+      // Validate file size (<2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("File size must be under 2MB");
+        return;
+      }
+      // Validate file type (JPG, PNG)
+      if (!["image/jpeg", "image/png"].includes(file.type)) {
+        toast.error("Only JPG and PNG formats are accepted");
+        return;
+      }
       setFiles((f) => ({ ...f, [name]: file }));
       setFilePreviews((p) => ({ ...p, [name]: URL.createObjectURL(file) }));
     }
@@ -87,29 +98,35 @@ const TransporterForm = () => {
     };
 
     const csrfToken = getCookie("csrftoken");
-    // JSON POST → DRF JSONParser sees real arrays
     const res = await authAxios.post("transporters/", payload, {
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
     });
 
     const results = res.data;
-    console.log("results", results);
-
     setTransporterId(results.id);
     localStorage.setItem("transporter_id", results.id);
-    console.log("transporterIdin", transporterId);
 
     return res.data;
   };
-  console.log("transporterIdout", transporterId);
 
   const uploadFiles = async (transporterId) => {
     const formData = new FormData();
 
-    // only append the files
-    Object.entries(files).forEach(([k, file]) => {
-      if (file) formData.append(k, file);
-    });
+    // Append logo separately
+    if (files.logo) {
+      formData.append("logo", files.logo);
+    }
+
+    // Append all vehicle images to the vehicle_images array
+    if (files.vehicle_image) {
+      formData.append("vehicle_images", files.vehicle_image);
+    }
+    if (files.vehicle_image_2) {
+      formData.append("vehicle_images", files.vehicle_image_2);
+    }
+    if (files.vehicle_image_3) {
+      formData.append("vehicle_images", files.vehicle_image_3);
+    }
 
     const csrfToken = getCookie("csrftoken");
     await authAxios.patch(`transporters/${transporterId}/`, formData, {
@@ -125,11 +142,14 @@ const TransporterForm = () => {
     setSubmitting(true);
 
     try {
-      // 1) create transporter record (no files)
       const created = await createTransporter();
 
-      // 2) if any files selected, PATCH them up
-      if (files.logo || files.image_front_view || files.vehicle_image) {
+      if (
+        files.logo ||
+        files.vehicle_image ||
+        files.vehicle_image_2 ||
+        files.vehicle_image_3
+      ) {
         await uploadFiles(created.id);
       }
 
@@ -138,7 +158,7 @@ const TransporterForm = () => {
     } catch (err) {
       console.error("Registration failed", err);
       toast.error(
-        err.response?.data?.detail || "Registration failed. Please try again."
+        err.response?.data || "Registration failed. Please try again."
       );
     } finally {
       setSubmitting(false);
@@ -394,8 +414,10 @@ const TransporterForm = () => {
           <h2 className="text-lg font-medium text-gray-900 mb-4">
             Media Uploads
           </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <p className="text-sm text-gray-600 mb-4">
+            Upload up to three vehicle images to showcase your transport means.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Logo
@@ -438,7 +460,7 @@ const TransporterForm = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Vehicle Image
+                Vehicle Image 1
               </label>
               <div className="flex items-center">
                 <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 p-4 w-full">
@@ -468,6 +490,86 @@ const TransporterForm = () => {
                   <button
                     type="button"
                     onClick={() => removeFile("vehicle_image")}
+                    className="ml-2 text-red-600 hover:text-red-800"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vehicle Image 2
+              </label>
+              <div className="flex items-center">
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 p-4 w-full">
+                  {filePreviews.vehicle_image_2 ? (
+                    <img
+                      src={filePreviews.vehicle_image_2}
+                      alt="Vehicle preview 2"
+                      className="h-20 w-20 object-contain"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <Upload className="w-6 h-6 text-gray-500 mx-auto mb-2" />
+                      <span className="text-xs text-gray-500">
+                        Click to upload vehicle
+                      </span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    name="vehicle_image_2"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+                {filePreviews.vehicle_image_2 && (
+                  <button
+                    type="button"
+                    onClick={() => removeFile("vehicle_image_2")}
+                    className="ml-2 text-red-600 hover:text-red-800"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vehicle Image 3
+              </label>
+              <div className="flex items-center">
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 p-4 w-full">
+                  {filePreviews.vehicle_image_3 ? (
+                    <img
+                      src={filePreviews.vehicle_image_3}
+                      alt="Vehicle preview 3"
+                      className="h-20 w-20 object-contain"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <Upload className="w-6 h-6 text-gray-500 mx-auto mb-2" />
+                      <span className="text-xs text-gray-500">
+                        Click to upload vehicle
+                      </span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    name="vehicle_image_3"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+                {filePreviews.vehicle_image_3 && (
+                  <button
+                    type="button"
+                    onClick={() => removeFile("vehicle_image_3")}
                     className="ml-2 text-red-600 hover:text-red-800"
                   >
                     <X className="w-5 h-5" />
