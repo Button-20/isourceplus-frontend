@@ -29,12 +29,15 @@ import { FaPeopleArrows, FaSalesforce } from "react-icons/fa";
 import {
   MdAdd,
   MdAdminPanelSettings,
+  MdEditDocument,
+  MdOutlineDocumentScanner,
   MdOutlinePeopleAlt,
   MdPeopleAlt,
   MdPeopleOutline,
   MdPersonAdd,
   MdPersonAddAlt,
 } from "react-icons/md";
+import { IoIosDocument, IoMdDocument } from "react-icons/io";
 
 export function BaseDashBoard() {
   const {
@@ -128,6 +131,11 @@ export function BaseDashBoard() {
           { title: "Add a Branch", url: "/dashboard/branches/new" },
           { title: "View all Branches", url: "/dashboard/branches" },
         ],
+      },
+       {
+        title: "Add ID Documents",
+        icon: MdOutlineDocumentScanner,
+        url: "dashboard/user/verification-docs"
       },
     ];
   } else {

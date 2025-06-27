@@ -34,6 +34,7 @@ import AllTransporterEmployees from "./pages/TransporterEmployees";
 import CompanyEmployees from "./pages/CompanyEmployees";
 import EmployeeDetailPage from "./components/EmployeeDetailPage";
 import AddBusinessDocs from "./pages/AddBusinessDocs";
+import ManageUserVerificationDocs from "./pages/ManageUserVerificationDocs";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -94,6 +95,7 @@ export const appRoutes = createBrowserRouter([
       { path: "employees/:id", element: <EmployeeDetailPage /> },
       { path: "transporter/employees", element: <AllTransporterEmployees /> },
       { path: "company/employees", element: <CompanyEmployees /> },
+      { path: "user/verification-docs", element: <ManageUserVerificationDocs /> },
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },
