@@ -135,7 +135,7 @@ export function BaseDashBoard() {
        {
         title: "Add ID Documents",
         icon: MdOutlineDocumentScanner,
-        url: "dashboard/user/verification-docs"
+        url: "/dashboard/user/verification-docs"
       },
     ];
   } else {

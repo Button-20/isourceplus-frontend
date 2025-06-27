@@ -6,19 +6,35 @@ import { Check, Loader2, Upload, X } from "lucide-react";
 import { getCookie } from "@/utility/getCookie";
 
 export default function EditTransporter() {
-  const { authAxios, transporterId } = useAuth();
+  const { authAxios, transporterId, setTransporterId } = useAuth();
   const navigate = useNavigate();
+  const [idLoading, setIdLoading] = useState(!transporterId);
 
-  // don’t fetch until we have transporterId
-  if (!transporterId) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading transporter info…</p>
-      </div>
-    );
-  }
+  // Fetch transporterId if missing
+  useEffect(() => {
+    if (!transporterId) {
+      (async () => {
+        try {
+          setIdLoading(true);
+          const res = await authAxios.get("users/");
+          const userData = res.data.results[0];
+          if (userData.company && userData.company.includes("/transporters/")) {
+            const id = userData.company.split("/").slice(-2)[0];
+            setTransporterId(id);
+          } else {
+            toast.error("No transporter associated with this user");
+          }
+        } catch (err) {
+          toast.error("Failed to load transporter ID");
+          console.error("Fetch user error:", err);
+        } finally {
+          setIdLoading(false);
+        }
+      })();
+    }
+  }, [authAxios, transporterId, setTransporterId]);
 
-  // form state
+  // Form state
   const [values, setValues] = useState({
     name: "",
     field: "",
@@ -37,55 +53,56 @@ export default function EditTransporter() {
   });
   const [files, setFiles] = useState({
     logo: null,
-    vehicle_images: [], // Array to store multiple vehicle image files
+    vehicle_images: [],
   });
   const [filePreviews, setFilePreviews] = useState({
     logo: null,
-    vehicle_images: [], // Array to store preview URLs for vehicle images
+    vehicle_images: [],
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // fetch existing transporter
+  // Fetch transporter data
   useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await authAxios.get(`transporters/${transporterId}/`);
-        setValues({
-          name: data.name || "",
-          field: data.field || "",
-          type: data.type || "",
-          industry: data.industry || "",
-          sector: data.sector || "",
-          bio: data.bio || "",
-          email: data.email || "",
-          office_line: data.office_line || "",
-          office_line_2: data.office_line_2 || "",
-          web_address: data.web_address || "",
-        });
-        setLists({
-          transport_mode: data.transport_mode || [],
-          transport_means: data.transport_means || [],
-        });
-        setFilePreviews({
-          logo: data.logo || null,
-          vehicle_images: data.vehicle_images?.map((img) => img.file) || [], // Map to array of file URLs
-        });
-        setFiles({
-          logo: null, // Files are for new uploads, not existing images
-          vehicle_images: [], // Initialize empty for new uploads
-        });
-      } catch {
-        toast.error("Failed to load transporter data");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    if (transporterId) {
+      (async () => {
+        try {
+          const { data } = await authAxios.get(`transporters/${transporterId}/`);
+          setValues({
+            name: data.name || "",
+            field: data.field || "",
+            type: data.type || "",
+            industry: data.industry || "",
+            sector: data.sector || "",
+            bio: data.bio || "",
+            email: data.email || "",
+            office_line: data.office_line || "",
+            office_line_2: data.office_line_2 || "",
+            web_address: data.web_address || "",
+          });
+          setLists({
+            transport_mode: data.transport_mode || [],
+            transport_means: data.transport_means || [],
+          });
+          setFilePreviews({
+            logo: data.logo || null,
+            vehicle_images: data.vehicle_images?.map((img) => img.file) || [],
+          });
+          setFiles({
+            logo: null,
+            vehicle_images: [],
+          });
+        } catch {
+          toast.error("Failed to load transporter data");
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }
   }, [authAxios, transporterId]);
 
   useEffect(() => {
     return () => {
-      // Clean up object URLs
       filePreviews.vehicle_images.forEach((preview) => {
         if (preview && preview.startsWith("blob:")) {
           URL.revokeObjectURL(preview);
@@ -113,12 +130,10 @@ export default function EditTransporter() {
     const { name, files } = e.target;
     const file = files[0];
     if (file) {
-      // Validate file size (<2MB)
       if (file.size > 2 * 1024 * 1024) {
         toast.error("File size must be under 2MB");
         return;
       }
-      // Validate file type (JPG, PNG)
       if (!["image/jpeg", "image/png"].includes(file.type)) {
         toast.error("Only JPG and PNG formats are accepted");
         return;
@@ -140,8 +155,6 @@ export default function EditTransporter() {
       }
     }
   };
-
-  // Function to add a new vehicle image slot
   const addVehicleImageSlot = () => {
     setFiles((f) => ({ ...f, vehicle_images: [...f.vehicle_images, null] }));
     setFilePreviews((p) => ({
@@ -156,12 +169,12 @@ export default function EditTransporter() {
     } else if (name === "vehicle_image" && index !== null) {
       setFiles((f) => {
         const newVehicleImages = [...f.vehicle_images];
-        newVehicleImages.splice(index, 1); // Remove at index
+        newVehicleImages.splice(index, 1);
         return { ...f, vehicle_images: newVehicleImages };
       });
       setFilePreviews((p) => {
         const newPreviews = [...p.vehicle_images];
-        newPreviews.splice(index, 1); // Remove at index
+        newPreviews.splice(index, 1);
         return { ...p, vehicle_images: newPreviews };
       });
     }
@@ -172,7 +185,6 @@ export default function EditTransporter() {
     setSubmitting(true);
     try {
       const csrfToken = getCookie("csrftoken");
-      // 1) Patch JSON fields
       await authAxios.patch(
         `transporters/${transporterId}/`,
         {
@@ -187,7 +199,6 @@ export default function EditTransporter() {
           },
         }
       );
-      // 2) Patch files if any
       const formData = new FormData();
       if (files.logo) {
         formData.append("logo", files.logo);
@@ -206,7 +217,7 @@ export default function EditTransporter() {
         });
       }
       toast.success("Transporter updated successfully!");
-      // navigate("/dashboard");
+      navigate("/dashboard");
     } catch (err) {
       console.error("Update error:", err);
       toast.error(
@@ -219,44 +230,71 @@ export default function EditTransporter() {
     }
   };
 
+  if (idLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+        <p className="ml-2 text-gray-500">Loading transporter ID…</p>
+      </div>
+    );
+  }
+
+  if (!transporterId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <p className="text-gray-500 mb-4">No transporter associated with this user.</p>
+        <Link
+          to="/dashboard/transporter/new"
+          className="bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
+        >
+          Create Transporter
+        </Link>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+        <p className="ml-2 text-gray-500">Loading transporter data…</p>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="p-6 grid md:grid-cols-3 gap-8">
-      {/* Sidebar */}
       <div className="md:col-span-1">
         <div className="bg-gray-50 p-4 rounded-lg border">
           <h3 className="font-medium mb-3">Edit Transporter</h3>
           <div className="w-full bg-gray-200 h-2.5 mb-3 rounded-full">
-            <div
-              className="bg-black h-2.5 rounded-full"
-              style={{ width: "100%" }}
-            />
+            <div className="bg-black h-2.5 rounded-full" style={{ width: "100%" }} />
           </div>
         </div>
-
-        <div
-          title="Add Business Documents"
-          className="bg-black hover:bg-gray-800 p-2 text-white mt-4 rounded-lg border"
-        >
-          <Link
-            to="/dashboard/transporter/add-business-docs"
-            className="font-medium mb-3"
-          >
+        <div title="Add Business Documents" className="bg-black hover:bg-gray-800 p-2 text-white mt-4 rounded-lg border">
+          <Link to="/dashboard/transporter/add-business-docs" className="font-medium mb-3">
             Add Documents
           </Link>
         </div>
+        <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h3 className="font-medium text-gray-900 mb-3">Upload Guidelines</h3>
+          <ul className="text-sm text-gray-600 space-y-2">
+            <li className="flex items-start">
+              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+              <span>Logo should be square (1:1 ratio)</span>
+            </li>
+            <li className="flex items-start">
+              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+              <span>Images must be under 2MB</span>
+            </li>
+            <li className="flex items-start">
+              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+              <span>Acceptable formats: JPG, PNG</span>
+            </li>
+          </ul>
+        </div>
       </div>
-
-      {/* Main form */}
       <div className="md:col-span-2 space-y-6">
-        {/* Basic Info */}
         <div>
           <h2 className="text-lg font-medium mb-4">Basic Information</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -305,8 +343,6 @@ export default function EditTransporter() {
             </div>
           </div>
         </div>
-
-        {/* Contact */}
         <div>
           <h2 className="text-lg font-medium mb-4">Contact Information</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -352,8 +388,6 @@ export default function EditTransporter() {
             </div>
           </div>
         </div>
-
-        {/* Transport Services */}
         <div>
           <h2 className="text-lg font-medium mb-4">Transport Services</h2>
           <div className="grid gap-4">
@@ -370,9 +404,7 @@ export default function EditTransporter() {
                       onChange={handleListChange}
                       className="h-4 w-4 rounded border-gray-300"
                     />
-                    <span className="ml-2">
-                      {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                    </span>
+                    <span className="ml-2">{mode.charAt(0).toUpperCase() + mode.slice(1)}</span>
                   </label>
                 ))}
               </div>
@@ -402,17 +434,13 @@ export default function EditTransporter() {
             </div>
           </div>
         </div>
-
-        {/* Media Uploads */}
         <div>
           <h2 className="text-lg font-medium mb-4">Media Uploads</h2>
           <p className="text-sm text-gray-600 mb-4">
             Upload up to three vehicle images to showcase your transport means.
           </p>
           <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="font-medium text-gray-900 mb-3">
-              Upload Guidelines
-            </h3>
+            <h3 className="font-medium text-gray-900 mb-3">Upload Guidelines</h3>
             <ul className="text-sm text-gray-600 space-y-2">
               <li className="flex items-start">
                 <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
@@ -428,44 +456,71 @@ export default function EditTransporter() {
               </li>
             </ul>
           </div>
-          <div className="pb-6">
-            <h2 className="text-lg font-medium mb-4">Media Uploads</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Upload a logo and as many vehicle images as needed to showcase
-              your transport means.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {/* Logo Upload */}
-              <div>
-                <label className="block mb-2">Logo</label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <label className="block mb-2">Logo</label>
+              <div className="flex items-center">
+                <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 p-4 w-full hover:bg-gray-100">
+                  {filePreviews.logo ? (
+                    <img
+                      src={filePreviews.logo}
+                      alt="Logo preview"
+                      className="h-20 w-20 object-contain"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <Upload className="w-6 h-6 mb-2 text-gray-500" />
+                      <span className="text-xs text-gray-500">Click to upload logo</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    name="logo"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e)}
+                    className="hidden"
+                  />
+                </label>
+                {filePreviews.logo && (
+                  <button
+                    type="button"
+                    onClick={() => removeFile("logo")}
+                    className="ml-2 text-red-600 hover:text-red-800"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+            {filePreviews.vehicle_images.map((preview, index) => (
+              <div key={index}>
+                <label className="block mb-2">Vehicle Image {index + 1}</label>
                 <div className="flex items-center">
                   <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 p-4 w-full hover:bg-gray-100">
-                    {filePreviews.logo ? (
+                    {preview ? (
                       <img
-                        src={filePreviews.logo}
-                        alt="Logo preview"
+                        src={preview}
+                        alt={`Vehicle preview ${index + 1}`}
                         className="h-20 w-20 object-contain"
                       />
                     ) : (
                       <div className="text-center">
                         <Upload className="w-6 h-6 mb-2 text-gray-500" />
-                        <span className="text-xs text-gray-500">
-                          Click to upload logo
-                        </span>
+                        <span className="text-xs text-gray-500">Click to upload vehicle</span>
                       </div>
                     )}
                     <input
                       type="file"
-                      name="logo"
+                      name="vehicle_image"
                       accept="image/*"
-                      onChange={(e) => handleFileChange(e)}
+                      onChange={(e) => handleFileChange(e, index)}
                       className="hidden"
                     />
                   </label>
-                  {filePreviews.logo && (
+                  {preview && (
                     <button
                       type="button"
-                      onClick={() => removeFile("logo")}
+                      onClick={() => removeFile("vehicle_image", index)}
                       className="ml-2 text-red-600 hover:text-red-800"
                     >
                       <X className="w-5 h-5" />
@@ -473,49 +528,7 @@ export default function EditTransporter() {
                   )}
                 </div>
               </div>
-              {/* Vehicle Images */}
-              {filePreviews.vehicle_images.map((preview, index) => (
-                <div key={index}>
-                  <label className="block mb-2">
-                    Vehicle Image {index + 1}
-                  </label>
-                  <div className="flex items-center">
-                    <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 p-4 w-full hover:bg-gray-100">
-                      {preview ? (
-                        <img
-                          src={preview}
-                          alt={`Vehicle preview ${index + 1}`}
-                          className="h-20 w-20 object-contain"
-                        />
-                      ) : (
-                        <div className="text-center">
-                          <Upload className="w-6 h-6 mb-2 text-gray-500" />
-                          <span className="text-xs text-gray-500">
-                            Click to upload vehicle
-                          </span>
-                        </div>
-                      )}
-                      <input
-                        type="file"
-                        name="vehicle_image"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, index)}
-                        className="hidden"
-                      />
-                    </label>
-                    {preview && (
-                      <button
-                        type="button"
-                        onClick={() => removeFile("vehicle_image", index)}
-                        className="ml-2 text-red-600 hover:text-red-800"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            ))}
             <button
               type="button"
               onClick={addVehicleImageSlot}
@@ -525,8 +538,6 @@ export default function EditTransporter() {
             </button>
           </div>
         </div>
-
-        {/* Submit */}
         <div className="flex justify-end pt-4 border-t">
           <button
             type="submit"
