@@ -12,7 +12,7 @@ import {
   TruckIcon,
   Building2,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import {
   Sidebar,
@@ -50,24 +50,49 @@ export function BaseDashBoard() {
     profileLoading,
     authAxios,
     fetchProfileInfo,
+    userProfileId,
   } = useAuth();
-  // const [profileId, setProfileId] = useState(null);
-
   const location = useLocation();
   const navigate = useNavigate();
+  const [profileVerified, setProfileVerified] = useState(null); // Track profile verification status
 
+  // Fetch profile info if userProfileId exists
   useEffect(() => {
-    fetchProfileInfo();
-  }, [authAxios]);
+    if (user && token && userProfileId) {
+      fetchProfileInfo();
+    }
+  }, [authAxios, userProfileId, user, token]);
 
-  if (loading || sidebarLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
-      </div>
-    );
-  }
+  // Verify profile existence
+  useEffect(() => {
+    const verifyProfile = async () => {
+      if (!user || !token || !userProfileId) {
+        setProfileVerified(false); // No profile or not authenticated
+        return;
+      }
+      try {
+        await authAxios.get(`user-profiles/${userProfileId}/`);
+        setProfileVerified(true); // Profile exists
+      } catch (error) {
+        console.error("Profile does not exist:", error);
+        setProfileVerified(false); // Profile doesn't exist
+      }
+    };
+    verifyProfile();
+  }, [userProfileId, authAxios, user, token]);
 
+  // Handle redirects
+  useEffect(() => {
+    if (!loading && !sidebarLoading) {
+      if (!user || !token) {
+        navigate("/login", { state: { from: location }, replace: true });
+      } else if (profileVerified === false) {
+        navigate("/onboarding/user", { state: { from: location }, replace: true });
+      }
+    }
+  }, [loading, sidebarLoading, user, token, profileVerified, navigate, location]);
+
+  // Build navigation links based on jobTitle
   let companiesSubmenu = [
     { title: "Account Type", url: "/dashboard/companies" },
   ];
@@ -118,12 +143,6 @@ export function BaseDashBoard() {
         icon: MdOutlinePeopleAlt,
         submenu: employeesSubmenu,
       },
-      // {
-      //   title: "Add Employee",
-      //   url: "/dashboard/employee/new/",
-      //   icon: MdPersonAddAlt,
-      // },
-      // { title: "Employees", url: "/dashboard/employees", icon: MdPersonAddAlt },
       {
         title: "Branches ",
         icon: TruckIcon,
@@ -132,24 +151,31 @@ export function BaseDashBoard() {
           { title: "View all Branches", url: "/dashboard/branches" },
         ],
       },
-       {
+      {
         title: "Add ID Documents",
         icon: MdOutlineDocumentScanner,
-        url: "/dashboard/user/verification-docs"
+        url: "/dashboard/user/verification-docs",
       },
     ];
   } else {
     navLinks = [{ title: "Home", url: "/dashboard/", icon: Home }];
   }
 
-  if (!user && !token) {
-    return <Navigate state={{ from: location }} to="/login" replace />;
+  // Render loading state or dashboard content
+  if (loading || sidebarLoading || profileVerified === null) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+      </div>
+    );
   }
-  console.log("jobTitle", jobTitle);
+
+  if (!user || !token || !profileVerified) {
+    return null; // Redirects handled by useEffect
+  }
 
   return (
     <SidebarProvider>
-      {/* Sidebar with loading state */}
       <Sidebar collapsible="icon">
         {sidebarLoading ? (
           <div className="flex h-full w-full items-center justify-center bg-sidebar-background">
@@ -184,20 +210,16 @@ export function BaseDashBoard() {
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarHeader>
-
             <SidebarContent>
               <NavMain items={navLinks} />
               <NavSecondary className="mt-auto" />
             </SidebarContent>
-
             <SidebarFooter>
               <NavUser user={user} />
             </SidebarFooter>
           </>
         )}
       </Sidebar>
-
-      {/* Main content area - always visible */}
       <main style={{ width: "100%" }}>
         <SidebarTrigger className="m-5 mb-0" />
         <div className="p-5 pt-5">
@@ -210,8 +232,6 @@ export function BaseDashBoard() {
           )}
         </div>
       </main>
-
-      {/* <Toaster /> */}
     </SidebarProvider>
   );
 }

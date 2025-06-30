@@ -76,28 +76,31 @@ export const AppProvider = ({ children }) => {
   const [profileLoading, setProfileLoading] = useState(false);
 
   // Fetch user data to get transporterId or companyId
-  const fetchUserData = async () => {
-    try {
-      setSidebarLoading(true);
-      const res = await authAxios.get("users/");
-      const userData = res.data.results[0];
-      if (userData.company) {
-        const companyUrl = userData.company;
-        const id = companyUrl.split("/").slice(-2)[0]; // Extract ID from URL
-        if (companyUrl.includes("/transporters/")) {
-          setTransporterId(id);
-        } else if (companyUrl.includes("/companies/")) {
-          setCompanyId(id);
-        }
+ const fetchUserData = async () => {
+  try {
+    setSidebarLoading(true);
+    const res = await authAxios.get("users/"); // Fetch user data
+    const userData = res.data.results[0]; // Get first user object
+    if (userData.company) { // Check if company exists
+      const companyUrl = userData.company;
+      const id = companyUrl.split("/").slice(-2)[0]; // Extract ID from URL
+      if (companyUrl.includes("/transporters/")) {
+        setTransporterId(id); // Set transporterId if URL is for transporter
+      } else if (companyUrl.includes("/companies/")) {
+        setCompanyId(id); // Set companyId if URL is for company
       }
-      setUserProfileId(userData.profile?.split("/").slice(-2)[0] || null);
-    } catch (err) {
-      console.error("Failed to fetch user data:", err);
-      toast.error("Failed to load user data");
-    } finally {
-      setSidebarLoading(false);
     }
-  };
+    const profileId = userData.profile?.split("/").slice(-2)[0] || null; // Extract profile ID
+    setUserProfileId(profileId); // Set userProfileId in state
+    return profileId; // Return profileId for navigation
+  } catch (err) {
+    console.error("Failed to fetch user data:", err);
+    toast.error("Failed to load user data");
+    return null; // Return null on error
+  } finally {
+    setSidebarLoading(false); // Reset loading state
+  }
+};
 
   // Fetch user data on mount if token exists or after login
   useEffect(() => {
@@ -106,132 +109,152 @@ export const AppProvider = ({ children }) => {
     }
   }, [token]);
 
-  const signup = async (email, password1, password2) => {
-    setError(null);
-    setLoading(true);
-    try {
-      let csrfToken = getCookie("csrftoken");
-      const response = await axios.post(
-        `${BASE_URL}account_auth/registration/`,
-        { email: email.trim(), password1, password2 },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(csrfToken && { "X-CSRFToken": csrfToken }),
-          },
-          withCredentials: true,
-        }
-      );
-      const data = response.data;
-      setBaseData(data);
-      setUser(data.user_email);
-      setToken(data.access);
-      setUserProfileId(data.profile_id);
-      localStorage.setItem("user_email", data.user_email);
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("profile_id", data.profile_id);
-      await fetchUserData(); // Fetch user data to set transporterId/companyId
-      return data;
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.non_field_errors?.[0] ||
-        error.response?.data?.email?.[0] ||
-        error.response?.data?.password1?.[0] ||
-        error.response?.data?.password2?.[0] ||
-        error.response?.data?.detail ||
-        error.message ||
-        "Signup failed. Please try again.";
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const signup = async (email, password1, password2, navigate) => {
+    console.log("1")
+  setError(null);
+  setLoading(true);
+  try {
+    let csrfToken = getCookie("csrftoken");
+    console.log("2")
 
-  const login = async (email, password) => {
-    setError(null);
-    setLoading(true);
-    try {
-      let csrfToken = Cookies.get("csrftoken");
-      const response = await axios.post(
-        `${BASE_URL}account_auth/login/`,
-        { email: email.trim(), password },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(csrfToken && { "X-CSRFToken": csrfToken }),
-          },
-          withCredentials: true,
-        }
-      );
-      const data = response.data;
-      setBaseData(data);
-      setUser(data.user_email);
-      setToken(data.access);
-      setUserProfileId(data.profile_id);
-      localStorage.setItem("user_email", data.user_email);
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("profile_id", data.profile_id);
-      await fetchUserData(); // Fetch user data to set transporterId/companyId
-      return data;
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.email?.[0] ||
-        error.response?.data?.password?.[0] ||
-        error.response?.data?.detail ||
-        error.message ||
-        "Login failed. Please try again.";
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+    const response = await axios.post(
+      `${BASE_URL}account_auth/registration/`,
+      { email: email.trim(), password1, password2 },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken && { "X-CSRFToken": csrfToken }),
+        },
+        withCredentials: true,
+      }
+    );
+    const data = response.data;
+    console.log("3")
 
-  const googleLogin = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const width = 500;
-      const height = 600;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-      const popup = window.open(
-        `${BASE_URL}auth/google/`,
-        "Google OAuth",
-        `width=${width},height=${height},top=${top},left=${left}`
-      );
-      return new Promise((resolve, reject) => {
-        const messageListener = (event) => {
-          if (event.origin !== "http://127.0.0.1:8000") return;
-          if (event.data.type === "OAUTH_SUCCESS") {
-            const { access_token, user } = event.data;
-            setToken(access_token);
-            setUser(user.email);
-            localStorage.setItem("access_token", access_token);
-            localStorage.setItem("user_email", user.email);
-            popup.close();
-            window.removeEventListener("message", messageListener);
-            fetchUserData(); // Fetch user data after Google login
+    setBaseData(data);
+    setUser(data.user_email);
+    setToken(data.access);
+    setUserProfileId(data.profile_id);
+    localStorage.setItem("user_email", data.user_email);
+    localStorage.setItem("access_token", data.access);
+    localStorage.setItem("profile_id", data.profile_id);
+    console.log("4")
+    const profileId = await fetchUserData();
+    navigate("/onboarding/user", { replace: true }); // Always go to onboarding after signup
+    console.log("5")
+    toast.success("Signup successful! Please complete your profile.");
+    return data;
+  } catch (error) {
+    console.log("6")
+    console.error("Signup error:", error);
+    const errorMessage =
+      error.response?.data?.non_field_errors?.[0] ||
+      error.response?.data?.email?.[0] ||
+      error.response?.data?.password1?.[0] ||
+      error.response?.data?.password2?.[0] ||
+      error.response?.data?.detail ||
+      error.message ||
+      "Signup failed. Please try again.";
+    console.error("Signup error:", errorMessage);
+    setError(errorMessage);
+    console.log("7")
+
+    toast.error(errorMessage);
+    console.log("8")
+
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const login = async (email, password, navigate) => {
+  setError(null);
+  setLoading(true);
+  try {
+    let csrfToken = Cookies.get("csrftoken");
+    const response = await axios.post(
+      `${BASE_URL}account_auth/login/`,
+      { email: email.trim(), password },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken && { "X-CSRFToken": csrfToken }),
+        },
+        withCredentials: true,
+      }
+    );
+    const data = response.data;
+    setBaseData(data);
+    setUser(data.user_email);
+    setToken(data.access);
+    setUserProfileId(data.profile_id);
+    localStorage.setItem("user_email", data.user_email);
+    localStorage.setItem("access_token", data.access);
+    localStorage.setItem("profile_id", data.profile_id);
+    const profileId = await fetchUserData(); // Get profileId
+    const from = window.location.state?.from?.pathname || (profileId ? "/dashboard" : "/onboarding/user");
+    navigate(from, { replace: true }); // Navigate based on profileId
+    return data;
+  } catch (error) {
+    const errorMessage =
+      error.response?.data?.email?.[0] ||
+      error.response?.data?.password?.[0] ||
+      error.response?.data?.detail ||
+      error.message ||
+      "Login failed. Please try again.";
+    setError(errorMessage);
+    toast.error(errorMessage);
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
+const googleLogin = async (navigate) => {
+  setError(null);
+  setLoading(true);
+  try {
+    const width = 500;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    const popup = window.open(
+      `${BASE_URL}auth/google/`,
+      "Google OAuth",
+      `width=${width},height=${height},top=${top},left=${left}`
+    );
+    return new Promise((resolve, reject) => {
+      const messageListener = (event) => {
+        if (event.origin !== "http://127.0.0.1:8000") return;
+        if (event.data.type === "OAUTH_SUCCESS") {
+          const { access_token, user } = event.data;
+          setToken(access_token);
+          setUser(user.email);
+          localStorage.setItem("access_token", access_token);
+          localStorage.setItem("user_email", user.email);
+          popup.close();
+          window.removeEventListener("message", messageListener);
+          fetchUserData().then((profileId) => {
+            const from = window.location.state?.from?.pathname || (profileId ? "/dashboard" : "/onboarding/user");
+            navigate(from, { replace: true }); // Navigate based on profileId
             resolve(user);
-          } else if (event.data.type === "OAUTH_ERROR") {
-            setError(event.data.message);
-            popup.close();
-            window.removeEventListener("message", messageListener);
-            reject(new Error(event.data.message));
-          }
-        };
-        window.addEventListener("message", messageListener);
-      });
-    } catch (error) {
-      setError(error.message || "Google login failed");
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+          });
+        } else if (event.data.type === "OAUTH_ERROR") {
+          setError(event.data.message);
+          popup.close();
+          window.removeEventListener("message", messageListener);
+          reject(new Error(event.data.message));
+        }
+      };
+      window.addEventListener("message", messageListener);
+    });
+  } catch (error) {
+    setError(error.message || "Google login failed");
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
 
   const refreshToken = async () => {
     const refresh = getCookie("isource-plus-refresh-token");
