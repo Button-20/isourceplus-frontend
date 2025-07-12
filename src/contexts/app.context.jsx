@@ -8,7 +8,7 @@ import { registerLogoutHandler } from "@/utils/apiService";
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const BASE_URL = "http://127.0.0.1:8000/api/v1/";
+  const BASE_URL = `${import.meta.env.VITE_SERVER_URL}api/v1/`;
 
   // Axios instance for protected API calls
   const authAxios = useMemo(() => {

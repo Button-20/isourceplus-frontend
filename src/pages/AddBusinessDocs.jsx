@@ -1,67 +1,158 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/app.context";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Check, Loader2, Upload, X } from "lucide-react";
+import { Loader2, Upload, X, Check, Trash2 } from "lucide-react";
 import { getCookie } from "@/utility/getCookie";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 
 export default function AddBusinessDocs() {
-  const { authAxios, transporterId } = useAuth();
-  const navigate = useNavigate();
-
-  // Check if transporterId exists
-  if (!transporterId) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading transporter info…</p>
-      </div>
-    );
-  }
-
-  // Form state for files
-  const [files, setFiles] = useState({
-    image_front_view: null,
-    business_doc_1: null,
-    business_doc_2: null,
-    business_doc_3: null,
-  });
-
-  const [filePreviews, setFilePreviews] = useState({
-    image_front_view: null,
-    business_doc_1: null,
-    business_doc_2: null,
-    business_doc_3: null,
-  });
-
+  const { authAxios, companyId, transporterId, jobTitle } = useAuth();
+  const [entityId, setEntityId] = useState(null);
+  const [entityType, setEntityType] = useState(null); // "company" or "transporter"
+  const [documents, setDocuments] = useState([]);
+  const [viewMode, setViewMode] = useState("list"); // "list", "add", "edit"
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [docType, setDocType] = useState("");
+  const [files, setFiles] = useState([]);
+  const [filePreviews, setFilePreviews] = useState([]);
+  const [orientations, setOrientations] = useState([]);
+  const [names, setNames] = useState([]);
+  const [removedFileIds, setRemovedFileIds] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteDocId, setDeleteDocId] = useState(null);
+  const [deleteDocType, setDeleteDocType] = useState("");
 
-  // Handle file changes with validation
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    const file = files[0];
+  // Determine entity type and ID based on jobTitle and context
+  useEffect(() => {
+    if (jobTitle === "admin") {
+      setEntityType("transporter");
+      setEntityId(transporterId);
+    } else if (["lead buyer", "sales manager"].includes(jobTitle) && companyId) {
+      setEntityType("company");
+      setEntityId(companyId);
+    } else {
+      toast.error("No associated company or transporter found");
+      setLoading(false);
+    }
+  }, [jobTitle, transporterId, companyId]);
+
+  // Fetch documents
+  useEffect(() => {
+    if (entityId && entityType) {
+      (async () => {
+        try {
+          const endpoint = `${entityType === "company" ? "companies" : `${entityType}s`}/${entityId}/add-business-docs/`;
+          console.log("Fetching documents from:", endpoint);
+          console.log("authAxios config:", authAxios.defaults.headers);
+          let newDocs = [];
+          try {
+            const docsResponse = await authAxios.get(endpoint);
+            console.log("Fetched documents:", docsResponse.data);
+            if (!docsResponse.data.id_docs && !docsResponse.data.biz_docs) {
+              console.warn("No id_docs or biz_docs in response:", docsResponse.data);
+            }
+            newDocs = (entityType === "transporter" ? docsResponse.data.id_docs || [] : docsResponse.data.biz_docs || []).slice();
+            if (entityType === "company") {
+              console.log("Company documents fetched:", newDocs);
+            }
+          } catch (err) {
+            if (err.response?.status === 404) {
+              console.log("No documents found, setting empty list");
+              newDocs = [];
+            } else {
+              toast.error("Failed to load business documents: " + (err.response?.statusText || err.message));
+              console.error("Fetch error:", {
+                message: err.message,
+                status: err.response?.status,
+                data: err.response?.data,
+                endpoint
+              });
+            }
+          }
+          setDocuments(newDocs);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }
+  }, [authAxios, entityId, entityType]);
+
+  // Handle selecting a document for editing
+  const handleSelectDoc = (doc) => {
+    setSelectedDoc(doc);
+    setDocType(doc.doc_type);
+    setFilePreviews(doc.upload_files.map(file => file.file));
+    setOrientations(doc.upload_files.map(file => file.orientation));
+    setNames(doc.upload_files.map(file => file.name || ""));
+    setFiles([]);
+    setRemovedFileIds([]);
+    setViewMode("edit");
+  };
+
+  // Handle file input changes
+  const handleFileChange = (e, index) => {
+    const file = e.target.files[0];
     if (file) {
-      // Validate file size (<10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File size must be under 10MB");
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("File size must be under 2MB");
         return;
       }
-      // Validate file type (webp, png, jpeg, jpg)
-      if (!["image/webp", "image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
-        toast.error("Only webp, png, jpeg, or jpg formats are accepted");
+      if (!["image/jpeg", "image/png", "application/pdf"].includes(file.type)) {
+        toast.error("Only JPG, PNG, or PDF formats are accepted");
         return;
       }
-      setFiles((f) => ({ ...f, [name]: file }));
-      setFilePreviews((p) => ({ ...p, [name]: URL.createObjectURL(file) }));
+      setFiles((prev) => {
+        const newFiles = [...prev];
+        newFiles[index] = file;
+        return newFiles;
+      });
+      setFilePreviews((prev) => {
+        const newPreviews = [...prev];
+        newPreviews[index] = file.type === "application/pdf" ? null : URL.createObjectURL(file);
+        return newPreviews;
+      });
     }
   };
 
-  // Remove a file
-  const removeFile = (name) => {
-    setFiles((f) => ({ ...f, [name]: null }));
-    setFilePreviews((p) => ({ ...p, [name]: null }));
+  // Handle orientation change
+  const handleOrientationChange = (index, value) => {
+    setOrientations((prev) => {
+      const newOrientations = [...prev];
+      newOrientations[index] = value;
+      return newOrientations;
+    });
   };
 
-  // Handle form submission
+  // Handle name change
+  const handleNameChange = (index, value) => {
+    setNames((prev) => {
+      const newNames = [...prev];
+      newNames[index] = value;
+      return newNames;
+    });
+  };
+
+  // Add a new file input
+  const addFileInput = () => {
+    setFilePreviews((prev) => [...prev, null]);
+    setOrientations((prev) => [...prev, "front"]);
+    setNames((prev) => [...prev, ""]);
+  };
+
+  // Remove a file
+  const removeFile = (index) => {
+    if (viewMode === "edit" && index < selectedDoc.upload_files.length) {
+      setRemovedFileIds((prev) => [...prev, selectedDoc.upload_files[index].id]);
+    }
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => prev.filter((_, i) => i !== index));
+    setOrientations((prev) => prev.filter((_, i) => i !== index));
+    setNames((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle form submission (add or edit)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -69,201 +160,383 @@ export default function AddBusinessDocs() {
     try {
       const csrfToken = getCookie("csrftoken");
       const formData = new FormData();
+      formData.append("doc_type", docType);
 
-      // Append image_front_view
-      if (files.image_front_view) {
-        formData.append("image_front_view", files.image_front_view);
+      let hasFiles = false;
+
+      // For edit mode, include existing files unless removed
+      if (viewMode === "edit") {
+        selectedDoc.upload_files.forEach((file, index) => {
+          if (!removedFileIds.includes(file.id) && filePreviews[index]) {
+            formData.append(`upload_files[${index}][id]`, file.id);
+            formData.append(`upload_files[${index}][orientation]`, orientations[index]);
+            formData.append(`upload_files[${index}][name]`, names[index] || "");
+            hasFiles = true;
+          }
+        });
       }
 
-      // Append business documents as vehicle_images (fallback)
-      if (files.business_doc_1) {
-        formData.append("vehicle_images", files.business_doc_1);
-      }
-      if (files.business_doc_2) {
-        formData.append("vehicle_images", files.business_doc_2);
-      }
-      if (files.business_doc_3) {
-        formData.append("vehicle_images", files.business_doc_3);
+      // Add new files
+      files.forEach((file, index) => {
+        const fileIndex = viewMode === "edit" ? selectedDoc.upload_files.length + index : index;
+        formData.append(`upload_files[${fileIndex}][file]`, file);
+        formData.append(`upload_files[${fileIndex}][orientation]`, orientations[index]);
+        if (names[index]) {
+          formData.append(`upload_files[${fileIndex}][name]`, names[index]);
+        }
+        hasFiles = true;
+      });
+
+      // Validate that at least one file is included
+      if (!hasFiles) {
+        toast.error("At least one file is required");
+        setSubmitting(false);
+        return;
       }
 
       // Log FormData for debugging
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
+      console.log([...formData.entries()]);
+
+      const endpoint = `${entityType === "company" ? "companies" : `${entityType}s`}/${entityId}/add-business-docs/`;
+      if (viewMode === "add") {
+        await authAxios.post(endpoint, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "X-CSRFToken": csrfToken,
+          },
+        });
+        toast.success("Business document added successfully!");
+      } else {
+        await authAxios.patch(`verification-documents/${selectedDoc.id}/`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "X-CSRFToken": csrfToken,
+          },
+        });
+        toast.success("Business document updated successfully!");
       }
 
-      // Only send request if files are present
-      if (
-        files.image_front_view ||
-        files.business_doc_1 ||
-        files.business_doc_2 ||
-        files.business_doc_3
-      ) {
-        await authAxios.post(
-          `transporters/${transporterId}/add-business-docs/`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              "X-CSRFToken": csrfToken,
-            },
-          }
-        );
-        toast.success("Business documents uploaded successfully!");
-        navigate("/dashboard/transporter/edit");
-      } else {
-        toast.warning("Please upload at least one document.");
+      // Refresh documents
+      let newDocs = [];
+      try {
+        const { data } = await authAxios.get(endpoint);
+        console.log("Fetched documents after submit:", data);
+        newDocs = (entityType === "company" ? data.biz_docs || [] : data.id_docs || []).slice();
+      } catch (err) {
+        if (err.response?.status === 404) {
+          console.log("No documents remain after submit, setting empty list");
+          newDocs = [];
+        } else {
+          throw err;
+        }
       }
+      setDocuments(newDocs);
+      setViewMode("list");
+      setSelectedDoc(null);
+      setDocType("");
+      setFiles([]);
+      setFilePreviews([]);
+      setOrientations([]);
+      setNames([]);
+      setRemovedFileIds([]);
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.vehicle_images?.[0] ||
-        err.response?.data?.image_front_view?.[0] ||
+      console.error("Submit error:", err);
+      toast.error(
+        err.response?.data?.non_field_errors?.[0] ||
         err.response?.data?.detail ||
-        "Failed to upload documents. Please try again.";
-      toast.error(errorMessage);
-      console.error("Upload error:", err.response?.data || err);
+        "Operation failed"
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Handle document deletion
+  const handleDelete = async (docId) => {
+    setSubmitting(true);
+    try {
+      const csrfToken = getCookie("csrftoken");
+      const deleteResponse = await authAxios.delete(`verification-documents/${docId}/`, {
+        headers: { "X-CSRFToken": csrfToken },
+      });
+      console.log("Delete response:", deleteResponse);
+      toast.success("Business document deleted successfully!");
+      const endpoint = `${entityType === "company" ? "companies" : `${entityType}s`}/${entityId}/add-business-docs/?t=${new Date().getTime()}`;
+      let newDocs = [];
+      try {
+        const { data } = await authAxios.get(endpoint);
+        console.log("Fetched documents after delete:", data);
+        newDocs = (entityType === "company" ? data.biz_docs || [] : data.id_docs || []).slice();
+      } catch (err) {
+        if (err.response?.status === 404) {
+          console.log("No documents remain after deletion, setting empty list");
+          newDocs = [];
+        } else {
+          throw err;
+        }
+      }
+      setDocuments(newDocs);
+      console.log("Updated documents state:", newDocs);
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error(err.response?.data?.detail || "Deletion failed");
+    } finally {
+      setSubmitting(false);
+      setIsModalOpen(false);
+    }
+  };
+
+  // Open modal for deletion confirmation
+  const openDeleteModal = (docId, docType) => {
+    setDeleteDocId(docId);
+    setDeleteDocType(docType);
+    setIsModalOpen(true);
+  };
+
+  // Cleanup file previews
+  useEffect(() => {
+    return () => {
+      filePreviews.forEach((preview) => {
+        if (preview && preview.startsWith("blob:")) {
+          URL.revokeObjectURL(preview);
+        }
+      });
+    };
+  }, [filePreviews]);
+
+  if (loading || !entityId || !entityType) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+        <p className="ml-2 text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="p-6 sm:p-8 grid md:grid-cols-3 gap-8">
+    <div className="p-6 grid md:grid-cols-3 gap-8">
       {/* Sidebar */}
       <div className="md:col-span-1">
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-3">Add Business Documents</h3>
-          <div className="w-full bg-gray-200 h-2.5 mb-3 rounded-full">
-            <div className="bg-black h-2.5 rounded-full" style={{ width: "100%" }} />
-          </div>
-        </div>
-        <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-3">Upload Guidelines</h3>
-          <ul className="text-sm text-gray-600 space-y-2">
-            <li className="flex items-start">
-              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span>Files must be under 10MB</span>
-            </li>
-            <li className="flex items-start">
-              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span>Acceptable formats: webp, png, jpeg, jpg</span>
-            </li>
-            <li className="flex items-start">
-              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span>Ensure documents are clear and legible</span>
-            </li>
-          </ul>
+        <div className="bg-gray-50 p-4 rounded-lg border">
+          <h3 className="font-medium mb-3">Business Documents</h3>
+          <p className="text-sm text-gray-600">
+            Manage your business verification documents for {entityType === "company" ? "company" : "transporter"}.
+          </p>
+          {viewMode === "list" && (
+            <button
+              onClick={() => {
+                setViewMode("add");
+                setDocType("business license"); // Note: Backend includes 'ghana card' in biz_docs for companies
+                setFilePreviews([null]);
+                setOrientations(["front"]);
+                setNames([""]);
+              }}
+              className="mt-4 bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
+            >
+              Add New Document
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Form */}
+      {/* Main Content */}
       <div className="md:col-span-2 space-y-6">
-        {/* Document Uploads */}
-        <div className="pb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Business Documents</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Upload your company’s front-view image and up to three business documents (e.g., licenses, certificates).
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Image Front View */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Company Front-Entry Image
-              </label>
-              <div className="flex items-center">
-                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md cursor-pointer bg-gray-50 hover:bg-gray-100 p-3 w-full h-28">
-                  {filePreviews.image_front_view ? (
-                    <img
-                      src={filePreviews.image_front_view}
-                      alt="Front view preview"
-                      className="h-20 w-20 object-contain"
-                    />
-                  ) : (
-                    <div className="text-center">
-                      <Upload className="w-6 h-6 text-gray-500 mb-1 mx-auto" />
-                      <span className="text-xs text-gray-500">Upload image</span>
+        {viewMode === "list" ? (
+          <div>
+            <h2 className="text-lg font-medium mb-4">Documents List</h2>
+            {documents.length === 0 ? (
+              <p className="text-gray-500">No business documents found.</p>
+            ) : (
+              <div className="grid gap-4">
+                {console.log("Rendering documents list:", documents)}
+                {documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="bg-gray-50 p-4 rounded-lg border flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-medium">{doc.doc_type.toUpperCase()}</p>
+                      <p className="text-sm text-gray-600">
+                        Files: {doc.upload_files.map(f => f.name || "Unnamed").join(", ")}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Created: {new Date(doc.created_at).toLocaleDateString()}
+                      </p>
                     </div>
-                  )}
-                  <input
-                    type="file"
-                    name="image_front_view"
-                    accept="image/webp,image/png,image/jpeg,image/jpg"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-                {filePreviews.image_front_view && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleSelectDoc(doc)}
+                        className="bg-black text-white py-1 px-3 rounded hover:bg-gray-800"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => openDeleteModal(doc.id, doc.doc_type)}
+                        className="text-red-600 hover:text-red-800"
+                        disabled={submitting}
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <h2 className="text-lg font-medium mb-4">
+              {viewMode === "add" ? "Add Business Document" : "Edit Business Document"}
+            </h2>
+
+            {/* Document Type */}
+            <div>
+              <label className="block mb-1">Document Type *</label>
+              <select
+                value={docType}
+                onChange={(e) => setDocType(e.target.value)}
+                required
+                className="w-full border rounded p-2"
+              >
+                <option value="ghana card">Ghana Card</option>
+                <option value="business license">Business License</option>
+                <option value="tax certificate">Tax Certificate</option>
+                <option value="registration certificate">Registration Certificate</option>
+              </select>
+            </div>
+
+            {/* File Uploads */}
+            <div>
+              <h3 className="font-medium mb-3">Upload Files</h3>
+              <div className="mb-4 bg-gray-50 p-4 rounded-lg border">
+                <h4 className="font-medium mb-3">Upload Guidelines</h4>
+                <ul className="text-sm text-gray-600 space-y-2">
+                  <li className="flex items-start">
+                    <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5" />
+                    <span>Files must be under 2MB</span>
+                  </li>
+                  <li className="flex items-start">
+                    <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5" />
+                    <span>Acceptable formats: JPG, PNG, PDF</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {filePreviews.map((preview, index) => (
+                  <div key={index} className="space-y-2">
+                    <label className="block mb-1">File {index + 1}</label>
+                    <div className="flex items-center">
+                      <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 p-4 w-full hover:bg-gray-100">
+                        {preview ? (
+                          preview.includes(".pdf") ? (
+                            <span className="text-sm text-gray-600">PDF File</span>
+                          ) : (
+                            <img
+                              src={preview}
+                              alt={`File preview ${index + 1}`}
+                              className="h-20 w-20 object-contain"
+                            />
+                          )
+                        ) : (
+                          <div className="text-center">
+                            <Upload className="w-6 h-6 mb-2 text-gray-500" />
+                            <span className="text-xs text-gray-600">Click to upload</span>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          name={`file_${index}`}
+                          accept="image/jpeg,image/png,application/pdf"
+                          onChange={(e) => handleFileChange(e, index)}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="ml-2 text-red-600 hover:text-red-800"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div>
+                      <label className="block mb-1">Orientation *</label>
+                      <select
+                        value={orientations[index] || "front"}
+                        onChange={(e) => handleOrientationChange(index, e.target.value)}
+                        className="w-full border rounded p-2"
+                      >
+                        <option value="front">Front</option>
+                        <option value="back">Back</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block mb-1">Name (Optional)</label>
+                      <input
+                        type="text"
+                        value={names[index] || ""}
+                        onChange={(e) => handleNameChange(index, e.target.value)}
+                        className="w-full border rounded p-2"
+                        placeholder="Enter file name"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <div>
                   <button
                     type="button"
-                    onClick={() => removeFile("image_front_view")}
-                    className="ml-2 text-red-600 hover:text-red-800"
+                    onClick={addFileInput}
+                    className="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300"
                   >
-                    <X className="w-5 h-5" />
+                    Add File
                   </button>
-                )}
+                </div>
               </div>
             </div>
 
-            {/* Business Documents */}
-            {["business_doc_1", "business_doc_2", "business_doc_3"].map((name, index) => (
-              <div key={index}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Business Document {index + 1}
-                </label>
-                <div className="flex items-center">
-                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md cursor-pointer bg-gray-50 hover:bg-gray-100 p-3 w-full h-28">
-                    {filePreviews[name] ? (
-                      <img
-                        src={filePreviews[name]}
-                        alt={`Document ${index + 1} preview`}
-                        className="h-20 w-20 object-contain"
-                      />
-                    ) : (
-                      <div className="text-center">
-                        <Upload className="w-6 h-6 text-gray-500 mb-1 mx-auto" />
-                        <span className="text-xs text-gray-500">Upload document</span>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      name={name}
-                      accept="image/webp,image/png,image/jpeg,image/jpg"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-                  {filePreviews[name] && (
-                    <button
-                      type="button"
-                      onClick={() => removeFile(name)}
-                      className="ml-2 text-red-600 hover:text-red-800"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <div className="flex justify-end pt-4 border-t border-gray-200">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="bg-black text-white py-2.5 px-6 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                Uploading…
-              </>
-            ) : (
-              "Upload Documents"
-            )}
-          </button>
-        </div>
+            {/* Submit and Cancel */}
+            <div className="flex justify-end space-x-4 pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("list");
+                  setSelectedDoc(null);
+                  setDocType("");
+                  setFiles([]);
+                  setFilePreviews([]);
+                  setOrientations([]);
+                  setNames([]);
+                  setRemovedFileIds([]);
+                }}
+                className="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !docType || (!files.length && removedFileIds.length === selectedDoc?.upload_files.length)}
+                className="bg-black text-white py-2 px-6 rounded flex items-center disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                    Saving…
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+        <DeleteConfirmationModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={() => handleDelete(deleteDocId)}
+          docType={deleteDocType}
+          docId={deleteDocId}
+        />
       </div>
-    </form>
+    </div>
   );
 }

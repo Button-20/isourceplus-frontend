@@ -209,6 +209,11 @@ const EditCompany = () => {
             </div>
           </div>
         </div>
+        <div title="Add Business Documents" className="bg-black hover:bg-gray-800 p-2 text-white mt-4 rounded-lg border">
+          <Link to="/dashboard/company/add-business-docs" className="font-medium mb-3">
+            Add Documents
+          </Link>
+        </div>
         <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
           <h3 className="font-medium text-gray-900 mb-3">Upload Guidelines</h3>
           <ul className="text-sm text-gray-600 space-y-2">

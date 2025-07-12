@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { Loader2, Upload, X, Check, Trash2 } from "lucide-react";
 import { getCookie } from "@/utility/getCookie";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 
 export default function ManageUserVerificationDocs() {
   const { authAxios } = useAuth();
@@ -15,9 +16,12 @@ export default function ManageUserVerificationDocs() {
   const [filePreviews, setFilePreviews] = useState([]);
   const [orientations, setOrientations] = useState([]);
   const [names, setNames] = useState([]);
-  const [removedFileIds, setRemovedFileIds] = useState([]); // Track removed existing files
+  const [removedFileIds, setRemovedFileIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteDocId, setDeleteDocId] = useState(null);
+  const [deleteDocType, setDeleteDocType] = useState("");
 
   // Fetch user ID and documents
   useEffect(() => {
@@ -27,8 +31,20 @@ export default function ManageUserVerificationDocs() {
         const user = userResponse.data.results[0];
         setUserId(user.id);
 
-        const docsResponse = await authAxios.get(`users/${user.id}/add-id-docs/`);
-        setDocuments(docsResponse.data.id_docs || []);
+        let newDocs = [];
+        try {
+          const docsResponse = await authAxios.get(`users/${user.id}/add-id-docs/`);
+          console.log("Fetched documents:", docsResponse.data);
+          newDocs = (docsResponse.data.id_docs || []).slice();
+        } catch (err) {
+          if (err.response?.status === 404) {
+            console.log("No documents found, setting empty list");
+            newDocs = [];
+          } else {
+            throw err;
+          }
+        }
+        setDocuments(newDocs);
       } catch (err) {
         toast.error("Failed to load data");
         console.error("Fetch error:", err);
@@ -175,8 +191,20 @@ export default function ManageUserVerificationDocs() {
       }
 
       // Refresh documents
-      const { data } = await authAxios.get(`users/${userId}/add-id-docs/`);
-      setDocuments(data.id_docs || []);
+      let newDocs = [];
+      try {
+        const { data } = await authAxios.get(`users/${userId}/add-id-docs/`);
+        console.log("Fetched documents after submit:", data);
+        newDocs = (data.id_docs || []).slice();
+      } catch (err) {
+        if (err.response?.status === 404) {
+          console.log("No documents remain after submit, setting empty list");
+          newDocs = [];
+        } else {
+          throw err;
+        }
+      }
+      setDocuments(newDocs);
       setViewMode("list");
       setSelectedDoc(null);
       setDocType("");
@@ -199,25 +227,42 @@ export default function ManageUserVerificationDocs() {
 
   // Handle document deletion
   const handleDelete = async (docId) => {
-    if (!window.confirm("Are you sure you want to delete this document?")) return;
     setSubmitting(true);
-
     try {
       const csrfToken = getCookie("csrftoken");
-      await authAxios.delete(`verification-documents/${docId}/`, {
-        headers: {
-          "X-CSRFToken": csrfToken,
-        },
+      const deleteResponse = await authAxios.delete(`verification-documents/${docId}/`, {
+        headers: { "X-CSRFToken": csrfToken },
       });
+      console.log("Delete response:", deleteResponse);
       toast.success("Document deleted successfully!");
-      const { data } = await authAxios.get(`users/${userId}/add-id-docs/`);
-      setDocuments(data.id_docs || []);
+      let newDocs = [];
+      try {
+        const { data } = await authAxios.get(`users/${userId}/add-id-docs/`);
+        console.log("Fetched documents after delete:", data);
+        newDocs = (data.id_docs || []).slice();
+      } catch (err) {
+        if (err.response?.status === 404) {
+          console.log("No documents remain after deletion, setting empty list");
+          newDocs = [];
+        } else {
+          throw err;
+        }
+      }
+      setDocuments(newDocs);
     } catch (err) {
       console.error("Delete error:", err);
       toast.error(err.response?.data?.detail || "Deletion failed");
     } finally {
       setSubmitting(false);
+      setIsModalOpen(false);
     }
+  };
+
+  // Open modal for deletion confirmation
+  const openDeleteModal = (docId, docType) => {
+    setDeleteDocId(docId);
+    setDeleteDocType(docType);
+    setIsModalOpen(true);
   };
 
   if (loading) {
@@ -285,7 +330,7 @@ export default function ManageUserVerificationDocs() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(doc.id)}
+                        onClick={() => openDeleteModal(doc.id, doc.doc_type)}
                         className="text-red-600 hover:text-red-800"
                         disabled={submitting}
                       >
@@ -442,6 +487,13 @@ export default function ManageUserVerificationDocs() {
             </div>
           </form>
         )}
+        <DeleteConfirmationModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={() => handleDelete(deleteDocId)}
+          docType={deleteDocType}
+          docId={deleteDocId}
+        />
       </div>
     </div>
   );

@@ -86,6 +86,7 @@ export const appRoutes = createBrowserRouter([
       { path: "company/edit", element: <EditCompany /> },
       { path: "transporter/edit", element: <EditTransporter /> },
       { path: "transporter/add-business-docs", element: <AddBusinessDocs /> },
+      { path: "company/add-business-docs", element: <AddBusinessDocs /> },
       { path: "employee/new", element: <AddNewEmployeePage /> },
       { path: "employee/existing", element: <AddExistingEmployeePage /> },
       { path: "branches/new", element: <AddBranch /> },
