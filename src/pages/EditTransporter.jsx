@@ -244,7 +244,7 @@ export default function EditTransporter() {
       <div className="flex flex-col items-center justify-center h-64">
         <p className="text-gray-500 mb-4">No transporter associated with this user.</p>
         <Link
-          to="/dashboard/transporter/new"
+          to="/dashboard/transporter"
           className="bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
         >
           Create Transporter

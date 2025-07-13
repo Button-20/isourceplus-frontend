@@ -35,6 +35,8 @@ import CompanyEmployees from "./pages/CompanyEmployees";
 import EmployeeDetailPage from "./components/EmployeeDetailPage";
 import AddBusinessDocs from "./pages/AddBusinessDocs";
 import ManageUserVerificationDocs from "./pages/ManageUserVerificationDocs";
+import RFxPage from "./pages/RFxPage";
+import RFxDetailPage from "./pages/RFxDetailPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -97,6 +99,8 @@ export const appRoutes = createBrowserRouter([
       { path: "transporter/employees", element: <AllTransporterEmployees /> },
       { path: "company/employees", element: <CompanyEmployees /> },
       { path: "user/verification-docs", element: <ManageUserVerificationDocs /> },
+      { path: "rfxs", element: <RFxPage /> },
+      { path: "rfxs/:refNum", element: <RFxDetailPage /> },
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },

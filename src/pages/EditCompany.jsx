@@ -168,7 +168,7 @@ const EditCompany = () => {
       <div className="flex flex-col items-center justify-center h-64">
         <p className="text-gray-500 mb-4">No company associated with this user.</p>
         <Link
-          to="/dashboard/company/new"
+          to="/dashboard/company"
           className="bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
         >
           Create Company

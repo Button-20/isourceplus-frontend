@@ -11,6 +11,7 @@ import {
   Loader2,
   TruckIcon,
   Building2,
+  FileText,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
@@ -87,10 +88,21 @@ export function BaseDashBoard() {
       if (!user || !token) {
         navigate("/login", { state: { from: location }, replace: true });
       } else if (profileVerified === false) {
-        navigate("/onboarding/user", { state: { from: location }, replace: true });
+        navigate("/onboarding/user", {
+          state: { from: location },
+          replace: true,
+        });
       }
     }
-  }, [loading, sidebarLoading, user, token, profileVerified, navigate, location]);
+  }, [
+    loading,
+    sidebarLoading,
+    user,
+    token,
+    profileVerified,
+    navigate,
+    location,
+  ]);
 
   // Build navigation links based on jobTitle
   let companiesSubmenu = [
@@ -156,10 +168,19 @@ export function BaseDashBoard() {
         icon: MdOutlineDocumentScanner,
         url: "/dashboard/user/verification-docs",
       },
+    
     ];
   } else {
     navLinks = [{ title: "Home", url: "/dashboard/", icon: Home }];
   }
+
+  if (["lead buyer", "sales manager"].includes(jobTitle)) {
+  navLinks.push({
+    title: "RFx Management",
+    icon: FileText,
+    url: "/dashboard/rfxs",
+  });
+}
 
   // Render loading state or dashboard content
   if (loading || sidebarLoading || profileVerified === null) {
