@@ -80,7 +80,7 @@ const CompanyChoices = () => {
   // const isTransportDisabled =
   //   jobTitle === "sales manager" || jobTitle === "lead buyer";
 
-  const transportAllowed = ["admin"];
+  const transportAllowed = ["logistics manager"];
   const companyAllowed = ["sales manager", "lead buyer"];
 
   const isCompanyDisabled = !companyAllowed.includes(jobTitle);

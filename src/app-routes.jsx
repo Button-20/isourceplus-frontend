@@ -37,6 +37,14 @@ import AddBusinessDocs from "./pages/AddBusinessDocs";
 import ManageUserVerificationDocs from "./pages/ManageUserVerificationDocs";
 import RFxPage from "./pages/RFxPage";
 import RFxDetailPage from "./pages/RFxDetailPage";
+import WaybillDetailPage from "./pages/WaybillDetailPage";
+import ProformaInvoicesPage from "./pages/ProformaInvoicesPage";
+import ProformaInvoiceDetailPage from "./pages/ProformaInvoiceDetailPage";
+import CreateProformaInvoicePage from "./pages/CreateProformaInvoicePage";
+import PurchaseOrderCreationPage from "./pages/PurchaseOrderCreationPage"; 
+import PurchaseOrderDetailPage from "./pages/PurchaseOrderDetailPage";
+import WaybillsPage from "./pages/Waybills";
+import ProformaInvoiceCreationPage from "./pages/ProformaInvoiceCreationPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -70,11 +78,6 @@ export const appRoutes = createBrowserRouter([
       { path: "mobile-verification", element: <MobileVerificationPage /> },
       { path: "email-verification", element: <EmailVerificationPage /> },
       { path: "email-verify/:key", element: <EmailVerifyKeyPage /> },
-      
-      // { path: "details", element: <OnBoardingOrgDetailsPage /> },
-      // { path: "verification", element: <OnBoardingOrgVerificationPage /> },
-      // { path: "subscription", element: <OnBoardingOrgSubscriptionPlanPage /> },
-      // { path: "account", element: <OnBoardingOrgAdminAccountPage /> },
     ],
   },
   {
@@ -101,6 +104,15 @@ export const appRoutes = createBrowserRouter([
       { path: "user/verification-docs", element: <ManageUserVerificationDocs /> },
       { path: "rfxs", element: <RFxPage /> },
       { path: "rfxs/:refNum", element: <RFxDetailPage /> },
+      { path: "waybills", element: <WaybillsPage /> },
+      { path: "waybills/:refNum", element: <WaybillDetailPage /> },
+      { path: "proforma-invoices", element: <ProformaInvoicesPage /> },
+      { path: "proforma-invoices/:refNum", element: <ProformaInvoiceDetailPage /> },
+      { path: "proforma-invoices/create-offer", element: <CreateProformaInvoicePage /> },
+      { path: "purchase-orders/create-business-award/*", element: <PurchaseOrderCreationPage /> }, 
+      { path: "purchase-orders/:refNum", element: <PurchaseOrderDetailPage /> },
+      { path: "proforma-invoices/create-offer/*", element: <ProformaInvoiceCreationPage /> },
+
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },

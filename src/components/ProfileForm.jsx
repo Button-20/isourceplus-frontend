@@ -40,7 +40,7 @@ const ProfileForm = ({ profileId }) => {
     formValues.job_title?.toLowerCase()
   );
 
-  const isAdmin = formValues.job_title?.toLowerCase() === "admin";
+  const isAdmin = formValues.job_title?.toLowerCase() === "logistics manager";
 
   const handleVerifyNumber = async (numberType) => {
     const number = formValues[numberType];
@@ -96,9 +96,8 @@ const ProfileForm = ({ profileId }) => {
   }, [authAxios, profileId]);
 
   useEffect(() => {
-  console.log("job_title changed:", formValues.job_title);
-}, [formValues.job_title]);
-
+    console.log("job_title changed:", formValues.job_title);
+  }, [formValues.job_title]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -293,7 +292,7 @@ const ProfileForm = ({ profileId }) => {
           <div className="bg-purple-50 p-4 rounded-md">
             <p className="text-sm text-purple-800">
               <span className="font-semibold">Important:</span> Only users with{" "}
-              <span className="font-semibold">"Admin"</span> role can create
+              <span className="font-semibold">"logistics manager"</span> role can create
               transporter profiles.
             </p>
           </div>
@@ -302,17 +301,17 @@ const ProfileForm = ({ profileId }) => {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Job Title 
+              Job Title
             </label>
             <select
               name="job_title"
               value={formValues.job_title}
               onChange={handleChange}
               className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
-            
             >
               <option value="">Select your job title</option>
-              <option value="admin">Admin</option>
+              {/* <option value="admin">Admin</option> */}
+              <option value="logistics manager">Logistics manager</option>
               <option value="lead buyer">Lead buyer</option>
               <option value="sales manager">Sales manager</option>
               <option value="sourcing_officer">Sourcing officer</option>
@@ -320,7 +319,6 @@ const ProfileForm = ({ profileId }) => {
               <option value="chief buyer">Chief buyer</option>
               <option value="stores officer">Stores officer</option>
               <option value="finance officer">Finance officer</option>
-              <option value="logistics manager">Logistics manager</option>
             </select>
           </div>
 
@@ -349,7 +347,7 @@ const ProfileForm = ({ profileId }) => {
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="block text-sm font-medium text-gray-700">
-                Primary Phone 
+                Primary Phone
                 {/* <span className="text-red-500">*</span> */}
               </label>
               {formValues.cell_1 && !formValues.cell_1_is_verified && (

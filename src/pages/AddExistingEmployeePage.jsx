@@ -66,7 +66,7 @@ export default function AddExistingEmployeePage() {
     );
   }
 
-  if (!user || !token || jobTitle !== "admin") {
+  if (!user || !token || jobTitle !== "logistics manager") {
     return <Navigate to="/login" replace />;
   }
 

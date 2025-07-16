@@ -26,7 +26,7 @@ export default function AddBusinessDocs() {
 
   // Determine entity type and ID based on jobTitle and context
   useEffect(() => {
-    if (jobTitle === "admin") {
+    if (jobTitle === "logistics manager") {
       setEntityType("transporter");
       setEntityId(transporterId);
     } else if (["lead buyer", "sales manager"].includes(jobTitle) && companyId) {

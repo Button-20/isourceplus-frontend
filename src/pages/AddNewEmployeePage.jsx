@@ -104,7 +104,7 @@ export default function AddNewEmployeePage() {
   //   );
   // }
 
-  const allowedTitles = ["admin","lead buyer","sales manager"]
+  const allowedTitles = ["logistics manager","lead buyer","sales manager"]
 
   if (!user || !token || !allowedTitles.includes(jobTitle) ) {
     return <Navigate to="/login" replace />;

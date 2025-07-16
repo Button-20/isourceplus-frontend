@@ -12,6 +12,7 @@ import {
   TruckIcon,
   Building2,
   FileText,
+  FilePlus,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
@@ -26,19 +27,14 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/app.context";
-import { FaPeopleArrows, FaSalesforce } from "react-icons/fa";
+import { FaSalesforce } from "react-icons/fa";
 import {
   MdAdd,
   MdAdminPanelSettings,
   MdEditDocument,
   MdOutlineDocumentScanner,
   MdOutlinePeopleAlt,
-  MdPeopleAlt,
-  MdPeopleOutline,
-  MdPersonAdd,
-  MdPersonAddAlt,
 } from "react-icons/md";
-import { IoIosDocument, IoMdDocument } from "react-icons/io";
 
 export function BaseDashBoard() {
   const {
@@ -55,34 +51,31 @@ export function BaseDashBoard() {
   } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [profileVerified, setProfileVerified] = useState(null); // Track profile verification status
+  const [profileVerified, setProfileVerified] = useState(null);
 
-  // Fetch profile info if userProfileId exists
   useEffect(() => {
     if (user && token && userProfileId) {
       fetchProfileInfo();
     }
   }, [authAxios, userProfileId, user, token]);
 
-  // Verify profile existence
   useEffect(() => {
     const verifyProfile = async () => {
       if (!user || !token || !userProfileId) {
-        setProfileVerified(false); // No profile or not authenticated
+        setProfileVerified(false);
         return;
       }
       try {
         await authAxios.get(`user-profiles/${userProfileId}/`);
-        setProfileVerified(true); // Profile exists
+        setProfileVerified(true);
       } catch (error) {
         console.error("Profile does not exist:", error);
-        setProfileVerified(false); // Profile doesn't exist
+        setProfileVerified(false);
       }
     };
     verifyProfile();
   }, [userProfileId, authAxios, user, token]);
 
-  // Handle redirects
   useEffect(() => {
     if (!loading && !sidebarLoading) {
       if (!user || !token) {
@@ -104,12 +97,11 @@ export function BaseDashBoard() {
     location,
   ]);
 
-  // Build navigation links based on jobTitle
   let companiesSubmenu = [
     { title: "Account Type", url: "/dashboard/companies" },
   ];
 
-  if (jobTitle === "admin") {
+  if (jobTitle === "logistics manager") {
     companiesSubmenu.push({
       title: "Edit Transporter",
       url: "/dashboard/transporter/edit",
@@ -127,7 +119,7 @@ export function BaseDashBoard() {
     { title: "Add Employee", url: "/dashboard/employee/new/" },
   ];
 
-  if (jobTitle === "admin") {
+  if (jobTitle === "logistics manager") {
     employeesSubmenu.push({
       title: "Transport employees",
       url: "transporter/employees",
@@ -142,7 +134,7 @@ export function BaseDashBoard() {
   }
 
   let navLinks = [];
-  if (["admin", "lead buyer", "sales manager"].includes(jobTitle)) {
+  if (["logistics manager", "lead buyer", "sales manager"].includes(jobTitle)) {
     navLinks = [
       { title: "Home", url: "/dashboard/", icon: Home },
       {
@@ -156,7 +148,7 @@ export function BaseDashBoard() {
         submenu: employeesSubmenu,
       },
       {
-        title: "Branches ",
+        title: "Branches",
         icon: TruckIcon,
         submenu: [
           { title: "Add a Branch", url: "/dashboard/branches/new" },
@@ -168,21 +160,37 @@ export function BaseDashBoard() {
         icon: MdOutlineDocumentScanner,
         url: "/dashboard/user/verification-docs",
       },
-    
     ];
   } else {
     navLinks = [{ title: "Home", url: "/dashboard/", icon: Home }];
   }
 
-  if (["lead buyer", "sales manager"].includes(jobTitle)) {
-  navLinks.push({
-    title: "RFx Management",
-    icon: FileText,
-    url: "/dashboard/rfxs",
-  });
-}
+  if (jobTitle === "logistics manager") {
+    navLinks.push({
+      title: "Waybills",
+      icon: FilePlus,
+      url: "/dashboard/waybills",
+    });
+  }
 
-  // Render loading state or dashboard content
+  if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
+    navLinks.push({
+      title: "Waybills",
+      icon: FilePlus,
+      url: "/dashboard/waybills",
+    });
+    navLinks.push({
+      title: "Proforma Invoices",
+      icon: FileText,
+      url: "/dashboard/proforma-invoices",
+    });
+    navLinks.push({
+      title: "RFx Management",
+      icon: FileText,
+      url: "/dashboard/rfxs",
+    });
+  }
+
   if (loading || sidebarLoading || profileVerified === null) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -192,7 +200,7 @@ export function BaseDashBoard() {
   }
 
   if (!user || !token || !profileVerified) {
-    return null; // Redirects handled by useEffect
+    return null;
   }
 
   return (
@@ -216,7 +224,7 @@ export function BaseDashBoard() {
                         {jobTitle === "sales manager" && (
                           <FaSalesforce className="size-4" />
                         )}
-                        {jobTitle === "admin" && (
+                        {jobTitle === "logistics manager" && (
                           <MdAdminPanelSettings className="size-4" />
                         )}
                       </div>
@@ -253,6 +261,7 @@ export function BaseDashBoard() {
           )}
         </div>
       </main>
+      <Toaster />
     </SidebarProvider>
   );
 }
