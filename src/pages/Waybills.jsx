@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, Plus, Save, X } from "lucide-react";
+import { Loader2, Plus, Save, X, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCookie } from "@/utility/getCookie";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
@@ -11,6 +11,9 @@ const WaybillsPage = () => {
   const [waybills, setWaybills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [waybillToDelete, setWaybillToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const navigate = useNavigate();
 
   const canCreateWaybill = ["lead buyer", "sales manager"].includes(jobTitle);
@@ -44,22 +47,23 @@ const WaybillsPage = () => {
     ],
   });
 
+  const fetchWaybills = async () => {
+    try {
+      const isBuyerOrSales = ["lead buyer", "sales manager"].includes(jobTitle);
+      const endpoint = isBuyerOrSales ? "waybills/issued/" : "waybills/";
+      console.log(`Fetching waybills from: ${BASE_URL}${endpoint}`);
+      const response = await authAxios.get(endpoint);
+      const data = isBuyerOrSales ? response.data : response.data.results;
+      setWaybills(data);
+    } catch (error) {
+      toast.error("Failed to load waybills.");
+      console.error("Fetch waybills error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchWaybills = async () => {
-      try {
-        const isBuyerOrSales = ["lead buyer", "sales manager"].includes(jobTitle);
-        const endpoint = isBuyerOrSales ? "waybills/issued/" : "waybills/";
-        console.log(`Fetching waybills from: ${BASE_URL}${endpoint}`);
-        const response = await authAxios.get(endpoint);
-        const data = isBuyerOrSales ? response.data : response.data.results;
-        setWaybills(data);
-      } catch (error) {
-        toast.error("Failed to load waybills.");
-        console.error("Fetch waybills error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchWaybills();
   }, [authAxios, jobTitle, BASE_URL]);
 
@@ -214,6 +218,32 @@ const WaybillsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteWaybill = async () => {
+    setDeleteLoading(true);
+    const csrfToken = getCookie("csrftoken");
+    try {
+      await authAxios.delete(`waybills/${waybillToDelete.ref_num}/`, {
+        headers: {
+          "X-CSRFToken": csrfToken,
+        },
+      });
+      toast.success("Waybill deleted successfully!");
+      setShowDeleteModal(false);
+      setWaybillToDelete(null);
+      await fetchWaybills(); // Refresh the list
+    } catch (error) {
+      toast.error("Failed to delete waybill.");
+      console.error("Delete waybill error:", error);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const openDeleteModal = (waybill) => {
+    setWaybillToDelete(waybill);
+    setShowDeleteModal(true);
   };
 
   const formatDateTime = (dateString) => {
@@ -631,6 +661,44 @@ const WaybillsPage = () => {
           </div>
         </div>
       )}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full border border-gray-200 shadow-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-medium text-gray-900">Delete Waybill</h2>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-6 font-medium">
+              Are you sure you want to delete the waybill "{waybillToDelete?.title}" ({waybillToDelete?.ref_num})? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteWaybill}
+                disabled={deleteLoading}
+                className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center disabled:opacity-50"
+              >
+                {deleteLoading ? (
+                  <Loader2 className="animate-spin w-5 h-5 mr-2" />
+                ) : (
+                  <Trash2 className="w-5 h-5 mr-2" />
+                )}
+                {deleteLoading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="bg-white shadow rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -681,12 +749,22 @@ const WaybillsPage = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <Link
-                    to={`/dashboard/waybills/${waybill.ref_num}`}
-                    className="text-indigo-600 hover:text-indigo-800"
-                  >
-                    View Details
-                  </Link>
+                  <div className="flex space-x-4">
+                    <Link
+                      to={`/dashboard/waybills/${waybill.ref_num}`}
+                      className="text-indigo-600 hover:text-indigo-800"
+                    >
+                      View Details
+                    </Link>
+                    {canCreateWaybill && (
+                      <button
+                        onClick={() => openDeleteModal(waybill)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

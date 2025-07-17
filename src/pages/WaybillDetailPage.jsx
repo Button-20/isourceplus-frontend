@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, ChevronDown, ChevronUp, X, Building2 } from "lucide-react";
+import { Loader2, ArrowLeft, ChevronDown, ChevronUp, Building2, Trash2 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+import { getCookie } from "@/utility/getCookie";
 
 const WaybillDetailPage = () => {
   const { authAxios, jobTitle, BASE_URL } = useAuth();
@@ -11,11 +12,13 @@ const WaybillDetailPage = () => {
   const [waybill, setWaybill] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalLoading, setModalLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [itemsOpen, setItemsOpen] = useState(true);
-  const [showRedirectModal, setShowRedirectModal] = useState(false);
-  const [redirectUrl, setRedirectUrl] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
+
+  const canCreateWaybill = ["lead buyer", "sales manager"].includes(jobTitle);
 
   useEffect(() => {
     const fetchWaybill = async () => {
@@ -41,16 +44,18 @@ const WaybillDetailPage = () => {
       if (!url || !url.startsWith("/api/v1/proforma-invoices/create-offer/")) {
         throw new Error("Invalid redirect URL received.");
       }
-      setRedirectUrl(url);
-      setShowRedirectModal(true);
+      const dashboardUrl = url.replace("/api/v1", "/dashboard");
+      console.log("Navigating to:", dashboardUrl);
+      navigate(dashboardUrl);
     } catch (error) {
       if (error.response && error.response.status === 302) {
         const url = error.response.data.event_response_create_url;
         if (!url || !url.startsWith("/api/v1/proforma-invoices/create-offer/")) {
           throw new Error("Invalid redirect URL received.");
         }
-        setRedirectUrl(url);
-        setShowRedirectModal(true);
+        const dashboardUrl = url.replace("/api/v1", "/dashboard");
+        console.log("Navigating to:", dashboardUrl);
+        navigate(dashboardUrl);
       } else {
         const errorMessage = error.response?.data?.detail || "Failed to initiate offer.";
         toast.error(errorMessage);
@@ -61,11 +66,24 @@ const WaybillDetailPage = () => {
     }
   };
 
-  const handleRedirect = () => {
-    const dashboardUrl = redirectUrl.replace("/api/v1", "/dashboard");
-    console.log("Navigating to:", dashboardUrl, "with redirectUrl:", redirectUrl);
-    navigate(dashboardUrl, { state: { redirectUrl } });
-    setShowRedirectModal(false);
+  const handleDeleteWaybill = async () => {
+    setDeleteLoading(true);
+    const csrfToken = getCookie("csrftoken");
+    try {
+      await authAxios.delete(`waybills/${refNum}/`, {
+        headers: {
+          "X-CSRFToken": csrfToken,
+        },
+      });
+      toast.success("Waybill deleted successfully!");
+      setShowDeleteModal(false);
+      navigate("/dashboard/waybills");
+    } catch (error) {
+      toast.error("Failed to delete waybill.");
+      console.error("Delete waybill error:", error);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const toggleDetails = () => setDetailsOpen(!detailsOpen);
@@ -343,8 +361,8 @@ const WaybillDetailPage = () => {
         </div>
 
         {/* Actions */}
-        {jobTitle === "logistics manager" && (
-          <div className="p-6 flex justify-end">
+        <div className="p-6 flex justify-end space-x-4">
+          {jobTitle === "logistics manager" && (
             <button
               onClick={handleSendOffer}
               disabled={modalLoading}
@@ -352,32 +370,52 @@ const WaybillDetailPage = () => {
             >
               {modalLoading ? "Processing..." : "Send Offer"}
             </button>
-          </div>
-        )}
+          )}
+          {canCreateWaybill && (
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="bg-red-600 text-white py-2 px-6 rounded-md hover:bg-red-700 transition duration-200 shadow-md"
+            >
+              <Trash2 className="w-5 h-5 mr-2 inline" />
+              Delete Waybill
+            </button>
+          )}
+        </div>
 
-        {/* Redirect Modal */}
-        {showRedirectModal && (
+        {/* Delete Modal */}
+        {showDeleteModal && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 transition-opacity duration-200">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full border border-gray-200 shadow-lg transform transition-transform duration-200 scale-100">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full border border-gray-200 shadow-lg">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-medium text-gray-900">Send Offer</h2>
+                <h2 className="text-xl font-medium text-gray-900">Delete Waybill</h2>
                 <button
-                  onClick={() => setShowRedirectModal(false)}
+                  onClick={() => setShowDeleteModal(false)}
                   className="text-gray-600 hover:text-gray-800"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <p className="text-gray-600 mb-6 font-medium">
-                Proceed to the document creation page for the proforma invoice.
+                Are you sure you want to delete the waybill "{waybill.title}" ({waybill.ref_num})? This action cannot be undone.
               </p>
-              <div className="flex justify-end">
+              <div className="flex justify-end space-x-4">
                 <button
-                  onClick={handleRedirect}
-                  disabled={!redirectUrl}
-                  className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm disabled:opacity-50"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
                 >
-                  Redirect to Document Creation
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteWaybill}
+                  disabled={deleteLoading}
+                  className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center disabled:opacity-50"
+                >
+                  {deleteLoading ? (
+                    <Loader2 className="animate-spin w-5 h-5 mr-2" />
+                  ) : (
+                    <Trash2 className="w-5 h-5 mr-2" />
+                  )}
+                  {deleteLoading ? "Deleting..." : "Delete"}
                 </button>
               </div>
             </div>

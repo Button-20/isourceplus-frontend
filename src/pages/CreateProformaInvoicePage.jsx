@@ -20,12 +20,17 @@ const CreateProformaInvoicePage = () => {
   useEffect(() => {
     const fetchAutoPopulationData = async () => {
       try {
+        console.log("CreateProformaInvoicePage: Fetching auto-population data...");
         const params = new URLSearchParams(location.search);
         const eventRefNum = params.get("event_ref_num");
+        console.log("CreateProformaInvoicePage: Event Reference Number:", eventRefNum);
         const response = await authAxios.get(
           `proforma-invoices/create-offer/?event_ref_num=${eventRefNum}&mn=waybill`
         );
+        console.log("CreateProformaInvoicePage: Auto-population data fetched successfully:", response.data);
         const { spend_category, items } = response.data.auto_population_data;
+        console.log("CreateProformaInvoicePage: Spend Category:", spend_category);
+        console.log("CreateProformaInvoicePage: Items:", items);
         setFormValues((prev) => ({
           ...prev,
           spend_category,
@@ -69,8 +74,10 @@ const CreateProformaInvoicePage = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      console.log("CreateProformaInvoicePage: Submitting form values:", formValues);
       const params = new URLSearchParams(location.search);
       const eventRefNum = params.get("event_ref_num");
+      console.log("CreateProformaInvoicePage: Event Reference Number for submission:", eventRefNum);
       const response = await authAxios.post(
         `proforma-invoices/create-offer/?event_ref_num=${eventRefNum}&mn=waybill`,
         {
@@ -79,8 +86,15 @@ const CreateProformaInvoicePage = () => {
           submission_datetime: new Date().toISOString(),
         }
       );
+      console.log("CreateProformaInvoicePage: Proforma invoice created successfully:", response.data);
+      const { url } = response.data;
+      if (!url || !url.startsWith(`${BASE_URL}proforma-invoices/`)) {
+        throw new Error("Invalid response URL received.");
+      }
+      const refNum = url.split('/').filter(Boolean).pop(); // Extract ref_num from URL
+      console.log("CreateProformaInvoicePage: Extracted ref_num:", refNum);
       toast.success("Proforma invoice created successfully!");
-      navigate(`/dashboard/proforma-invoices/${response.data.ref_num}`);
+      navigate(`/dashboard/proforma-invoices/${refNum}`);
     } catch (error) {
       toast.error("Failed to create proforma invoice.");
       console.error("Create proforma invoice error:", error);
