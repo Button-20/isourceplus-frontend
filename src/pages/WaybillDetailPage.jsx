@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, ChevronDown, ChevronUp, Building2, Trash2 } from "lucide-react";
+import { Loader2, ArrowLeft, ChevronDown, ChevronUp, Building2, Trash2, X } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 import { getCookie } from "@/utility/getCookie";
@@ -77,7 +77,7 @@ const WaybillDetailPage = () => {
       });
       toast.success("Waybill deleted successfully!");
       setShowDeleteModal(false);
-      navigate("/dashboard/waybills");
+      navigate("/dashboard/waybills/issued");
     } catch (error) {
       toast.error("Failed to delete waybill.");
       console.error("Delete waybill error:", error);
@@ -366,7 +366,7 @@ const WaybillDetailPage = () => {
             <button
               onClick={handleSendOffer}
               disabled={modalLoading}
-              className="bg-indigo-600 text-white py-2 px-6 rounded-md hover:bg-indigo-700 transition duration-200 shadow-md disabled:opacity-50"
+              className="bg-black text-white py-2 px-6 rounded-md hover:bg-gray-700 transition duration-200 shadow-md disabled:opacity-50"
             >
               {modalLoading ? "Processing..." : "Send Offer"}
             </button>

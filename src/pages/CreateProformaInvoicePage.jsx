@@ -201,7 +201,7 @@ const CreateProformaInvoicePage = () => {
         <button
           type="submit"
           disabled={loading}
-          className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 flex items-center"
+          className="bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 flex items-center"
         >
           <Save className="w-5 h-5 mr-2" />
           {loading ? "Saving..." : "Save Proforma Invoice"}

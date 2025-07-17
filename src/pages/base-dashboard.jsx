@@ -167,17 +167,22 @@ export function BaseDashBoard() {
 
   if (jobTitle === "logistics manager") {
     navLinks.push({
-      title: "Waybills",
+      title: "All Waybills",
       icon: FilePlus,
       url: "/dashboard/waybills",
+    });
+    navLinks.push({
+      title: "Issued Proforma Invoices",
+      icon: FileText,
+      url: "/dashboard/proforma-invoices/issued",
     });
   }
 
   if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
     navLinks.push({
-      title: "Waybills",
+      title: "Issued Waybills",
       icon: FilePlus,
-      url: "/dashboard/waybills",
+      url: "/dashboard/waybills/issued",
     });
     navLinks.push({
       title: "Proforma Invoices",

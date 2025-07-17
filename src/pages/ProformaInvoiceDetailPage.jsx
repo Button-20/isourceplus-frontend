@@ -45,24 +45,26 @@ const ProformaInvoiceDetailPage = () => {
   const handleSendPurchaseOrder = async () => {
     setModalLoading(true);
     try {
+      console.log("ProformaInvoiceDetailPage: Sending purchase order for refNum:", refNum);
       const response = await authAxios.get(`proforma-invoices/${refNum}/send-purchase-order/`);
       console.log("ProformaInvoiceDetailPage: Send purchase order response:", response.data);
-      const url = response.data.event_response_create_url;
-      if (!url || !url.startsWith("/api/v1/purchase-orders/create-business-award/")) {
+      const apiUrl = response.data.event_response_create_url;
+      console.log("ProformaInvoiceDetailPage: API URL received:", apiUrl);
+      if (!apiUrl || !apiUrl.startsWith("/api/v1/purchase-orders/create-business-award/")) {
         throw new Error("Invalid redirect URL received.");
       }
-      const dashboardUrl = url.replace("/api/v1", "/dashboard");
-      console.log("Navigating to:", dashboardUrl);
-      navigate(dashboardUrl);
+      const dashboardUrl = apiUrl.replace("/api/v1", "/dashboard");
+      console.log("ProformaInvoiceDetailPage: Navigating to:", dashboardUrl);
+      navigate(dashboardUrl, { state: { redirectUrl: apiUrl } });
     } catch (error) {
       if (error.response && error.response.status === 302) {
-        const url = error.response.data.event_response_create_url;
-        if (!url || !url.startsWith("/api/v1/purchase-orders/create-business-award/")) {
+        const apiUrl = error.response.data.event_response_create_url;
+        if (!apiUrl || !apiUrl.startsWith("/api/v1/purchase-orders/create-business-award/")) {
           throw new Error("Invalid redirect URL received.");
         }
-        const dashboardUrl = url.replace("/api/v1", "/dashboard");
-        console.log("Navigating to:", dashboardUrl);
-        navigate(dashboardUrl);
+        const dashboardUrl = apiUrl.replace("/api/v1", "/dashboard");
+        console.log("ProformaInvoiceDetailPage: Navigating to:", dashboardUrl);
+        navigate(dashboardUrl, { state: { redirectUrl: apiUrl } });
       } else {
         const errorMessage = error.response?.data?.detail || "Failed to initiate purchase order.";
         toast.error(errorMessage);
@@ -179,10 +181,6 @@ const ProformaInvoiceDetailPage = () => {
                     <span className="w-1/3 font-medium text-gray-700">Spend Category</span>
                     <span className="text-gray-900">{invoice.spend_category}</span>
                   </div>
-                  {/* <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Auto-Populated Note</span>
-                    <span className="text-gray-600">{invoice.auto_populated_field || "N/A"}</span>
-                  </div> */}
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center">

@@ -29,8 +29,9 @@ const PurchaseOrderCreationPage = () => {
       try {
         // Strip /api/v1 prefix to avoid double prefixing by authAxios
         const cleanUrl = redirectUrl.replace(/^\/api\/v1/, "");
-        console.log("Fetching auto-population data from:", `${BASE_URL}${cleanUrl}`);
+        console.log("PurchaseOrderCreationPage: Fetching auto-population data from:", `${BASE_URL}${cleanUrl}`);
         const response = await authAxios.get(cleanUrl);
+        console.log("PurchaseOrderCreationPage: Auto-population data fetched successfully:", response.data);
         setFormData((prev) => ({
           ...prev,
           spend_category: response.data.auto_population_data?.spend_category || "",
@@ -39,7 +40,7 @@ const PurchaseOrderCreationPage = () => {
         const errorMessage = error.response?.data?.detail || "Failed to load auto-population data.";
         setError(errorMessage);
         toast.error(errorMessage);
-        console.error("Fetch auto-population data error:", error);
+        console.error("PurchaseOrderCreationPage: Fetch auto-population data error:", error);
       } finally {
         setLoading(false);
       }
@@ -65,7 +66,7 @@ const PurchaseOrderCreationPage = () => {
     try {
       // Strip /api/v1 prefix for POST request
       const cleanUrl = redirectUrl.replace(/^\/api\/v1/, "");
-      console.log("Posting to:", `${BASE_URL}${cleanUrl}`);
+      console.log("PurchaseOrderCreationPage: Posting to:", `${BASE_URL}${cleanUrl}`);
       const response = await authAxios.post(
         cleanUrl,
         {
@@ -80,12 +81,13 @@ const PurchaseOrderCreationPage = () => {
           },
         }
       );
+      console.log("PurchaseOrderCreationPage: Purchase order created successfully:", response.data);
       toast.success("Purchase order created successfully!");
       navigate("/dashboard/proforma-invoices");
     } catch (error) {
       const errorMessage = error.response?.data?.detail || "Failed to create purchase order.";
       toast.error(errorMessage);
-      console.error("Create purchase order error:", error);
+      console.error("PurchaseOrderCreationPage: Create purchase order error:", error);
     } finally {
       setLoading(false);
     }
