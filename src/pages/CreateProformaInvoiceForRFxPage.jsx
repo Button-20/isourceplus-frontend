@@ -4,47 +4,43 @@ import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const CreateProformaInvoicePage = () => {
+const CreateProformaInvoiceForRFxPage = () => {
   const { authAxios, jobTitle, BASE_URL } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [formValues, setFormValues] = useState({
     title: "New Proforma Invoice",
-    description: "Test event response",
+    description: "Test RFx response",
     spend_category: "",
     priority: "urgent",
     items: [],
   });
   const [loading, setLoading] = useState(true);
 
-  console.log("CreateProformaInvoicePage: 1");
   useEffect(() => {
-    console.log("CreateProformaInvoicePage: 2");
     const fetchAutoPopulationData = async () => {
-  console.log("CreateProformaInvoicePage: 3");
-
       try {
-        console.log("CreateProformaInvoicePage: Fetching auto-population data...");
+        console.log("CreateProformaInvoiceForRFxPage: Fetching auto-population data...");
         const params = new URLSearchParams(location.search);
         const eventRefNum = params.get("event_ref_num");
-        console.log("CreateProformaInvoicePage: Event Reference Number:", eventRefNum);
+        console.log("CreateProformaInvoiceForRFxPage: Event Reference Number:", eventRefNum);
         const response = await authAxios.get(
-          `proforma-invoices/create-offer/?event_ref_num=${eventRefNum}&mn=waybill`
+          `proforma-invoices/create-offer/?event_ref_num=${eventRefNum}&mn=rfx`
         );
-        console.log("CreateProformaInvoicePage: Auto-population data fetched successfully:", response.data);
+        console.log("CreateProformaInvoiceForRFxPage: Auto-population data fetched successfully:", response.data);
         const { spend_category, items } = response.data.auto_population_data;
-        console.log("CreateProformaInvoicePage: Spend Category:", spend_category);
-        console.log("CreateProformaInvoicePage: Items:", items);
+        console.log("CreateProformaInvoiceForRFxPage: Spend Category:", spend_category);
+        console.log("CreateProformaInvoiceForRFxPage: Items:", items);
         setFormValues((prev) => ({
           ...prev,
           spend_category,
           items: items.map((item) => ({
-            name: item.name,
-            description: item.description,
-            unit_of_measure: item.unit_of_measure,
-            quantity: item.quantity,
+            name: item.name || "N/A",
+            description: item.description || "N/A",
+            unit_of_measure: item.unit_of_measure || "",
+            quantity: item.quantity || 0,
             unit_price: "0.00",
-            special_handles: item.special_handles,
+            special_handles: Array.isArray(item.special_handles) ? item.special_handles : [],
           })),
         }));
       } catch (error) {
@@ -52,10 +48,10 @@ const CreateProformaInvoicePage = () => {
         console.error("Fetch auto-population error:", error);
       } finally {
         setLoading(false);
-        console.log("CreateProformaInvoicePage: Auto-population data fetch completed.");
+        console.log("CreateProformaInvoiceForRFxPage: Auto-population data fetch completed.");
       }
     };
-    if (jobTitle === "logistics manager") {
+    if (jobTitle === "sales manager") {
       fetchAutoPopulationData();
     } else {
       setLoading(false);
@@ -79,25 +75,25 @@ const CreateProformaInvoicePage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      console.log("CreateProformaInvoicePage: Submitting form values:", formValues);
+      console.log("CreateProformaInvoiceForRFxPage: Submitting form values:", formValues);
       const params = new URLSearchParams(location.search);
       const eventRefNum = params.get("event_ref_num");
-      console.log("CreateProformaInvoicePage: Event Reference Number for submission:", eventRefNum);
+      console.log("CreateProformaInvoiceForRFxPage: Event Reference Number for submission:", eventRefNum);
       const response = await authAxios.post(
-        `proforma-invoices/create-offer/?event_ref_num=${eventRefNum}&mn=waybill`,
+        `proforma-invoices/create-offer/?event_ref_num=${eventRefNum}&mn=rfx`,
         {
           ...formValues,
           start_datetime: new Date().toISOString(),
           submission_datetime: new Date().toISOString(),
         }
       );
-      console.log("CreateProformaInvoicePage: Proforma invoice created successfully:", response.data);
+      console.log("CreateProformaInvoiceForRFxPage: Proforma invoice created successfully:", response.data);
       const { url } = response.data;
       if (!url || !url.startsWith(`${BASE_URL}proforma-invoices/`)) {
         throw new Error("Invalid response URL received.");
       }
       const refNum = url.split('/').filter(Boolean).pop(); // Extract ref_num from URL
-      console.log("CreateProformaInvoicePage: Extracted ref_num:", refNum);
+      console.log("CreateProformaInvoiceForRFxPage: Extracted ref_num:", refNum);
       toast.success("Proforma invoice created successfully!");
       navigate(`/dashboard/proforma-invoices/${refNum}`);
     } catch (error) {
@@ -119,7 +115,7 @@ const CreateProformaInvoicePage = () => {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        Create Proforma Invoice
+        Create Proforma Invoice for RFx
       </h1>
       <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
         <div>
@@ -181,35 +177,39 @@ const CreateProformaInvoicePage = () => {
               Autogenerated
             </span>
           </h2>
-          {formValues.items.map((item, index) => (
-            <div key={index} className="mb-4 p-4 border rounded-md">
-              <p>
-                <strong>Name:</strong> {item.name}
-              </p>
-              <p>
-                <strong>Description:</strong> {item.description}
-              </p>
-              <p>
-                <strong>Quantity:</strong> {item.quantity} {item.unit_of_measure}
-              </p>
-              <p>
-                <strong>Special Handling:</strong>{" "}
-                {item.special_handles[0]?.handling_description || "None"}
-              </p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Unit Price
-                </label>
-                <input
-                  type="text"
-                  name="unit_price"
-                  value={item.unit_price}
-                  onChange={(e) => handleChange(e, index)}
-                  className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
+          {formValues.items.length > 0 ? (
+            formValues.items.map((item, index) => (
+              <div key={index} className="mb-4 p-4 border rounded-md">
+                <p>
+                  <strong>Name:</strong> {item.name}
+                </p>
+                <p>
+                  <strong>Description:</strong> {item.description}
+                </p>
+                <p>
+                  <strong>Quantity:</strong> {item.quantity} {item.unit_of_measure}
+                </p>
+                <p>
+                  <strong>Special Handling:</strong>{" "}
+                  {item.special_handles.length > 0 ? item.special_handles.map((handle) => handle.handling_description).join(", ") : "None"}
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Unit Price
+                  </label>
+                  <input
+                    type="text"
+                    name="unit_price"
+                    value={item.unit_price}
+                    onChange={(e) => handleChange(e, index)}
+                    className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-gray-600">No items available.</p>
+          )}
         </div>
         <button
           type="submit"
@@ -224,4 +224,4 @@ const CreateProformaInvoicePage = () => {
   );
 };
 
-export default CreateProformaInvoicePage;
+export default CreateProformaInvoiceForRFxPage;

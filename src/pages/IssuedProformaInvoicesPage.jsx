@@ -75,7 +75,7 @@ const IssuedProformaInvoicesPage = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {proformaInvoices.map((invoice) => (
+            {proformaInvoices.length > 0 ? proformaInvoices.map((invoice) => (
               <tr key={invoice.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {invoice.ref_num}
@@ -112,7 +112,13 @@ const IssuedProformaInvoicesPage = () => {
                   </Link>
                 </td>
               </tr>
-            ))}
+            )) : (
+              <tr>
+                <td colSpan="7" className="px-6 py-4 text-sm text-gray-900 text-center">
+                  No issued proforma invoices found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

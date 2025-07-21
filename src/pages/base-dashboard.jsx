@@ -15,7 +15,6 @@ import {
   FilePlus,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Toaster } from "@/components/ui/sonner";
 import {
   Sidebar,
   SidebarContent,
@@ -192,7 +191,13 @@ export function BaseDashBoard() {
     navLinks.push({
       title: "RFx Management",
       icon: FileText,
-      url: "/dashboard/rfxs",
+      submenu: [
+        { title: "View All RFxs", url: "/dashboard/rfxs" },
+        { title: "View Issued RFxs", url: "/dashboard/rfxs/issued" },
+        ...(jobTitle === "lead buyer"
+          ? [{ title: "Create RFx", url: "/dashboard/rfxs/new" }]
+          : []),
+      ],
     });
   }
 
@@ -266,7 +271,6 @@ export function BaseDashBoard() {
           )}
         </div>
       </main>
-      <Toaster />
     </SidebarProvider>
   );
 }

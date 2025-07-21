@@ -10,6 +10,11 @@ const AllWaybillsPage = () => {
   const navigate = useNavigate();
   const [waybills, setWaybills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [nextPage, setNextPage] = useState(null);
+  const [previousPage, setPreviousPage] = useState(null);
+  const pageSize = 10; // Matches PAGE_SIZE in settings.py
 
   // Restrict access for "lead buyer" and "sales manager"
   useEffect(() => {
@@ -18,11 +23,16 @@ const AllWaybillsPage = () => {
     }
   }, [jobTitle, navigate]);
 
-  const fetchWaybills = async () => {
+  const fetchWaybills = async (page = 1) => {
     try {
-      console.log(`Fetching all waybills from: ${BASE_URL}waybills/`);
-      const response = await authAxios.get("waybills/");
+      setLoading(true);
+      console.log(`Fetching waybills from: ${BASE_URL}waybills/?page=${page}`);
+      const response = await authAxios.get(`waybills/?page=${page}`);
       setWaybills(response.data.results);
+      setTotalCount(response.data.count);
+      setNextPage(response.data.next);
+      setPreviousPage(response.data.previous);
+      setCurrentPage(page);
     } catch (error) {
       toast.error("Failed to load waybills.");
       console.error("Fetch waybills error:", error);
@@ -44,6 +54,14 @@ const AllWaybillsPage = () => {
       formatted: format(date, "dd MMM yyyy, HH:mm:ss"),
       relative: formatDistanceToNow(date, { addSuffix: true }),
     };
+  };
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchWaybills(page);
+    }
   };
 
   if (loading) {
@@ -123,6 +141,37 @@ const AllWaybillsPage = () => {
           </tbody>
         </table>
       </div>
+      {totalPages > 1 && (
+        <div className="mt-6 flex justify-between items-center">
+          <div className="text-sm text-gray-700">
+            Showing page {currentPage} of {totalPages} ({totalCount} waybills)
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={!previousPage}
+              className={`px-4 py-2 border border-gray-300 rounded-md text-sm font-medium ${
+                previousPage
+                  ? "bg-white text-gray-700 hover:bg-gray-50"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={!nextPage}
+              className={`px-4 py-2 border border-gray-300 rounded-md text-sm font-medium ${
+                nextPage
+                  ? "bg-white text-gray-700 hover:bg-gray-50"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

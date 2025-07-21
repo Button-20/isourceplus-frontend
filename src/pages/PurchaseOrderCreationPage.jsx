@@ -3,16 +3,16 @@ import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { Loader2, Save, ArrowLeft, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { getCookie } from "@/utility/getCookie";
 
 const PurchaseOrderCreationPage = () => {
   const { authAxios, BASE_URL } = useAuth();
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     spend_category: "",
-    vendor: "",
     quantity: "",
     total_cost: "",
+    items: [],
   });
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -27,7 +27,6 @@ const PurchaseOrderCreationPage = () => {
         return;
       }
       try {
-        // Strip /api/v1 prefix to avoid double prefixing by authAxios
         const cleanUrl = redirectUrl.replace(/^\/api\/v1/, "");
         console.log("PurchaseOrderCreationPage: Fetching auto-population data from:", `${BASE_URL}${cleanUrl}`);
         const response = await authAxios.get(cleanUrl);
@@ -35,6 +34,7 @@ const PurchaseOrderCreationPage = () => {
         setFormData((prev) => ({
           ...prev,
           spend_category: response.data.auto_population_data?.spend_category || "",
+          items: response.data.auto_population_data?.items || [],
         }));
       } catch (error) {
         const errorMessage = error.response?.data?.detail || "Failed to load auto-population data.";
@@ -47,6 +47,11 @@ const PurchaseOrderCreationPage = () => {
     };
     fetchAutoPopulationData();
   }, [authAxios, redirectUrl, BASE_URL]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,20 +69,22 @@ const PurchaseOrderCreationPage = () => {
     }
     setLoading(true);
     try {
-      // Strip /api/v1 prefix for POST request
       const cleanUrl = redirectUrl.replace(/^\/api\/v1/, "");
       console.log("PurchaseOrderCreationPage: Posting to:", `${BASE_URL}${cleanUrl}`);
+          let csrfToken = getCookie("csrftoken");
+
       const response = await authAxios.post(
         cleanUrl,
         {
           spend_category: formData.spend_category,
-          vendor: formData.vendor,
           quantity: parseInt(formData.quantity, 10),
           total_cost: parseFloat(formData.total_cost),
+          // items: formData.items,
         },
         {
           headers: {
             "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken, // Include CSRF token for security
           },
         }
       );
@@ -91,11 +98,6 @@ const PurchaseOrderCreationPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   if (loading) {
@@ -143,6 +145,9 @@ const PurchaseOrderCreationPage = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Spend Category
+              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                Auto-populated
+              </span>
             </label>
             <input
               type="text"
@@ -154,20 +159,7 @@ const PurchaseOrderCreationPage = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Vendor
-            </label>
-            <input
-              type="text"
-              name="vendor"
-              value={formData.vendor}
-              onChange={handleInputChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Quantity
+              Total Quantity
             </label>
             <input
               type="number"
@@ -193,6 +185,60 @@ const PurchaseOrderCreationPage = () => {
               step="0.01"
               min="0"
             />
+          </div>
+          <div>
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Items
+              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                Auto-populated
+              </span>
+            </h2>
+            {formData.items.length > 0 ? (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Unit of Measure
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Unit Price
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {formData.items.map((item, index) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.description || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.quantity}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.unit_of_measure}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.unit_price}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-gray-600">No items available.</p>
+            )}
           </div>
           <div className="flex justify-end space-x-4">
             <button

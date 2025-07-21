@@ -10,6 +10,12 @@ export const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const BASE_URL = `${import.meta.env.VITE_SERVER_URL}api/v1/`;
 
+    const refresh = getCookie("isource-plus-refresh-token");
+    let csrfToken = getCookie("csrftoken");
+
+// console.log("refresh token:", refresh);
+// console.log("csrf token:", csrfToken);
+
   // Axios instance for protected API calls
   const authAxios = useMemo(() => {
     const inst = axios.create({

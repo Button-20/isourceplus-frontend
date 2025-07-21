@@ -325,7 +325,7 @@ const ProformaInvoiceDetailPage = () => {
         </div>
 
         {/* Actions */}
-        {(jobTitle === "lead buyer" || jobTitle === "sales manager") && invoice.status === "draft" && (
+        {(jobTitle === "lead buyer" ) && invoice.status === "draft" && (
           <div className="p-6 flex justify-end">
             <button
               onClick={handleSendPurchaseOrder}

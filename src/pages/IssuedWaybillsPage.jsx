@@ -275,7 +275,7 @@ const IssuedWaybillsPage = () => {
         )}
       </div>
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="fixed z-50 inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-200 shadow-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Create Waybill</h2>
@@ -721,7 +721,7 @@ const IssuedWaybillsPage = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {waybills.map((waybill) => (
+            {waybills.length > 0 ? waybills.map((waybill) => (
               <tr key={waybill.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {waybill.ref_num}
@@ -764,7 +764,13 @@ const IssuedWaybillsPage = () => {
                   </div>
                 </td>
               </tr>
-            ))}
+            )) : (
+              <tr>
+                <td colSpan="6" className="px-6 py-4 text-sm text-gray-900 text-center">
+                  No issued waybills found.
+                </td>
+              </tr>
+            ) }
           </tbody>
         </table>
       </div>
