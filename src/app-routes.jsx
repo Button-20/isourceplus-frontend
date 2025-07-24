@@ -50,6 +50,10 @@ import ProformaInvoiceIssuedDetailPage from "./pages/ProformaInvoiceIssuedDetail
 import RFxIssuedPage from "./pages/RFxIssuedPage";
 import RFxCreationPage from "./pages/RFxCreationPage";
 import CreateProformaInvoiceForRFxPage from "./pages/CreateProformaInvoiceForRFxPage";
+import TenderPage from "./pages/TenderPage";
+import TenderCreationPage from "./pages/TenderCreationPage";
+import TenderDetailPage from "./pages/TenderDetailPage";
+import CreateProformaInvoiceForTenderPage from "./pages/CreateProformaInvoiceForTenderPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -114,12 +118,17 @@ export const appRoutes = createBrowserRouter([
       { path: "waybills", element: <AllWaybillsPage /> },
       { path: "waybills/issued", element: <IssuedWaybillsPage /> },
       { path: "waybills/:refNum", element: <WaybillDetailPage /> },
+      { path: "tenders", element: <TenderPage /> },
+      { path: "tenders/new", element: <TenderCreationPage /> },
+      { path: "tenders/issued", element: <TenderPage /> },
+      { path: "tenders/:refNum", element: <TenderDetailPage /> },
       { path: "proforma-invoices", element: <ProformaInvoicesPage /> },
       { path: "proforma-invoices/issued", element: <IssuedProformaInvoicesPage /> },
       { path: "proforma-invoices/:refNum", element: <ProformaInvoiceDetailPage /> },
       { path: "proforma-invoices/issued/:refNum", element: <ProformaInvoiceIssuedDetailPage /> },
       { path: "proforma-invoices/create-offer", element: <CreateProformaInvoicePage /> },
       { path: "proforma-invoices/create-offer-rfx", element: <CreateProformaInvoiceForRFxPage /> },
+      { path: "proforma-invoices/create-offer-tender", element: <CreateProformaInvoiceForTenderPage /> },
       { path: "purchase-orders/create-business-award/*", element: <PurchaseOrderCreationPage /> }, 
       { path: "purchase-orders/:refNum", element: <PurchaseOrderDetailPage /> },
   

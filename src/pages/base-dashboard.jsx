@@ -199,6 +199,19 @@ export function BaseDashBoard() {
           : []),
       ],
     });
+    navLinks.push({
+      title: "Tender Management",
+      icon: FileText,
+      submenu: [
+        { title: "View All Tenders", url: "/dashboard/tenders" },
+        ...(jobTitle === "lead buyer"
+          ? [
+              { title: "View Issued Tenders", url: "/dashboard/tenders/issued" },
+              { title: "Create Tender", url: "/dashboard/tenders/new" },
+            ]
+          : []),
+      ],
+    });
   }
 
   if (loading || sidebarLoading || profileVerified === null) {
