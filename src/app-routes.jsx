@@ -41,7 +41,7 @@ import WaybillDetailPage from "./pages/WaybillDetailPage";
 import ProformaInvoicesPage from "./pages/ProformaInvoicesPage";
 import ProformaInvoiceDetailPage from "./pages/ProformaInvoiceDetailPage";
 import CreateProformaInvoicePage from "./pages/CreateProformaInvoicePage";
-import PurchaseOrderCreationPage from "./pages/PurchaseOrderCreationPage"; 
+import PurchaseOrderCreationPage from "./pages/PurchaseOrderCreationPage";
 import PurchaseOrderDetailPage from "./pages/PurchaseOrderDetailPage";
 import IssuedWaybillsPage from "./pages/IssuedWaybillsPage";
 import AllWaybillsPage from "./pages/AllWaybillsPage";
@@ -54,6 +54,11 @@ import TenderPage from "./pages/TenderPage";
 import TenderCreationPage from "./pages/TenderCreationPage";
 import TenderDetailPage from "./pages/TenderDetailPage";
 import CreateProformaInvoiceForTenderPage from "./pages/CreateProformaInvoiceForTenderPage";
+import SalesInvoicesPage from "./pages/SalesInvoicesPage";
+import SalesInvoiceDetailPage from "./pages/SalesInvoiceDetailPage";
+import CreateSalesInvoicePage from "./pages/CreateSalesInvoicePage";
+import PurchaseOrdersPage from "./pages/PurchaseOrdersPage";
+import IssuedPurchaseOrdersPage from "./pages/IssuedPurchaseOrdersPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -111,7 +116,7 @@ export const appRoutes = createBrowserRouter([
       { path: "transporter/employees", element: <AllTransporterEmployees /> },
       { path: "company/employees", element: <CompanyEmployees /> },
       { path: "user/verification-docs", element: <ManageUserVerificationDocs /> },
-       { path: "rfxs", element: <RFxPage /> },
+      { path: "rfxs", element: <RFxPage /> },
       { path: "rfxs/new", element: <RFxCreationPage /> },
       { path: "rfxs/issued", element: <RFxIssuedPage /> },
       { path: "rfxs/:refNum", element: <RFxDetailPage /> },
@@ -129,12 +134,14 @@ export const appRoutes = createBrowserRouter([
       { path: "proforma-invoices/create-offer", element: <CreateProformaInvoicePage /> },
       { path: "proforma-invoices/create-offer-rfx", element: <CreateProformaInvoiceForRFxPage /> },
       { path: "proforma-invoices/create-offer-tender", element: <CreateProformaInvoiceForTenderPage /> },
-      { path: "purchase-orders/create-business-award/*", element: <PurchaseOrderCreationPage /> }, 
+      { path: "purchase-orders", element: <PurchaseOrdersPage /> },
+      { path: "purchase-orders/issued", element: <IssuedPurchaseOrdersPage /> },
       { path: "purchase-orders/:refNum", element: <PurchaseOrderDetailPage /> },
-  
+      { path: "purchase-orders/create-business-award/*", element: <PurchaseOrderCreationPage /> },
+      { path: "sales-invoices/issued", element: <SalesInvoicesPage /> },
+      { path: "sales-invoices/:refNum", element: <SalesInvoiceDetailPage /> },
+      { path: "sales-invoices/create-sales-invoice", element: <CreateSalesInvoicePage /> },
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },
 ]);
-
-// hello there

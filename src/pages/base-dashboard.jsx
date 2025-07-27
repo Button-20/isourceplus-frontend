@@ -178,15 +178,11 @@ export function BaseDashBoard() {
   }
 
   if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
+    
     navLinks.push({
       title: "Issued Waybills",
       icon: FilePlus,
       url: "/dashboard/waybills/issued",
-    });
-    navLinks.push({
-      title: "Proforma Invoices",
-      icon: FileText,
-      url: "/dashboard/proforma-invoices",
     });
     navLinks.push({
       title: "RFx Management",
@@ -211,6 +207,24 @@ export function BaseDashBoard() {
             ]
           : []),
       ],
+    });
+    navLinks.push({
+      title: "Proforma Invoices",
+      icon: FileText,
+      url: "/dashboard/proforma-invoices",
+    }),
+    navLinks.push({
+      title: "Purchase Orders",
+      icon: FilePlus,
+      url: jobTitle === "lead buyer" ? "/dashboard/purchase-orders/issued" : "/dashboard/purchase-orders",
+    });
+  }
+
+  if (jobTitle === "sales manager") {
+    navLinks.push({
+      title: "Sales Invoices",
+      icon: FileText,
+      url: "/dashboard/sales-invoices/issued",
     });
   }
 
