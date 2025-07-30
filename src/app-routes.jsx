@@ -59,6 +59,10 @@ import SalesInvoiceDetailPage from "./pages/SalesInvoiceDetailPage";
 import CreateSalesInvoicePage from "./pages/CreateSalesInvoicePage";
 import PurchaseOrdersPage from "./pages/PurchaseOrdersPage";
 import IssuedPurchaseOrdersPage from "./pages/IssuedPurchaseOrdersPage";
+import PaymentOrderDetailPage from "./pages/PaymentOrderDetailPage";
+import CreatePaymentOrderPage from "./pages/CreatePaymentOrderPage";
+import PaymentOrdersPage from "./pages/PaymentOrdersPage";
+import IssuedSalesInvoicesPage from "./pages/IssuedSalesInvoicesPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -138,9 +142,13 @@ export const appRoutes = createBrowserRouter([
       { path: "purchase-orders/issued", element: <IssuedPurchaseOrdersPage /> },
       { path: "purchase-orders/:refNum", element: <PurchaseOrderDetailPage /> },
       { path: "purchase-orders/create-business-award/*", element: <PurchaseOrderCreationPage /> },
-      { path: "sales-invoices/issued", element: <SalesInvoicesPage /> },
+      { path: "sales-invoices", element: <SalesInvoicesPage /> },
+      { path: "sales-invoices/issued", element: <IssuedSalesInvoicesPage /> },
       { path: "sales-invoices/:refNum", element: <SalesInvoiceDetailPage /> },
       { path: "sales-invoices/create-sales-invoice", element: <CreateSalesInvoicePage /> },
+      { path: "payment-orders/issued", element: <PaymentOrdersPage /> },
+      { path: "payment-orders/:refNum", element: <PaymentOrderDetailPage /> },
+      { path: "payment-orders/create-payment-order", element: <CreatePaymentOrderPage /> },
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },

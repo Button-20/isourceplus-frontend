@@ -175,10 +175,27 @@ export function BaseDashBoard() {
       icon: FileText,
       url: "/dashboard/proforma-invoices/issued",
     });
+    navLinks.push({
+      title: "Sales Invoices",
+      icon: FileText,
+      url: "/dashboard/sales-invoices",
+    });
+    navLinks.push({
+      title: "Payment Orders",
+      icon: FileText,
+      url: "/dashboard/payment-orders/issued",
+    });
   }
 
   if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
-    
+    navLinks.push({
+      title: "Purchase Orders",
+      icon: FilePlus,
+      url:
+        jobTitle === "lead buyer"
+          ? "/dashboard/purchase-orders/issued"
+          : "/dashboard/purchase-orders",
+    });
     navLinks.push({
       title: "Issued Waybills",
       icon: FilePlus,
@@ -202,7 +219,10 @@ export function BaseDashBoard() {
         { title: "View All Tenders", url: "/dashboard/tenders" },
         ...(jobTitle === "lead buyer"
           ? [
-              { title: "View Issued Tenders", url: "/dashboard/tenders/issued" },
+              {
+                title: "View Issued Tenders",
+                url: "/dashboard/tenders/issued",
+              },
               { title: "Create Tender", url: "/dashboard/tenders/new" },
             ]
           : []),
@@ -212,11 +232,6 @@ export function BaseDashBoard() {
       title: "Proforma Invoices",
       icon: FileText,
       url: "/dashboard/proforma-invoices",
-    }),
-    navLinks.push({
-      title: "Purchase Orders",
-      icon: FilePlus,
-      url: jobTitle === "lead buyer" ? "/dashboard/purchase-orders/issued" : "/dashboard/purchase-orders",
     });
   }
 
@@ -224,9 +239,22 @@ export function BaseDashBoard() {
     navLinks.push({
       title: "Sales Invoices",
       icon: FileText,
-      url: "/dashboard/sales-invoices/issued",
+      url: "/dashboard/sales-invoices",
+    });
+    navLinks.push({
+      title: "Payment Orders",
+      icon: FileText,
+      url: "/dashboard/payment-orders/issued",
     });
   }
+
+  // if (jobTitle === "lead buyer") {
+  //   navLinks.push({
+  //     title: "Issued Sales Invoices",
+  //     icon: FileText,
+  //     url: "/dashboard/sales-invoices/issued",
+  //   });
+  // }
 
   if (loading || sidebarLoading || profileVerified === null) {
     return (

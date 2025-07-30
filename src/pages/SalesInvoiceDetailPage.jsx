@@ -11,7 +11,7 @@ const SalesInvoiceDetailPage = () => {
   const [salesInvoice, setSalesInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalLoading, setModalLoading] = useState(false);
-  const [formData, setFormData] = useState({ title: "", description: "", priority: "normal" });
+  const [formData, setFormData] = useState({ title: "", notes: "", priority: "normal" });
 
   useEffect(() => {
     const fetchSalesInvoice = async () => {
@@ -21,7 +21,7 @@ const SalesInvoiceDetailPage = () => {
         setSalesInvoice(response.data);
         setFormData({
           title: response.data.title,
-          description: response.data.notes || "",
+          notes: response.data.notes || "",
           priority: response.data.priority,
         });
       } catch (error) {
@@ -46,11 +46,12 @@ const SalesInvoiceDetailPage = () => {
     }
     setModalLoading(true);
     try {
+      const csrfToken = document.cookie.split("; ").find(row => row.startsWith("csrftoken="))?.split("=")[1];
       const response = await authAxios.patch(`sales-invoices/${refNum}/`, {
         title: formData.title,
-        notes: formData.description,
+        notes: formData.notes,
         priority: formData.priority,
-      });
+      }, { headers: { "X-CSRFToken": csrfToken } });
       console.log("SalesInvoiceDetailPage: Sales invoice updated:", response.data);
       setSalesInvoice(response.data);
       toast.success("Sales invoice updated successfully!");
@@ -70,12 +71,51 @@ const SalesInvoiceDetailPage = () => {
     }
     setModalLoading(true);
     try {
-      await authAxios.delete(`sales-invoices/${refNum}/`);
+      const csrfToken = document.cookie.split("; ").find(row => row.startsWith("csrftoken="))?.split("=")[1];
+      await authAxios.delete(`sales-invoices/${refNum}/`, { headers: { "X-CSRFToken": csrfToken } });
       toast.success("Sales invoice deleted successfully!");
-      navigate("/dashboard/sales-invoices/issued");
+      navigate("/dashboard/sales-invoices");
     } catch (error) {
       toast.error("Failed to delete sales invoice.");
       console.error("SalesInvoiceDetailPage: Delete error:", error.response?.data || error);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleSendPaymentOrder = async () => {
+    if (!["sales manager", "logistics manager"].includes(jobTitle)) {
+      toast.error("Only sales or logistics managers can send payment orders.");
+      return;
+    }
+    setModalLoading(true);
+    try {
+      const response = await authAxios.get(`sales-invoices/${refNum}/send-payment-order/`, {
+        maxRedirects: 0,
+      });
+      console.log("SalesInvoiceDetailPage: Send payment order response:", response.data);
+      const url = response.data.event_response_create_url;
+      if (!url || !url.startsWith("/api/v1/payment-orders/create-payment-order/")) {
+        throw new Error("Invalid redirect URL received.");
+      }
+      const dashboardUrl = url.replace("/api/v1/payment-orders/create-payment-order", "/dashboard/payment-orders/create-payment-order");
+      console.log("SalesInvoiceDetailPage: Navigating to:", dashboardUrl);
+      navigate(dashboardUrl);
+    } catch (error) {
+      if (error.response && error.response.status === 302) {
+        const url = error.response.data.event_response_create_url;
+        console.log("SalesInvoiceDetailPage: Caught 302 redirect with URL:", url);
+        if (!url || !url.startsWith("/api/v1/payment-orders/create-payment-order/")) {
+          throw new Error("Invalid redirect URL received.");
+        }
+        const dashboardUrl = url.replace("/api/v1/payment-orders/create-payment-order", "/dashboard/payment-orders/create-payment-order");
+        console.log("SalesInvoiceDetailPage: Navigating to:", dashboardUrl);
+        navigate(dashboardUrl);
+      } else {
+        const errorMessage = error.response?.data?.detail || "Failed to initiate payment order.";
+        toast.error(errorMessage);
+        console.error("SalesInvoiceDetailPage: Send payment order error:", error.response?.data || error);
+      }
     } finally {
       setModalLoading(false);
     }
@@ -98,7 +138,7 @@ const SalesInvoiceDetailPage = () => {
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
           <p className="text-xl font-semibold text-gray-900 mb-4">Sales Invoice Not Found</p>
           <button
-            onClick={() => navigate("/dashboard/sales-invoices/issued")}
+            onClick={() => navigate("/dashboard/sales-invoices")}
             className="flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-200"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -115,7 +155,7 @@ const SalesInvoiceDetailPage = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Sales Invoice: {salesInvoice.ref_num}</h1>
           <button
-            onClick={() => navigate("/dashboard/sales-invoices/issued")}
+            onClick={() => navigate("/dashboard/sales-invoices")}
             className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-200"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -136,10 +176,10 @@ const SalesInvoiceDetailPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-500">Description</label>
+                <label className="block text-sm font-medium text-gray-500">Notes</label>
                 <textarea
-                  name="description"
-                  value={formData.description}
+                  name="notes"
+                  value={formData.notes}
                   onChange={handleInputChange}
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   rows="4"
@@ -246,25 +286,36 @@ const SalesInvoiceDetailPage = () => {
               <p className="text-gray-600">No items available.</p>
             )}
           </div>
-          {jobTitle === "sales manager" && (
-            <div className="mt-8 flex justify-end space-x-4">
+          <div className="mt-8 flex justify-end space-x-4">
+            {jobTitle === "sales manager" && (
+              <>
+                <button
+                  onClick={handleUpdate}
+                  disabled={modalLoading}
+                  className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition duration-200 disabled:bg-indigo-400"
+                >
+                  {modalLoading ? "Updating..." : "Update Sales Invoice"}
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={modalLoading}
+                  className="bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition duration-200 disabled:bg-red-400 flex items-center"
+                >
+                  <Trash2 className="w-5 h-5 mr-2" />
+                  {modalLoading ? "Deleting..." : "Delete Sales Invoice"}
+                </button>
+              </>
+            )}
+            {["sales manager", "logistics manager"].includes(jobTitle) && (
               <button
-                onClick={handleUpdate}
+                onClick={handleSendPaymentOrder}
                 disabled={modalLoading}
                 className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition duration-200 disabled:bg-indigo-400"
               >
-                {modalLoading ? "Updating..." : "Update Sales Invoice"}
+                {modalLoading ? "Processing..." : "Send Payment Order"}
               </button>
-              <button
-                onClick={handleDelete}
-                disabled={modalLoading}
-                className="bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition duration-200 disabled:bg-red-400 flex items-center"
-              >
-                <Trash2 className="w-5 h-5 mr-2" />
-                {modalLoading ? "Deleting..." : "Delete Sales Invoice"}
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

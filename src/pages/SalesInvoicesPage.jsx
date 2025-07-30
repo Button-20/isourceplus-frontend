@@ -20,7 +20,7 @@ const SalesInvoicesPage = () => {
       try {
         const response = await authAxios.get("sales-invoices/issued/");
         console.log("SalesInvoicesPage: Sales invoices fetched:", response.data);
-        setSalesInvoices(response.data.results || response.data || []);
+        setSalesInvoices(response.data || []);
       } catch (error) {
         toast.error("Failed to load sales invoices.");
         console.error("SalesInvoicesPage: Fetch error:", error.response?.data || error);
