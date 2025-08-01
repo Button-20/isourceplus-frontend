@@ -176,6 +176,11 @@ export function BaseDashBoard() {
       url: "/dashboard/proforma-invoices/issued",
     });
     navLinks.push({
+      title: "Purchase Orders",
+      icon: FilePlus,
+      url: "/dashboard/purchase-orders",
+    });
+    navLinks.push({
       title: "Sales Invoices",
       icon: FileText,
       url: "/dashboard/sales-invoices",
@@ -189,14 +194,6 @@ export function BaseDashBoard() {
 
   if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
     navLinks.push({
-      title: "Purchase Orders",
-      icon: FilePlus,
-      url:
-        jobTitle === "lead buyer"
-          ? "/dashboard/purchase-orders/issued"
-          : "/dashboard/purchase-orders",
-    });
-    navLinks.push({
       title: "Issued Waybills",
       icon: FilePlus,
       url: "/dashboard/waybills/issued",
@@ -206,9 +203,10 @@ export function BaseDashBoard() {
       icon: FileText,
       submenu: [
         { title: "View All RFxs", url: "/dashboard/rfxs" },
-        { title: "View Issued RFxs", url: "/dashboard/rfxs/issued" },
         ...(jobTitle === "lead buyer"
-          ? [{ title: "Create RFx", url: "/dashboard/rfxs/new" }]
+          ? [{ title: "Create RFx", url: "/dashboard/rfxs/new" },
+            { title: "View Issued RFxs", url: "/dashboard/rfxs/issued" }
+          ]
           : []),
       ],
     });
@@ -232,6 +230,14 @@ export function BaseDashBoard() {
       title: "Proforma Invoices",
       icon: FileText,
       url: "/dashboard/proforma-invoices",
+    });
+    navLinks.push({
+      title: "Purchase Orders",
+      icon: FilePlus,
+      url:
+        jobTitle === "lead buyer"
+          ? "/dashboard/purchase-orders/issued"
+          : "/dashboard/purchase-orders",
     });
   }
 
@@ -272,7 +278,7 @@ export function BaseDashBoard() {
     <SidebarProvider>
       <Sidebar collapsible="icon">
         {sidebarLoading ? (
-          <div className="flex h-full w-full items-center justify-center bg-sidebar-background">
+          <div className=" font-montserrat flex h-full w-full items-center justify-center bg-sidebar-background">
             <Loader2 className="animate-spin h-8 w-8 text-sidebar-foreground" />
           </div>
         ) : (

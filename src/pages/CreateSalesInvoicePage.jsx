@@ -18,8 +18,8 @@ const CreateSalesInvoicePage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (jobTitle !== "sales manager") {
-      toast.error("Only sales managers can create sales invoices.");
+    if (jobTitle !== "sales manager" && jobTitle !== "logistics manager") {
+      toast.error("Only sales managers and logistics managers can create sales invoices.");
       navigate("/dashboard/purchase-orders");
       return;
     }
@@ -120,7 +120,7 @@ const CreateSalesInvoicePage = () => {
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-gray-700 sm:text-sm"
                 required
               />
             </div>
@@ -131,7 +131,7 @@ const CreateSalesInvoicePage = () => {
                 name="spend_category"
                 value={formData.spend_category}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-gray-700 sm:text-sm"
                 readOnly
               />
             </div>
@@ -139,7 +139,7 @@ const CreateSalesInvoicePage = () => {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition duration-200 disabled:bg-indigo-400"
+                className="bg-black text-white py-2 px-6 rounded-lg hover:bg-gray-700 transition duration-200 disabled:bg-gray-400"
               >
                 {submitting ? "Submitting..." : "Create Sales Invoice"}
               </button>

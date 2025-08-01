@@ -27,7 +27,7 @@ const Pagination = ({ count, page, setPage, next, previous }) => {
         disabled={!previous}
         className={`py-2 px-4 rounded-md text-sm font-medium ${
           previous
-            ? "bg-indigo-600 text-white hover:bg-indigo-700"
+            ? "bg-black text-white hover:bg-gray-700"
             : "bg-gray-300 text-gray-500 cursor-not-allowed"
         } transition duration-200`}
       >
@@ -39,7 +39,7 @@ const Pagination = ({ count, page, setPage, next, previous }) => {
           onClick={() => handlePageChange(pageNum)}
           className={`py-2 px-4 rounded-md text-sm font-medium ${
             page === pageNum
-              ? "bg-indigo-600 text-white"
+              ? "bg-black text-white"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
           } transition duration-200`}
         >
@@ -51,7 +51,7 @@ const Pagination = ({ count, page, setPage, next, previous }) => {
         disabled={!next}
         className={`py-2 px-4 rounded-md text-sm font-medium ${
           next
-            ? "bg-indigo-600 text-white hover:bg-indigo-700"
+            ? "bg-black text-white hover:bg-gray-700"
             : "bg-gray-300 text-gray-500 cursor-not-allowed"
         } transition duration-200`}
       >

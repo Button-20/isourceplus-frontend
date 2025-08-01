@@ -21,26 +21,43 @@ const PurchaseOrderCreationPage = () => {
 
   useEffect(() => {
     const fetchAutoPopulationData = async () => {
-      if (!redirectUrl || !redirectUrl.startsWith("/api/v1/purchase-orders/create-business-award/")) {
+      if (
+        !redirectUrl ||
+        !redirectUrl.startsWith(
+          "/api/v1/purchase-orders/create-business-award/"
+        )
+      ) {
         setError("Invalid document creation URL.");
         setLoading(false);
         return;
       }
       try {
         const cleanUrl = redirectUrl.replace(/^\/api\/v1/, "");
-        console.log("PurchaseOrderCreationPage: Fetching auto-population data from:", `${BASE_URL}${cleanUrl}`);
+        console.log(
+          "PurchaseOrderCreationPage: Fetching auto-population data from:",
+          `${BASE_URL}${cleanUrl}`
+        );
         const response = await authAxios.get(cleanUrl);
-        console.log("PurchaseOrderCreationPage: Auto-population data fetched successfully:", response.data);
+        console.log(
+          "PurchaseOrderCreationPage: Auto-population data fetched successfully:",
+          response.data
+        );
         setFormData((prev) => ({
           ...prev,
-          spend_category: response.data.auto_population_data?.spend_category || "",
+          spend_category:
+            response.data.auto_population_data?.spend_category || "",
           items: response.data.auto_population_data?.items || [],
         }));
       } catch (error) {
-        const errorMessage = error.response?.data?.detail || "Failed to load auto-population data.";
+        const errorMessage =
+          error.response?.data?.detail ||
+          "Failed to load auto-population data.";
         setError(errorMessage);
         toast.error(errorMessage);
-        console.error("PurchaseOrderCreationPage: Fetch auto-population data error:", error);
+        console.error(
+          "PurchaseOrderCreationPage: Fetch auto-population data error:",
+          error
+        );
       } finally {
         setLoading(false);
       }
@@ -70,8 +87,11 @@ const PurchaseOrderCreationPage = () => {
     setLoading(true);
     try {
       const cleanUrl = redirectUrl.replace(/^\/api\/v1/, "");
-      console.log("PurchaseOrderCreationPage: Posting to:", `${BASE_URL}${cleanUrl}`);
-          let csrfToken = getCookie("csrftoken");
+      console.log(
+        "PurchaseOrderCreationPage: Posting to:",
+        `${BASE_URL}${cleanUrl}`
+      );
+      let csrfToken = getCookie("csrftoken");
 
       const response = await authAxios.post(
         cleanUrl,
@@ -88,13 +108,20 @@ const PurchaseOrderCreationPage = () => {
           },
         }
       );
-      console.log("PurchaseOrderCreationPage: Purchase order created successfully:", response.data);
+      console.log(
+        "PurchaseOrderCreationPage: Purchase order created successfully:",
+        response.data
+      );
       toast.success("Purchase order created successfully!");
       navigate("/dashboard/proforma-invoices");
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || "Failed to create purchase order.";
+      const errorMessage =
+        error.response?.data?.detail || "Failed to create purchase order.";
       toast.error(errorMessage);
-      console.error("PurchaseOrderCreationPage: Create purchase order error:", error);
+      console.error(
+        "PurchaseOrderCreationPage: Create purchase order error:",
+        error
+      );
     } finally {
       setLoading(false);
     }
@@ -104,7 +131,9 @@ const PurchaseOrderCreationPage = () => {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
         <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
-        <p className="mt-4 text-gray-600 text-lg">Loading Document Creation Data...</p>
+        <p className="mt-4 text-gray-600 text-lg">
+          Loading Document Creation Data...
+        </p>
       </div>
     );
   }
@@ -116,7 +145,7 @@ const PurchaseOrderCreationPage = () => {
         <p className="mt-4 text-xl text-gray-900">{error}</p>
         <button
           onClick={() => navigate("/dashboard/proforma-invoices")}
-          className="mt-6 flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200"
+          className="mt-6 flex items-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Back to Proforma Invoices
@@ -186,7 +215,7 @@ const PurchaseOrderCreationPage = () => {
               min="0"
             />
           </div>
-          <div>
+          <div className="overflow-auto">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
               Items
               <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
@@ -194,7 +223,7 @@ const PurchaseOrderCreationPage = () => {
               </span>
             </h2>
             {formData.items.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className=" min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -214,7 +243,7 @@ const PurchaseOrderCreationPage = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className=" bg-white divide-y divide-gray-200">
                   {formData.items.map((item, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -251,7 +280,7 @@ const PurchaseOrderCreationPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-md disabled:opacity-50"
+              className="flex items-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-md disabled:opacity-50"
             >
               <Save className="w-5 h-5 mr-2" />
               {loading ? "Creating..." : "Create Purchase Order"}

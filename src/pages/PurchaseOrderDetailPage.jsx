@@ -29,7 +29,7 @@ const PurchaseOrderDetailPage = () => {
   }, [authAxios, refNum]);
 
   const handleSendSalesInvoice = async () => {
-    if (jobTitle !== "sales manager") {
+    if (jobTitle !== "sales manager" && jobTitle !== "logistics manager") {
       toast.error("Only sales managers can send sales invoices.");
       return;
     }
@@ -70,7 +70,7 @@ const PurchaseOrderDetailPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <Loader2 className="animate-spin h-12 w-12 text-indigo-600 mx-auto" />
+          <Loader2 className="animate-spin h-12 w-12 text-black mx-auto" />
           <p className="mt-4 text-gray-600 text-lg">Loading Purchase Order Details...</p>
         </div>
       </div>
@@ -84,7 +84,7 @@ const PurchaseOrderDetailPage = () => {
           <p className="text-xl font-semibold text-gray-900 mb-4">Purchase Order Not Found</p>
           <button
             onClick={() => navigate("/dashboard/purchase-orders")}
-            className="flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-200"
+            className="flex items-center justify-center w-full bg-black text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-200"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Purchase Orders
@@ -188,12 +188,12 @@ const PurchaseOrderDetailPage = () => {
               <p className="text-gray-600">No items available.</p>
             )}
           </div>
-          {jobTitle === "sales manager" && (
+          {(jobTitle === "sales manager" || jobTitle === "logistics manager") && (
             <div className="mt-8 flex justify-end">
               <button
                 onClick={handleSendSalesInvoice}
                 disabled={modalLoading}
-                className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition duration-200 disabled:bg-indigo-400"
+                className="bg-black text-white py-2 px-6 rounded-lg hover:bg-gray-700 transition duration-200 disabled:bg-gray-400"
               >
                 {modalLoading ? "Processing..." : "Send Sales Invoice"}
               </button>

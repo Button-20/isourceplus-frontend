@@ -12,12 +12,14 @@ import {
   AlertCircle,
   ArrowLeft,
   Send,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 
 const ProformaInvoiceDetailPage = () => {
-  const { authAxios, jobTitle, BASE_URL } = useAuth();
+  const { authAxios, jobTitle } = useAuth();
   const { refNum } = useParams();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,9 +77,6 @@ const ProformaInvoiceDetailPage = () => {
     }
   };
 
-  const toggleDetails = () => setDetailsOpen(!detailsOpen);
-  const toggleItems = () => setItemsOpen(!itemsOpen);
-
   const formatDateTime = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -99,14 +98,17 @@ const ProformaInvoiceDetailPage = () => {
   if (!invoice) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <AlertCircle className="h-16 w-16 text-red-500" />
-        <p className="mt-4 text-xl text-gray-800 font-medium">Proforma Invoice not found.</p>
-        <button
-          onClick={() => navigate("/dashboard/proforma-invoices")}
-          className="mt-6 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
-        >
-          Back to Proforma Invoices
-        </button>
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
+          <p className="mt-4 text-xl font-semibold text-gray-900">Proforma Invoice not found.</p>
+          <button
+            onClick={() => navigate("/dashboard/proforma-invoices")}
+            className="mt-6 flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Proforma Invoices
+          </button>
+        </div>
       </div>
     );
   }
@@ -126,7 +128,7 @@ const ProformaInvoiceDetailPage = () => {
               <Building2 className="h-16 w-16 text-gray-400" />
             )}
             <h1 className="text-3xl font-semibold text-gray-900">
-              Proforma Invoice: {invoice.ref_num}
+              Proforma Invoice: {invoice.title || "Untitled"} <span className="text-gray-500 text-sm">({invoice.ref_num})</span>
             </h1>
           </div>
           <button
@@ -144,12 +146,13 @@ const ProformaInvoiceDetailPage = () => {
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
           <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
-              onClick={toggleDetails}
+              onClick={() => setDetailsOpen(!detailsOpen)}
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
             >
               <h2 className="text-xl font-medium text-gray-900">Invoice Details</h2>
-              <span className="text-indigo-600 font-medium">
+              <span className="flex items-center text-indigo-600 font-medium">
                 {detailsOpen ? "Collapse" : "Expand"}
+                {detailsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
               </span>
             </button>
           </div>
@@ -175,7 +178,17 @@ const ProformaInvoiceDetailPage = () => {
                   </div>
                   <div className="flex items-center">
                     <span className="w-1/3 font-medium text-gray-700">Status</span>
-                    <span className="text-gray-900">{invoice.status === "draft" ? "Open" : "Closed"}</span>
+                    <span className="text-gray-900">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          invoice.status === "draft"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {invoice.status === "draft" ? "Open" : "Closed"}
+                      </span>
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <span className="w-1/3 font-medium text-gray-700">Spend Category</span>
@@ -261,12 +274,13 @@ const ProformaInvoiceDetailPage = () => {
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
           <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
-              onClick={toggleItems}
+              onClick={() => setItemsOpen(!itemsOpen)}
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
             >
               <h2 className="text-xl font-medium text-gray-900">Items</h2>
-              <span className="text-indigo-600 font-medium">
+              <span className="flex items-center text-indigo-600 font-medium">
                 {itemsOpen ? "Collapse" : "Expand"}
+                {itemsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
               </span>
             </button>
           </div>
@@ -325,14 +339,14 @@ const ProformaInvoiceDetailPage = () => {
         </div>
 
         {/* Actions */}
-        {(jobTitle === "lead buyer" ) && invoice.status === "draft" && (
+        {(jobTitle === "lead buyer") && invoice.status === "draft" && (
           <div className="p-6 flex justify-end">
             <button
               onClick={handleSendPurchaseOrder}
               disabled={modalLoading}
-              className="bg-indigo-600 text-white py-2 px-6 rounded-md hover:bg-indigo-700 transition duration-200 shadow-md disabled:opacity-50"
+              className="bg-black text-white py-2 px-6 rounded-md hover:bg-gray-700 transition duration-200 flex items-center shadow-md disabled:opacity-50"
             >
-              <Send className="w-5 h-5 mr-2 inline" />
+              <Send className="w-5 h-5 mr-2" />
               {modalLoading ? "Processing..." : "Send Purchase Order"}
             </button>
           </div>

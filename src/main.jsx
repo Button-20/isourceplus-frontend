@@ -22,8 +22,10 @@ axios.defaults.withCredentials = true;
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AppProvider>
+      <div className="font-montserrat">
         <RouterProvider router={appRoutes} />
-        <Toaster position="top-right" richColors />
+      </div>
+      <Toaster position="top-right" richColors />
     </AppProvider>
   </StrictMode>
 );

@@ -167,7 +167,7 @@ const CreatePaymentOrderPage = () => {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition duration-200 disabled:bg-indigo-400"
+                className="bg-black text-white py-2 px-6 rounded-lg hover:bg-gray-700 transition duration-200 disabled:bg-gray-400"
               >
                 {submitting ? "Submitting..." : "Create Payment Order"}
               </button>

@@ -136,7 +136,7 @@ const WaybillDetailPage = () => {
               <Building2 className="h-16 w-16 text-gray-400" />
             )}
             <h1 className="text-3xl font-semibold text-gray-900">
-              Waybill: {waybill.ref_num}
+              Waybill: {waybill.title || "Untitled"} <span className="text-gray-500 text-sm">({waybill.ref_num})</span>
             </h1>
           </div>
           <button
