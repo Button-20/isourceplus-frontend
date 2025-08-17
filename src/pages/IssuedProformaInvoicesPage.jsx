@@ -5,8 +5,8 @@ import { Loader2, FileText, Plus, ArrowLeft, X, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 import { getCookie } from "@/utility/getCookie";
-import Pagination from "@/components/pagination";
 import ScrollToTop from "@/components/ScrollToTop";
+import Pagination from "@/components/Pagination";
 
 const IssuedProformaInvoicesPage = () => {
   const { authAxios, jobTitle } = useAuth();
