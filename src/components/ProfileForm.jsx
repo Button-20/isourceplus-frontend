@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { getCookie } from "@/utility/getCookie";
+import ScrollToTop from "./ScrollToTop";
 
 const ProfileForm = ({ profileId }) => {
   const { authAxios, BASE_URL, refreshToken } = useAuth();
@@ -189,6 +190,7 @@ const ProfileForm = ({ profileId }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <ScrollToTop/>
       {/* Profile Picture Section */}
       <div className="border-b border-gray-200 pb-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">

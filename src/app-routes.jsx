@@ -63,6 +63,7 @@ import PaymentOrderDetailPage from "./pages/PaymentOrderDetailPage";
 import CreatePaymentOrderPage from "./pages/CreatePaymentOrderPage";
 import PaymentOrdersPage from "./pages/PaymentOrdersPage";
 import IssuedSalesInvoicesPage from "./pages/IssuedSalesInvoicesPage";
+import EditBranch from "./pages/EditBranch";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -115,6 +116,7 @@ export const appRoutes = createBrowserRouter([
       { path: "branches/new", element: <AddBranch /> },
       { path: "branches", element: <AllBranches /> },
       { path: "branches/:id", element: <BranchDetails /> },
+      { path: "branches/:id/edit", element: <EditBranch /> },
       { path: "employees", element: <Employees /> },
       { path: "employees/:id", element: <EmployeeDetailPage /> },
       { path: "transporter/employees", element: <AllTransporterEmployees /> },

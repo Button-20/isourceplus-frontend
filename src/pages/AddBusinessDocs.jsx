@@ -5,6 +5,20 @@ import { Loader2, Upload, X, Check, Trash2 } from "lucide-react";
 import { getCookie } from "@/utility/getCookie";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 
+// Added: Mapping of docType to allowed orientation values
+const orientationOptions = {
+  business: ["document"],
+  "tax certificate": ["document"],
+  "registration certificate": ["document"],
+  "ghana card": ["front", "back"],
+};
+
+// Added: Validation function for stored data
+const validateStoredData = (data, expectedKeys) => {
+  if (!data || typeof data !== "object") return false;
+  return expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(data, key));
+};
+
 export default function AddBusinessDocs() {
   const { authAxios, companyId, transporterId, jobTitle } = useAuth();
   const [entityId, setEntityId] = useState(null);
@@ -24,7 +38,31 @@ export default function AddBusinessDocs() {
   const [deleteDocId, setDeleteDocId] = useState(null);
   const [deleteDocType, setDeleteDocType] = useState("");
 
-  // Determine entity type and ID based on jobTitle and context
+  // Added: Load form data from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedValues = localStorage.getItem("addBusinessDocsFormValues");
+      if (storedValues) {
+        const parsedValues = JSON.parse(storedValues);
+        const expectedKeys = ["docType", "viewMode", "orientations", "names", "filePreviews"];
+        if (validateStoredData(parsedValues, expectedKeys)) {
+          setDocType(parsedValues.docType);
+          setViewMode(parsedValues.viewMode);
+          setOrientations(parsedValues.orientations);
+          setNames(parsedValues.names);
+          setFilePreviews(parsedValues.filePreviews.map(() => null)); // Files need re-upload
+          toast.info("Form data restored from previous session.");
+        } else {
+          console.warn("Invalid stored values in localStorage, skipping load.");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load form data from localStorage:", err);
+      toast.error("Unable to restore form data. Local storage may be disabled.");
+    }
+  }, []);
+
+  // No changes to entity type/ID determination
   useEffect(() => {
     if (jobTitle === "logistics manager") {
       setEntityType("transporter");
@@ -38,7 +76,7 @@ export default function AddBusinessDocs() {
     }
   }, [jobTitle, transporterId, companyId]);
 
-  // Fetch documents
+  // No changes to document fetching
   useEffect(() => {
     if (entityId && entityType) {
       (async () => {
@@ -79,19 +117,56 @@ export default function AddBusinessDocs() {
     }
   }, [authAxios, entityId, entityType]);
 
-  // Handle selecting a document for editing
-  const handleSelectDoc = (doc) => {
-    setSelectedDoc(doc);
-    setDocType(doc.doc_type);
-    setFilePreviews(doc.upload_files.map(file => file.file));
-    setOrientations(doc.upload_files.map(file => file.orientation));
-    setNames(doc.upload_files.map(file => file.name || ""));
-    setFiles([]);
-    setRemovedFileIds([]);
-    setViewMode("edit");
+  // Modified: Save to localStorage on docType change
+  const handleDocTypeChange = (e) => {
+    const value = e.target.value;
+    setDocType(value);
+    setOrientations(filePreviews.map(() => orientationOptions[value]?.includes("document") ? "document" : "front"));
+    try {
+      localStorage.setItem(
+        "addBusinessDocsFormValues",
+        JSON.stringify({
+          docType: value,
+          viewMode,
+          orientations,
+          names,
+          filePreviews: filePreviews.map(preview => preview || null),
+        })
+      );
+    } catch (err) {
+      console.error("Failed to save docType to localStorage:", err);
+      toast.error("Unable to save form data. Local storage may be disabled.");
+    }
   };
 
-  // Handle file input changes
+  // Modified: Save to localStorage on orientation change
+  const handleOrientationChange = (index, value) => {
+    const allowedOrientations = orientationOptions[docType] || ["front", "back"];
+    if (allowedOrientations.includes(value)) {
+      setOrientations((prev) => {
+        const newOrientations = [...prev];
+        newOrientations[index] = value;
+        try {
+          localStorage.setItem(
+            "addBusinessDocsFormValues",
+            JSON.stringify({
+              docType,
+              viewMode,
+              orientations: newOrientations,
+              names,
+              filePreviews: filePreviews.map(preview => preview || null),
+            })
+          );
+        } catch (err) {
+          console.error("Failed to save orientations to localStorage:", err);
+          toast.error("Unable to save form data. Local storage may be disabled.");
+        }
+        return newOrientations;
+      });
+    }
+  };
+
+  // Modified: Save to localStorage on file change
   const handleFileChange = (e, index) => {
     const file = e.target.files[0];
     if (file) {
@@ -111,90 +186,205 @@ export default function AddBusinessDocs() {
       setFilePreviews((prev) => {
         const newPreviews = [...prev];
         newPreviews[index] = file.type === "application/pdf" ? null : URL.createObjectURL(file);
+        try {
+          localStorage.setItem(
+            "addBusinessDocsFormValues",
+            JSON.stringify({
+              docType,
+              viewMode,
+              orientations,
+              names,
+              filePreviews: newPreviews.map(preview => preview || null),
+            })
+          );
+        } catch (err) {
+          console.error("Failed to save filePreviews to localStorage:", err);
+          toast.error("Unable to save form data. Local storage may be disabled.");
+        }
         return newPreviews;
       });
     }
   };
 
-  // Handle orientation change
-  const handleOrientationChange = (index, value) => {
-    setOrientations((prev) => {
-      const newOrientations = [...prev];
-      newOrientations[index] = value;
-      return newOrientations;
-    });
-  };
-
-  // Handle name change
+  // Modified: Save to localStorage on name change
   const handleNameChange = (index, value) => {
     setNames((prev) => {
       const newNames = [...prev];
       newNames[index] = value;
+      try {
+        localStorage.setItem(
+          "addBusinessDocsFormValues",
+          JSON.stringify({
+            docType,
+            viewMode,
+            orientations,
+            names: newNames,
+            filePreviews: filePreviews.map(preview => preview || null),
+          })
+        );
+      } catch (err) {
+        console.error("Failed to save names to localStorage:", err);
+        toast.error("Unable to save form data. Local storage may be disabled.");
+      }
       return newNames;
     });
   };
 
-  // Add a new file input
-  const addFileInput = () => {
-    setFilePreviews((prev) => [...prev, null]);
-    setOrientations((prev) => [...prev, "front"]);
-    setNames((prev) => [...prev, ""]);
+  // Modified: Save to localStorage on viewMode/doc selection
+  const handleSelectDoc = (doc) => {
+    setSelectedDoc(doc);
+    setDocType(doc.doc_type);
+    setFilePreviews(doc.upload_files.map(file => file.file));
+    const allowedOrientations = orientationOptions[doc.doc_type] || ["front", "back"];
+    setOrientations(doc.upload_files.map(file => 
+      allowedOrientations.includes("document") ? "document" : 
+      allowedOrientations.includes(file.orientation) ? file.orientation : "front"
+    ));
+    setNames(doc.upload_files.map(file => file.name || ""));
+    setFiles([]);
+    setRemovedFileIds([]);
+    setViewMode("edit");
+    try {
+      localStorage.setItem(
+        "addBusinessDocsFormValues",
+        JSON.stringify({
+          docType: doc.doc_type,
+          viewMode: "edit",
+          orientations,
+          names,
+          filePreviews: doc.upload_files.map(file => file.file),
+        })
+      );
+    } catch (err) {
+      console.error("Failed to save edit mode data to localStorage:", err);
+      toast.error("Unable to save form data. Local storage may be disabled.");
+    }
   };
 
-  // Remove a file
+  // Modified: Save to localStorage on add file
+  const addFileInput = () => {
+    setFilePreviews((prev) => [...prev, null]);
+    setOrientations((prev) => [...prev, orientationOptions[docType]?.includes("document") ? "document" : "front"]);
+    setNames((prev) => [...prev, ""]);
+    try {
+      localStorage.setItem(
+        "addBusinessDocsFormValues",
+        JSON.stringify({
+          docType,
+          viewMode,
+          orientations: [...orientations, orientationOptions[docType]?.includes("document") ? "document" : "front"],
+          names: [...names, ""],
+          filePreviews: [...filePreviews, null],
+        })
+      );
+    } catch (err) {
+      console.error("Failed to save add file to localStorage:", err);
+      toast.error("Unable to save form data. Local storage may be disabled.");
+    }
+  };
+
+  // No changes to file removal
   const removeFile = (index) => {
     if (viewMode === "edit" && index < selectedDoc.upload_files.length) {
       setRemovedFileIds((prev) => [...prev, selectedDoc.upload_files[index].id]);
     }
     setFiles((prev) => prev.filter((_, i) => i !== index));
-    setFilePreviews((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => {
+      const newPreviews = prev.filter((_, i) => i !== index);
+      try {
+        localStorage.setItem(
+          "addBusinessDocsFormValues",
+          JSON.stringify({
+            docType,
+            viewMode,
+            orientations: orientations.filter((_, i) => i !== index),
+            names: names.filter((_, i) => i !== index),
+            filePreviews: newPreviews.map(preview => preview || null),
+          })
+        );
+      } catch (err) {
+        console.error("Failed to save file removal to localStorage:", err);
+        toast.error("Unable to save form data. Local storage may be disabled.");
+      }
+      return newPreviews;
+    });
     setOrientations((prev) => prev.filter((_, i) => i !== index));
     setNames((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Handle form submission (add or edit)
+  // Added: Reset form and clear localStorage
+  const handleReset = () => {
+    setDocType("");
+    setViewMode("list");
+    setSelectedDoc(null);
+    setFiles([]);
+    setFilePreviews([]);
+    setOrientations([]);
+    setNames([]);
+    setRemovedFileIds([]);
+    try {
+      localStorage.removeItem("addBusinessDocsFormValues");
+      toast.success("Form reset successfully.");
+    } catch (err) {
+      console.error("Failed to clear localStorage:", err);
+      toast.error("Unable to reset form. Local storage may be disabled.");
+    }
+  };
+
+  // Modified: Clear localStorage on successful submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
+      const allowedOrientations = orientationOptions[docType] || ["front", "back"];
+      const isBusinessDoc = ["business", "tax certificate", "registration certificate"].includes(docType);
+      for (let i = 0; i < orientations.length; i++) {
+        if (isBusinessDoc && orientations[i] !== "document") {
+          toast.error(`${docType.toUpperCase()} documents must have 'document' orientation`);
+          setSubmitting(false);
+          return;
+        }
+        if (docType === "ghana card" && !["front", "back"].includes(orientations[i])) {
+          toast.error("Ghana Card must have 'front' or 'back' orientation");
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const csrfToken = getCookie("csrftoken");
       const formData = new FormData();
       formData.append("doc_type", docType);
 
       let hasFiles = false;
 
-      // For edit mode, include existing files unless removed
       if (viewMode === "edit") {
         selectedDoc.upload_files.forEach((file, index) => {
           if (!removedFileIds.includes(file.id) && filePreviews[index]) {
             formData.append(`upload_files[${index}][id]`, file.id);
-            formData.append(`upload_files[${index}][orientation]`, orientations[index]);
+            formData.append(`upload_files[${index}][orientation]`, isBusinessDoc ? "document" : orientations[index]);
             formData.append(`upload_files[${index}][name]`, names[index] || "");
             hasFiles = true;
           }
         });
       }
 
-      // Add new files
       files.forEach((file, index) => {
         const fileIndex = viewMode === "edit" ? selectedDoc.upload_files.length + index : index;
         formData.append(`upload_files[${fileIndex}][file]`, file);
-        formData.append(`upload_files[${fileIndex}][orientation]`, orientations[index]);
+        formData.append(`upload_files[${fileIndex}][orientation]`, isBusinessDoc ? "document" : orientations[index]);
         if (names[index]) {
           formData.append(`upload_files[${fileIndex}][name]`, names[index]);
         }
         hasFiles = true;
       });
 
-      // Validate that at least one file is included
       if (!hasFiles) {
         toast.error("At least one file is required");
         setSubmitting(false);
         return;
       }
 
-      // Log FormData for debugging
       console.log([...formData.entries()]);
 
       const endpoint = `${entityType === "company" ? "companies" : `${entityType}s`}/${entityId}/add-business-docs/`;
@@ -216,7 +406,6 @@ export default function AddBusinessDocs() {
         toast.success("Business document updated successfully!");
       }
 
-      // Refresh documents
       let newDocs = [];
       try {
         const { data } = await authAxios.get(endpoint);
@@ -239,19 +428,27 @@ export default function AddBusinessDocs() {
       setOrientations([]);
       setNames([]);
       setRemovedFileIds([]);
+      try {
+        localStorage.removeItem("addBusinessDocsFormValues");
+      } catch (err) {
+        console.error("Failed to clear localStorage:", err);
+        toast.error("Unable to clear form data. Local storage may be disabled.");
+      }
     } catch (err) {
       console.error("Submit error:", err);
-      toast.error(
-        err.response?.data?.non_field_errors?.[0] ||
-        err.response?.data?.detail ||
-        "Operation failed"
-      );
+      const errorMsg = err.response?.data?.orientation?.[0] ||
+                       err.response?.data?.upload_files?.[0]?.file?.[0] ||
+                       err.response?.data?.doc_type?.[0] ||
+                       err.response?.data?.non_field_errors?.[0] ||
+                       err.response?.data?.detail ||
+                       "Operation failed";
+      toast.error(errorMsg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Handle document deletion
+  // No changes to document deletion
   const handleDelete = async (docId) => {
     setSubmitting(true);
     try {
@@ -286,14 +483,14 @@ export default function AddBusinessDocs() {
     }
   };
 
-  // Open modal for deletion confirmation
+  // No changes to modal opening
   const openDeleteModal = (docId, docType) => {
     setDeleteDocId(docId);
     setDeleteDocType(docType);
     setIsModalOpen(true);
   };
 
-  // Cleanup file previews
+  // No changes to cleanup
   useEffect(() => {
     return () => {
       filePreviews.forEach((preview) => {
@@ -304,6 +501,7 @@ export default function AddBusinessDocs() {
     };
   }, [filePreviews]);
 
+  // No changes to loading state
   if (loading || !entityId || !entityType) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -315,7 +513,7 @@ export default function AddBusinessDocs() {
 
   return (
     <div className="p-6 grid md:grid-cols-3 gap-8">
-      {/* Sidebar */}
+      {/* Sidebar: No changes */}
       <div className="md:col-span-1">
         <div className="bg-gray-50 p-4 rounded-lg border">
           <h3 className="font-medium mb-3">Business Documents</h3>
@@ -326,10 +524,25 @@ export default function AddBusinessDocs() {
             <button
               onClick={() => {
                 setViewMode("add");
-                setDocType("business license"); // Note: Backend includes 'ghana card' in biz_docs for companies
+                setDocType("business"); 
                 setFilePreviews([null]);
-                setOrientations(["front"]);
+                setOrientations(["document"]);
                 setNames([""]);
+                try {
+                  localStorage.setItem(
+                    "addBusinessDocsFormValues",
+                    JSON.stringify({
+                      docType: "business",
+                      viewMode: "add",
+                      orientations: ["document"],
+                      names: [""],
+                      filePreviews: [null],
+                    })
+                  );
+                } catch (err) {
+                  console.error("Failed to save initial form data to localStorage:", err);
+                  toast.error("Unable to save form data. Local storage may be disabled.");
+                }
               }}
               className="mt-4 bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
             >
@@ -394,12 +607,12 @@ export default function AddBusinessDocs() {
               <label className="block mb-1">Document Type *</label>
               <select
                 value={docType}
-                onChange={(e) => setDocType(e.target.value)}
+                onChange={handleDocTypeChange}
                 required
                 className="w-full border rounded p-2"
               >
+                <option value="business">Business</option>
                 <option value="ghana card">Ghana Card</option>
-                <option value="business license">Business License</option>
                 <option value="tax certificate">Tax Certificate</option>
                 <option value="registration certificate">Registration Certificate</option>
               </select>
@@ -419,6 +632,12 @@ export default function AddBusinessDocs() {
                     <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5" />
                     <span>Acceptable formats: JPG, PNG, PDF</span>
                   </li>
+                  {orientationOptions[docType]?.includes("document") && (
+                    <li className="flex items-start transition-opacity duration-200">
+                      <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5" />
+                      <span id="orientation-note">This document uses ‘document’ orientation</span>
+                    </li>
+                  )}
                 </ul>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -459,17 +678,23 @@ export default function AddBusinessDocs() {
                         <X className="w-5 h-5" />
                       </button>
                     </div>
-                    <div>
-                      <label className="block mb-1">Orientation *</label>
-                      <select
-                        value={orientations[index] || "front"}
-                        onChange={(e) => handleOrientationChange(index, e.target.value)}
-                        className="w-full border rounded p-2"
-                      >
-                        <option value="front">Front</option>
-                        <option value="back">Back</option>
-                      </select>
-                    </div>
+                    {docType === "ghana card" && (
+                      <div>
+                        <label className="block mb-1">Orientation *</label>
+                        <select
+                          value={orientations[index] || "front"}
+                          onChange={(e) => handleOrientationChange(index, e.target.value)}
+                          className="w-full border rounded p-2"
+                          aria-describedby="orientation-note"
+                        >
+                          {orientationOptions[docType].map(option => (
+                            <option key={option} value={option}>
+                              {option.charAt(0).toUpperCase() + option.slice(1)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     <div>
                       <label className="block mb-1">Name (Optional)</label>
                       <input
@@ -494,8 +719,16 @@ export default function AddBusinessDocs() {
               </div>
             </div>
 
-            {/* Submit and Cancel */}
+            {/* Modified: Added Reset Form button */}
             <div className="flex justify-end space-x-4 pt-4 border-t">
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={submitting}
+                className="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
+              >
+                Reset Form
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -507,15 +740,21 @@ export default function AddBusinessDocs() {
                   setOrientations([]);
                   setNames([]);
                   setRemovedFileIds([]);
+                  try {
+                    localStorage.removeItem("addBusinessDocsFormValues");
+                  } catch (err) {
+                    console.error("Failed to clear localStorage:", err);
+                    toast.error("Unable to clear form data. Local storage may be disabled.");
+                  }
                 }}
-                className="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300"
+                className="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300 transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={submitting || !docType || (!files.length && removedFileIds.length === selectedDoc?.upload_files.length)}
-                className="bg-black text-white py-2 px-6 rounded flex items-center disabled:opacity-50"
+                disabled={submitting || !docType || (!files.length && viewMode === "edit" && removedFileIds.length === selectedDoc?.upload_files.length)}
+                className="bg-black text-white py-2 px-6 rounded flex items-center disabled:opacity-50 shadow-md hover:shadow-lg"
               >
                 {submitting ? (
                   <>

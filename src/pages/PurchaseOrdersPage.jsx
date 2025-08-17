@@ -35,7 +35,7 @@ const PurchaseOrdersPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <Loader2 className="animate-spin h-12 w-12 text-indigo-600 mx-auto" />
+          <Loader2 className="animate-spin h-12 w-12 text-gray-600 mx-auto" />
           <p className="mt-4 text-gray-600 text-lg">Loading Purchase Orders...</p>
         </div>
       </div>

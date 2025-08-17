@@ -1,9 +1,18 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { Loader2, Upload, Check, X } from "lucide-react";
 import { useNavigate } from "react-router";
 import { getCookie } from "@/utility/getCookie";
+import ScrollToTop from "./ScrollToTop";
+
+// Validation function for localStorage data
+const validateStoredData = (data, expectedKeys) => {
+  if (!data || typeof data !== "object") return false;
+  return expectedKeys.every((key) =>
+    Object.prototype.hasOwnProperty.call(data, key)
+  );
+};
 
 const TransporterForm = () => {
   const { authAxios, setTransporterId } = useAuth();
@@ -39,8 +48,64 @@ const TransporterForm = () => {
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Clean up object URLs
-  React.useEffect(() => {
+  // Load form data from localStorage on component mount
+  useEffect(() => {
+    try {
+      const storedValues = localStorage.getItem("transporterFormValues");
+      const storedLists = localStorage.getItem("transporterFormLists");
+      const storedPreviews = localStorage.getItem("transporterFormFilePreviews");
+
+      if (storedValues) {
+        const parsedValues = JSON.parse(storedValues);
+        const expectedKeys = [
+          "name",
+          "field",
+          "type",
+          "industry",
+          "sector",
+          "bio",
+          "email",
+          "office_line",
+          "office_line_2",
+          "web_address",
+        ];
+        if (validateStoredData(parsedValues, expectedKeys)) {
+          setValues(parsedValues);
+          toast.info("Form data restored from previous session.");
+        } else {
+          console.warn("Invalid stored values in localStorage, skipping load.");
+        }
+      }
+
+      if (storedLists) {
+        const parsedLists = JSON.parse(storedLists);
+        const expectedKeys = ["transport_mode", "transport_means"];
+        if (validateStoredData(parsedLists, expectedKeys)) {
+          setLists(parsedLists);
+        } else {
+          console.warn("Invalid stored lists in localStorage, skipping load.");
+        }
+      }
+
+      if (storedPreviews) {
+        const parsedPreviews = JSON.parse(storedPreviews);
+        const expectedKeys = ["logo", "vehicle_images"];
+        if (validateStoredData(parsedPreviews, expectedKeys)) {
+          setFilePreviews(parsedPreviews);
+          setFiles((prev) => ({
+            ...prev,
+            vehicle_images: parsedPreviews.vehicle_images.map(() => null), // Files can't be stored in localStorage, so reset to null
+          }));
+        } else {
+          console.warn("Invalid stored file previews in localStorage, skipping load.");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load form data from localStorage:", err);
+      toast.error("Unable to restore form data. Local storage may be disabled.");
+    }
+
+    // Clean up object URLs
     return () => {
       filePreviews.vehicle_images.forEach((preview) => {
         if (preview && preview.startsWith("blob:")) {
@@ -53,21 +118,40 @@ const TransporterForm = () => {
     };
   }, [filePreviews]);
 
+  // Handle text input changes and save to localStorage
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setValues((v) => ({ ...v, [name]: value }));
+    setValues((v) => {
+      const updatedValues = { ...v, [name]: value };
+      try {
+        localStorage.setItem("transporterFormValues", JSON.stringify(updatedValues));
+      } catch (err) {
+        console.error("Failed to save form values to localStorage:", err);
+        toast.error("Unable to save form data. Local storage may be disabled.");
+      }
+      return updatedValues;
+    });
   };
 
+  // Handle list (checkbox) changes and save to localStorage
   const handleListChange = (e) => {
     const { name, value, checked } = e.target;
     setLists((prev) => {
       const set = new Set(prev[name]);
       if (checked) set.add(value);
       else set.delete(value);
-      return { ...prev, [name]: Array.from(set) };
+      const updatedLists = { ...prev, [name]: Array.from(set) };
+      try {
+        localStorage.setItem("transporterFormLists", JSON.stringify(updatedLists));
+      } catch (err) {
+        console.error("Failed to save lists to localStorage:", err);
+        toast.error("Unable to save form data. Local storage may be disabled.");
+      }
+      return updatedLists;
     });
   };
 
+  // Handle file input changes and save previews to localStorage
   const handleFileChange = (e, index = null) => {
     const { name, files } = e.target;
     const file = files[0];
@@ -82,7 +166,16 @@ const TransporterForm = () => {
       }
       if (name === "logo") {
         setFiles((f) => ({ ...f, logo: file }));
-        setFilePreviews((p) => ({ ...p, logo: URL.createObjectURL(file) }));
+        setFilePreviews((p) => {
+          const updatedPreviews = { ...p, logo: URL.createObjectURL(file) };
+          try {
+            localStorage.setItem("transporterFormFilePreviews", JSON.stringify(updatedPreviews));
+          } catch (err) {
+            console.error("Failed to save file previews to localStorage:", err);
+            toast.error("Unable to save file previews. Local storage may be disabled.");
+          }
+          return updatedPreviews;
+        });
       } else if (name === "vehicle_image" && index !== null) {
         setFiles((f) => {
           const newVehicleImages = [...f.vehicle_images];
@@ -92,16 +185,33 @@ const TransporterForm = () => {
         setFilePreviews((p) => {
           const newPreviews = [...p.vehicle_images];
           newPreviews[index] = URL.createObjectURL(file);
-          return { ...p, vehicle_images: newPreviews };
+          const updatedPreviews = { ...p, vehicle_images: newPreviews };
+          try {
+            localStorage.setItem("transporterFormFilePreviews", JSON.stringify(updatedPreviews));
+          } catch (err) {
+            console.error("Failed to save file previews to localStorage:", err);
+            toast.error("Unable to save file previews. Local storage may be disabled.");
+          }
+          return updatedPreviews;
         });
       }
     }
   };
 
+  // Remove file and update localStorage
   const removeFile = (name, index = null) => {
     if (name === "logo") {
       setFiles((f) => ({ ...f, logo: null }));
-      setFilePreviews((p) => ({ ...p, logo: null }));
+      setFilePreviews((p) => {
+        const updatedPreviews = { ...p, logo: null };
+        try {
+          localStorage.setItem("transporterFormFilePreviews", JSON.stringify(updatedPreviews));
+        } catch (err) {
+          console.error("Failed to save file previews to localStorage:", err);
+          toast.error("Unable to save file previews. Local storage may be disabled.");
+        }
+        return updatedPreviews;
+      });
     } else if (name === "vehicle_image" && index !== null) {
       setFiles((f) => {
         const newVehicleImages = [...f.vehicle_images];
@@ -111,14 +221,66 @@ const TransporterForm = () => {
       setFilePreviews((p) => {
         const newPreviews = [...p.vehicle_images];
         newPreviews.splice(index, 1);
-        return { ...p, vehicle_images: newPreviews };
+        const updatedPreviews = { ...p, vehicle_images: newPreviews };
+        try {
+          localStorage.setItem("transporterFormFilePreviews", JSON.stringify(updatedPreviews));
+        } catch (err) {
+          console.error("Failed to save file previews to localStorage:", err);
+          toast.error("Unable to save file previews. Local storage may be disabled.");
+        }
+        return updatedPreviews;
       });
     }
   };
 
+  // Add vehicle image slot and update localStorage
   const addVehicleImageSlot = () => {
     setFiles((f) => ({ ...f, vehicle_images: [...f.vehicle_images, null] }));
-    setFilePreviews((p) => ({ ...p, vehicle_images: [...p.vehicle_images, null] }));
+    setFilePreviews((p) => {
+      const updatedPreviews = { ...p, vehicle_images: [...p.vehicle_images, null] };
+      try {
+        localStorage.setItem("transporterFormFilePreviews", JSON.stringify(updatedPreviews));
+      } catch (err) {
+        console.error("Failed to save file previews to localStorage:", err);
+        toast.error("Unable to save file previews. Local storage may be disabled.");
+      }
+      return updatedPreviews;
+    });
+  };
+
+  // Reset form and clear localStorage
+  const handleReset = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    const resetValues = {
+      name: "",
+      field: "",
+      type: "",
+      industry: "",
+      sector: "",
+      bio: "",
+      email: "",
+      office_line: "",
+      office_line_2: "",
+      web_address: "",
+    };
+    const resetLists = {
+      transport_mode: [],
+      transport_means: [],
+    };
+    const resetPreviews = { logo: null, vehicle_images: [] };
+    setValues(resetValues);
+    setLists(resetLists);
+    setFiles(resetPreviews);
+    setFilePreviews(resetPreviews);
+    try {
+      localStorage.removeItem("transporterFormValues");
+      localStorage.removeItem("transporterFormLists");
+      localStorage.removeItem("transporterFormFilePreviews");
+      toast.success("Form reset successfully.");
+    } catch (err) {
+      console.error("Failed to clear localStorage:", err);
+      toast.error("Unable to reset form. Local storage may be disabled.");
+    }
   };
 
   const createTransporter = async () => {
@@ -167,6 +329,14 @@ const TransporterForm = () => {
         await uploadFiles(created.id);
       }
       toast.success("Transporter registered successfully!");
+      try {
+        localStorage.removeItem("transporterFormValues");
+        localStorage.removeItem("transporterFormLists");
+        localStorage.removeItem("transporterFormFilePreviews");
+      } catch (err) {
+        console.error("Failed to clear localStorage:", err);
+        toast.error("Unable to clear form data. Local storage may be disabled.");
+      }
       navigate("/dashboard");
     } catch (err) {
       console.error("Registration failed", err);
@@ -180,7 +350,8 @@ const TransporterForm = () => {
     }
   };
 
-  return (
+  return (<div>
+    <ScrollToTop/>
     <form onSubmit={handleSubmit} className="p-6 sm:p-8 grid md:grid-cols-3 gap-8">
       {/* Left Sidebar */}
       <div className="md:col-span-1">
@@ -223,15 +394,15 @@ const TransporterForm = () => {
         </div>
       </div>
 
-      {/* Main Form */}
+      {/* Right Content */}
       <div className="md:col-span-2 space-y-6">
-        {/* Transporter Information */}
+        {/* Basic Information */}
         <div className="border-b border-gray-200 pb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Transporter Information</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Transporter Information / Individual Name <span className="text-red-500">*</span>
+                Transporter Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -243,25 +414,27 @@ const TransporterForm = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type <span className="text-red-500">*</span>
-              </label>
-              <select
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <input
+                type="text"
                 name="type"
                 value={values.type}
                 onChange={handleChange}
-                required
                 className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
-              >
-                <option value="">Select type</option>
-                <option value="individual">Individual</option>
-                <option value="organisation">Organization</option>
-              </select>
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Industry
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Field</label>
+              <input
+                type="text"
+                name="field"
+                value={values.field}
+                onChange={handleChange}
+                className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
               <input
                 type="text"
                 name="industry"
@@ -270,10 +443,18 @@ const TransporterForm = () => {
                 className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+              <input
+                type="text"
+                name="sector"
+                value={values.sector}
+                onChange={handleChange}
+                className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
+              />
+            </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Transporter Bio</label>
               <textarea
                 name="bio"
                 rows={3}
@@ -316,9 +497,7 @@ const TransporterForm = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Secondary Phone
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Phone</label>
               <input
                 type="text"
                 name="office_line_2"
@@ -328,9 +507,7 @@ const TransporterForm = () => {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Website
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
               <input
                 type="url"
                 name="web_address"
@@ -487,8 +664,16 @@ const TransporterForm = () => {
           </button>
         </div>
 
-        {/* Submit Button */}
-        <div className="flex justify-end pt-4 border-t border-gray-200">
+        {/* Form Actions */}
+        <div className="flex justify-end pt-4 border-t border-gray-200 space-x-4">
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={submitting}
+            className="bg-gray-200 text-gray-700 py-2.5 px-6 rounded-md font-medium hover:bg-gray-300 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            Reset Form
+          </button>
           <button
             type="submit"
             disabled={submitting}
@@ -505,7 +690,7 @@ const TransporterForm = () => {
           </button>
         </div>
       </div>
-    </form>
+    </form></div>
   );
 };
 

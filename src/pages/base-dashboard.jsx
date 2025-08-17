@@ -149,10 +149,11 @@ export function BaseDashBoard() {
       {
         title: "Branches",
         icon: TruckIcon,
-        submenu: [
-          { title: "Add a Branch", url: "/dashboard/branches/new" },
-          { title: "View all Branches", url: "/dashboard/branches" },
-        ],
+        url: "/dashboard/branches"
+        // submenu: [
+        //   { title: "Add a Branch", url: "/dashboard/branches/new" },
+        //   { title: "View all Branches", url: "/dashboard/branches" },
+        // ],
       },
       {
         title: "Add ID Documents",
@@ -311,7 +312,7 @@ export function BaseDashBoard() {
               </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-              <NavMain items={navLinks} />
+              <NavMain items={navLinks} pathname={location.pathname}/>
               <NavSecondary className="mt-auto" />
             </SidebarContent>
             <SidebarFooter>

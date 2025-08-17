@@ -1,21 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { getCookie } from "@/utility/getCookie";
 import { MapPin, Phone, Mail, Building, Navigation, Home, Layers, Globe, ChevronDown } from "lucide-react";
 
-// Added: Validation function for localStorage data
-const validateStoredData = (data, expectedKeys, expectedLocationKeys) => {
-  if (!data || typeof data !== "object") return false;
-  if (!expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(data, key))) return false;
-  if (!data.location || typeof data.location !== "object") return false;
-  return expectedLocationKeys.every((key) => Object.prototype.hasOwnProperty.call(data.location, key));
-};
-
-const AddBranch = () => {
+const EditBranch = () => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
+  const { id } = useParams();
 
   // Form state aligned with API spec
   const [formData, setFormData] = useState({
@@ -35,51 +28,40 @@ const AddBranch = () => {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
-  // API-defined choices
+  // Static choices (consider fetching dynamically from API in production)
   const regionChoices = [{ value: "region", display_name: "Test Region" }];
   const districtChoices = [{ value: "district", display_name: "Test District" }];
   const cityChoices = [{ value: "city", display_name: "Test City" }];
   const townChoices = [{ value: "town", display_name: "Test Town" }];
 
-    // Added: Load form data from localStorage on component mount
+  // Fetch branch data on mount
   useEffect(() => {
-    try {
-      const storedData = localStorage.getItem("addBranchFormData");
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        const expectedKeys = ["name", "office_line", "office_line_2", "email", "location"];
-        const expectedLocationKeys = [
-          "region",
-          "district",
-          "city",
-          "town",
-          "popular_area_name",
-          "gps",
-          "street_address"
-        ];
-        if (validateStoredData(parsedData, expectedKeys, expectedLocationKeys)) {
-          setFormData(parsedData);
-          toast.info("Form data restored from previous session.");
-        } else {
-          console.warn("Invalid stored values in localStorage, skipping load.");
-        }
+    const fetchBranchData = async () => {
+      try {
+        setLoading(true);
+        const response = await authAxios.get(`branches/${id}/`);
+        setFormData(response.data);
+      } catch (err) {
+        console.error("Failed to fetch branch data:", err);
+        toast.error(err.response?.data?.detail || "Failed to load branch data");
+        navigate(`/dashboard/branches/${id}`);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to load form data from localStorage:", err);
-      toast.error("Unable to restore form data. Local storage may be disabled.");
-    }
-  }, []);
-  
+    };
+    fetchBranchData();
+  }, [id, authAxios, navigate]);
 
-  // Modified: Save formData to localStorage on change
+  // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Clear error when field is edited
     setErrors(prev => {
-      const newErrors = {...prev};
+      const newErrors = { ...prev };
       if (name.includes('location.')) {
         const locationField = name.split('.')[1];
         if (newErrors.location?.[locationField]) {
@@ -94,8 +76,8 @@ const AddBranch = () => {
       return newErrors;
     });
 
-    setFormData(prev => {
-      const updatedFormData = name.includes('location.')
+    setFormData(prev => (
+      name.includes('location.')
         ? {
             ...prev,
             location: {
@@ -106,35 +88,25 @@ const AddBranch = () => {
         : {
             ...prev,
             [name]: value
-          };
-      
-      // Added: Save updated formData to localStorage
-      try {
-        localStorage.setItem("addBranchFormData", JSON.stringify(updatedFormData));
-      } catch (err) {
-        console.error("Failed to save form data to localStorage:", err);
-        toast.error("Unable to save form data. Local storage may be disabled.");
-      }
-      
-      return updatedFormData;
-    });
+          }
+    ));
   };
 
-
+  // Validate form data
   const validateForm = () => {
     const newErrors = {};
-    
+
     // Validate required location fields
     const locationErrors = {};
     if (!formData.location.region) locationErrors.region = "Region is required";
     if (!formData.location.district) locationErrors.district = "District is required";
     if (!formData.location.city) locationErrors.city = "City is required";
     if (!formData.location.town) locationErrors.town = "Town is required";
-    
+
     if (Object.keys(locationErrors).length > 0) {
       newErrors.location = locationErrors;
     }
-    
+
     // Validate max lengths
     if (formData.name.length > 128) {
       newErrors.name = "Branch name cannot exceed 128 characters";
@@ -154,48 +126,15 @@ const AddBranch = () => {
     if (formData.location.street_address.length > 128) {
       newErrors.street_address = "Street address cannot exceed 128 characters";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-    // Added: Reset form and clear localStorage
-  const handleReset = () => {
-    const initialFormData = {
-      name: "",
-      office_line: "",
-      office_line_2: "",
-      email: "",
-      location: {
-        region: "",
-        district: "",
-        city: "",
-        town: "",
-        popular_area_name: "",
-        gps: "",
-        street_address: ""
-      }
-    };
-
-     setFormData(initialFormData);
-    setErrors({});
-    try {
-      localStorage.setItem("addBranchFormData", JSON.stringify(initialFormData));
-      toast.success("Form reset successfully.");
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      })
-    } catch (err) {
-      console.error("Failed to clear localStorage:", err);
-      toast.error("Unable to reset form. Local storage may be disabled.");
-    }
-  };
-
-  // Modified: Clear localStorage on successful submission
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -204,49 +143,21 @@ const AddBranch = () => {
 
     try {
       const csrfToken = getCookie("csrftoken");
-      await authAxios.post("branches/", formData, {
+      await authAxios.patch(`branches/${id}/`, formData, {
         headers: {
           "X-CSRFToken": csrfToken,
         },
       });
-      
-      toast.success("Branch created successfully!");
-      
-      // Added: Clear localStorage on successful submission
-      try {
-        localStorage.removeItem("addBranchFormData");
-      } catch (err) {
-        console.error("Failed to clear localStorage:", err);
-        toast.error("Unable to clear form data. Local storage may be disabled.");
-      }
-      
-      navigate('/dashboard/branches');
-      
-      // No changes to form reset
-      setFormData({
-        name: "",
-        office_line: "",
-        office_line_2: "",
-        email: "",
-        location: {
-          region: "",
-          district: "",
-          city: "",
-          town: "",
-          popular_area_name: "",
-          gps: "",
-          street_address: ""
-        }
-      });
 
+      toast.success("Branch updated successfully!");
+      navigate(`/dashboard/branches/${id}`);
     } catch (err) {
-      console.error(err);
-      const errorMessage = err.response?.data?.detail || 
-                         err.response?.data?.location?.non_field_errors?.[0] || 
-                         "Error creating branch";
+      console.error("Error updating branch:", err);
+      const errorMessage = err.response?.data?.detail ||
+                          err.response?.data?.location?.non_field_errors?.[0] ||
+                          "Error updating branch";
       toast.error(errorMessage);
-      
-      // No changes to error handling
+
       if (err.response?.data) {
         const apiErrors = {};
         Object.keys(err.response.data).forEach(key => {
@@ -263,18 +174,34 @@ const AddBranch = () => {
     }
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="space-y-4">
+            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6">
       <div className="flex items-center mb-6">
-        <button 
-          onClick={() => navigate('/dashboard/branches')}
+        <button
+          onClick={() => navigate(`/dashboard/branches/${id}`)}
           className="mr-4 p-2 rounded-full hover:bg-gray-100"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-2xl font-bold text-gray-800">Add New Branch</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Edit Branch</h1>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -320,13 +247,14 @@ const AddBranch = () => {
                       className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 ${
                         errors.office_line ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="e.g. 0244123456"
+                      placeholder="e.g. +233 123 456 789"
                       maxLength={15}
                     />
                     <Phone className="absolute left-3 top-2.5 text-gray-400" size={18} />
                   </div>
                   {errors.office_line && <p className="mt-1 text-sm text-red-600">{errors.office_line}</p>}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Contact</label>
                   <div className="relative">
@@ -338,33 +266,32 @@ const AddBranch = () => {
                       className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 ${
                         errors.office_line_2 ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="Optional"
+                      placeholder="e.g. +233 987 654 321"
                       maxLength={15}
                     />
                     <Phone className="absolute left-3 top-2.5 text-gray-400" size={18} />
                   </div>
                   {errors.office_line_2 && <p className="mt-1 text-sm text-red-600">{errors.office_line_2}</p>}
                 </div>
-              </div>
 
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Corporate Email</label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 ${
-                      errors.email ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="branch@company.com"
-                    maxLength={128}
-                  />
-                  <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 ${
+                        errors.email ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="branch@company.com"
+                      maxLength={128}
+                    />
+                    <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                  </div>
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                 </div>
-                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
               </div>
             </div>
           </div>
@@ -533,18 +460,11 @@ const AddBranch = () => {
             </div>
           </div>
 
-          {/* Form Actions - Modified: Added Reset button */}
+          {/* Form Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"
-              onClick={handleReset}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
-              Reset Form
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard/branches')}
+              onClick={() => navigate(`/dashboard/branches/${id}`)}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
             >
               Cancel
@@ -562,9 +482,9 @@ const AddBranch = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Creating...
+                  Updating...
                 </span>
-              ) : "Create Branch"}
+              ) : "Update Branch"}
             </button>
           </div>
         </form>
@@ -573,4 +493,4 @@ const AddBranch = () => {
   );
 };
 
-export default AddBranch;
+export default EditBranch;

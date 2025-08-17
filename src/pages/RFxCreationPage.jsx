@@ -1,383 +1,701 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, Save, ArrowLeft, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Loader2, Plus, Save, X, Trash2, RefreshCw } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { getCookie } from "@/utility/getCookie";
+import { format, isValid, parseISO } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+
+const checkLocalStorageAvailability = () => {
+  try {
+    const testKey = "__test__";
+    localStorage.setItem(testKey, testKey);
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (err) {
+    console.error("localStorage is not available:", err);
+    return false;
+  }
+};
+
+const validateStoredData = (data, expectedKeys) => {
+  if (!data || typeof data !== "object") return false;
+  return expectedKeys.every((key) => {
+    if (key === "items") {
+      return Array.isArray(data[key]) && data[key].every((item) => item && typeof item === "object");
+    }
+    return key in data;
+  });
+};
 
 const RFxCreationPage = () => {
   const { authAxios, jobTitle } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formErrors, setFormErrors] = useState({});
+  const isLocalStorageAvailable = checkLocalStorageAvailability();
+
+  const initialFormValues = {
     title: "",
-    spend_category: "communications",
+    note: "",
     type: "information",
     procedure: "open",
+    spend_category: "communications",
     priority: "non urgent",
-    note: "",
+    start_datetime: new Date().toISOString().slice(0, 16),
+    submission_datetime: new Date().toISOString().slice(0, 16),
+    is_approved: true,
     items: [
       {
         name: "",
         description: "",
         unit_of_measure: "pc",
         quantity: 1,
-        attachment: null,
         special_handles: [],
       },
     ],
+  };
+
+  // Initialize formValues from localStorage immediately
+  const [formValues, setFormValues] = useState(() => {
+    if (!isLocalStorageAvailable) {
+      toast.warning("Local storage is unavailable; form data will not persist across refreshes.");
+      return initialFormValues;
+    }
+    try {
+      const savedData = localStorage.getItem("rfxFormValues");
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        const expectedKeys = [
+          "title",
+          "note",
+          "type",
+          "procedure",
+          "spend_category",
+          "priority",
+          "start_datetime",
+          "submission_datetime",
+          "is_approved",
+          "items",
+        ];
+        if (validateStoredData(parsed, expectedKeys)) {
+          console.log("Loaded form data from localStorage:", parsed);
+          // toast.info(`Form data restored. Loaded keys: ${Object.keys(parsed).join(", ")}`);
+          return {
+            ...initialFormValues,
+            ...parsed,
+            items: parsed.items.map((item) => ({
+              ...initialFormValues.items[0],
+              ...item,
+              special_handles: Array.isArray(item.special_handles)
+                ? item.special_handles.map((handle) => ({
+                    handling_description: handle.handling_description || "",
+                  }))
+                : [],
+            })),
+          };
+        } else {
+          console.warn("Invalid stored values in localStorage, using initial values.");
+          localStorage.removeItem("rfxFormValues");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load form data from localStorage:", err);
+      toast.error("Unable to restore form data. Local storage may be disabled.");
+    }
+    return initialFormValues;
   });
 
-  if (jobTitle !== "lead buyer") {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
-        <p className="text-xl text-gray-900">Access denied. Only lead buyers can create RFxs.</p>
-        <button
-          onClick={() => navigate("/dashboard/rfxs")}
-          className="mt-6 flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to RFxs
-        </button>
-      </div>
-    );
-  }
-
-  const handleInputChange = (e, index) => {
-    const { name, value } = e.target;
-    if (name.startsWith("item_")) {
-      const field = name.split("_")[1];
-      const updatedItems = [...formData.items];
-      // Enforce max length for description
-      if (field === "description" && value.length > 225) {
-        toast.error("Item description cannot exceed 225 characters.");
-        return;
-      }
-      updatedItems[index] = { ...updatedItems[index], [field]: value };
-      setFormData((prev) => ({ ...prev, items: updatedItems }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+  // Save form values to localStorage on change
+  useEffect(() => {
+    if (!isLocalStorageAvailable) return;
+    try {
+      console.log("Saving form data to localStorage:", formValues);
+      localStorage.setItem("rfxFormValues", JSON.stringify(formValues));
+    } catch (err) {
+      console.error("Failed to save form data to localStorage:", err);
+      toast.error("Unable to save form data. Local storage may be disabled.");
     }
+  }, [formValues, isLocalStorageAvailable]);
+
+  const validateForm = () => {
+    const errors = {};
+    if (!formValues.title.trim()) {
+      errors.title = "Title is required";
+    } else if (formValues.title.length > 128) {
+      errors.title = "Title must be 128 characters or less";
+    }
+    if (!formValues.spend_category) {
+      errors.spend_category = "Spend category is required";
+    }
+    if (!formValues.type) {
+      errors.type = "Type is required";
+    }
+    if (!formValues.procedure) {
+      errors.procedure = "Procedure is required";
+    }
+    if (formValues.note && formValues.note.length > 500) {
+      errors.note = "Note must be 500 characters or less";
+    }
+    if (!formValues.items.length) {
+      errors.items = "At least one item is required";
+    }
+    formValues.items.forEach((item, index) => {
+      if (!item.name.trim()) {
+        errors[`items[${index}].name`] = "Item name is required";
+      } else if (item.name.length > 255) {
+        errors[`items[${index}].name`] = "Item name must be 255 characters or less";
+      }
+      if (item.description && item.description.length > 500) {
+        errors[`items[${index}].description`] = "Item description must be 500 characters or less";
+      }
+      if (item.quantity <= 0) {
+        errors[`items[${index}].quantity`] = "Quantity must be greater than 0";
+      }
+      item.special_handles.forEach((handle, hIndex) => {
+        if (!handle.handling_description.trim()) {
+          errors[`items[${index}].special_handles[${hIndex}].handling_description`] =
+            "Handling description is required";
+        } else if (handle.handling_description.length > 500) {
+          errors[`items[${index}].special_handles[${hIndex}].handling_description`] =
+            "Handling description must be 500 characters or less";
+        }
+      });
+    });
+    const startDate = parseISO(formValues.start_datetime);
+    const submissionDate = parseISO(formValues.submission_datetime);
+    if (!isValid(startDate)) {
+      errors.start_datetime = "Invalid start date";
+    }
+    if (!isValid(submissionDate)) {
+      errors.submission_datetime = "Invalid submission date";
+    } else if (submissionDate < startDate) {
+      errors.submission_datetime = "Submission date must be after start date";
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleChange = (e, itemIndex = null, field = null, handleIndex = null) => {
+    const { name, value, type, checked } = e.target;
+    setFormValues((prev) => {
+      let updatedValues = { ...prev };
+      if (itemIndex !== null && field === "special_handles" && handleIndex !== null) {
+        updatedValues.items = [...prev.items];
+        updatedValues.items[itemIndex].special_handles = [...updatedValues.items[itemIndex].special_handles];
+        updatedValues.items[itemIndex].special_handles[handleIndex].handling_description = value;
+      } else if (itemIndex !== null) {
+        updatedValues.items = [...prev.items];
+        updatedValues.items[itemIndex] = {
+          ...updatedValues.items[itemIndex],
+          [name]: type === "number" ? parseInt(value, 10) || 1 : value,
+        };
+      } else {
+        updatedValues = { ...prev, [name]: type === "checkbox" ? checked : value };
+      }
+      if (isLocalStorageAvailable) {
+        try {
+          console.log("Saving form data on change:", updatedValues);
+          localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
+        } catch (err) {
+          console.error("Failed to save form data to localStorage:", err);
+          toast.error("Unable to save form data. Local storage may be disabled.");
+        }
+      }
+      return updatedValues;
+    });
+    setFormErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[name];
+      if (itemIndex !== null) {
+        delete newErrors[`items[${itemIndex}].${name}`];
+        if (handleIndex !== null) {
+          delete newErrors[`items[${itemIndex}].special_handles[${handleIndex}].handling_description`];
+        }
+      }
+      return newErrors;
+    });
   };
 
   const addItem = () => {
-    setFormData((prev) => ({
-      ...prev,
-      items: [
-        ...prev.items,
-        {
-          name: "",
-          description: "",
-          unit_of_measure: "pc",
-          quantity: 1,
-          attachment: null,
-          special_handles: [],
-        },
-      ],
-    }));
+    setFormValues((prev) => {
+      const updatedValues = {
+        ...prev,
+        items: [
+          ...prev.items,
+          {
+            name: "",
+            description: "",
+            unit_of_measure: "pc",
+            quantity: 1,
+            special_handles: [],
+          },
+        ],
+      };
+      if (isLocalStorageAvailable) {
+        try {
+          console.log("Saving form data after adding item:", updatedValues);
+          localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
+        } catch (err) {
+          console.error("Failed to save form data to localStorage:", err);
+          toast.error("Unable to save form data. Local storage may be disabled.");
+        }
+      }
+      return updatedValues;
+    });
   };
 
   const removeItem = (index) => {
-    if (formData.items.length <= 1) {
+    if (formValues.items.length <= 1) {
       toast.error("At least one item is required.");
       return;
     }
-    setFormData((prev) => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index),
-    }));
+    setFormValues((prev) => {
+      const updatedValues = {
+        ...prev,
+        items: prev.items.filter((_, i) => i !== index),
+      };
+      if (isLocalStorageAvailable) {
+        try {
+          console.log("Saving form data after removing item:", updatedValues);
+          localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
+        } catch (err) {
+          console.error("Failed to save form data to localStorage:", err);
+          toast.error("Unable to save form data. Local storage may be disabled.");
+        }
+      }
+      return updatedValues;
+    });
+    setFormErrors((prev) => {
+      const newErrors = { ...prev };
+      Object.keys(newErrors).forEach((key) => {
+        if (key.startsWith(`items[${index}]`)) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
   };
 
-  const validateForm = () => {
-    if (!formData.title.trim()) {
-      toast.error("Title is required.");
-      return false;
+  const addSpecialHandle = useCallback(
+    (itemIndex) => {
+      setFormValues((prev) => {
+        const items = [...prev.items];
+        if (!items[itemIndex].special_handles.some((handle) => handle.handling_description === "")) {
+          items[itemIndex].special_handles.push({ handling_description: "" });
+        }
+        const updatedValues = { ...prev, items };
+        if (isLocalStorageAvailable) {
+          try {
+            console.log("Saving form data after adding special handle:", updatedValues);
+            localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
+          } catch (err) {
+            console.error("Failed to save form data to localStorage:", err);
+            toast.error("Unable to save form data. Local storage may be disabled.");
+          }
+        }
+        return updatedValues;
+      });
+    },
+    [isLocalStorageAvailable]
+  );
+
+  const removeSpecialHandle = (itemIndex, handleIndex) => {
+    setFormValues((prev) => {
+      const items = [...prev.items];
+      items[itemIndex].special_handles = items[itemIndex].special_handles.filter(
+        (_, i) => i !== handleIndex
+      );
+      const updatedValues = { ...prev, items };
+      if (isLocalStorageAvailable) {
+        try {
+          console.log("Saving form data after removing special handle:", updatedValues);
+          localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
+        } catch (err) {
+          console.error("Failed to save form data to localStorage:", err);
+          toast.error("Unable to save form data. Local storage may be disabled.");
+        }
+      }
+      return updatedValues;
+    });
+    setFormErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[`items[${itemIndex}].special_handles[${handleIndex}].handling_description`];
+      return newErrors;
+    });
+  };
+
+  const resetForm = () => {
+    setFormValues(initialFormValues);
+    setFormErrors({});
+    if (isLocalStorageAvailable) {
+      try {
+        console.log("Clearing form data from localStorage");
+        localStorage.removeItem("rfxFormValues");
+        toast.success("Form reset successfully.");
+      } catch (err) {
+        console.error("Failed to clear localStorage:", err);
+        toast.error("Unable to reset form. Local storage may be disabled.");
+      }
     }
-    if (!formData.spend_category) {
-      toast.error("Spend category is required.");
-      return false;
-    }
-    const validItems = formData.items.filter(
-      (item) => item.name.trim() && item.unit_of_measure.trim() && item.quantity > 0
-    );
-    if (validItems.length === 0) {
-      toast.error("At least one valid item is required (with name, unit of measure, and positive quantity).");
-      return false;
-    }
-    // Check for description length
-    const invalidDescriptions = formData.items.filter((item) => item.description.length > 225);
-    if (invalidDescriptions.length > 0) {
-      toast.error("One or more item descriptions exceed 225 characters.");
-      return false;
-    }
-    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
+      toast.error("Please fix the errors in the form.");
       return;
     }
     setLoading(true);
+    const csrfToken = getCookie("csrftoken");
+    const formData = new FormData();
+    formData.append("title", formValues.title);
+    formData.append("note", formValues.note);
+    formData.append("type", formValues.type);
+    formData.append("procedure", formValues.procedure);
+    formData.append("spend_category", formValues.spend_category);
+    formData.append("priority", formValues.priority);
+    formData.append("start_datetime", formValues.start_datetime);
+    formData.append("submission_datetime", formValues.submission_datetime);
+    formData.append("is_approved", formValues.is_approved);
+    formValues.items.forEach((item, index) => {
+      formData.append(`items[${index}][name]`, item.name);
+      if (item.description) formData.append(`items[${index}][description]`, item.description);
+      formData.append(`items[${index}][unit_of_measure]`, item.unit_of_measure);
+      formData.append(`items[${index}][quantity]`, item.quantity);
+      item.special_handles.forEach((handle, hIndex) => {
+        formData.append(
+          `items[${index}][special_handles][${hIndex}][handling_description]`,
+          handle.handling_description
+        );
+      });
+    });
+
+    // Log FormData for debugging
+    console.log("FormData payload:", Object.fromEntries(formData));
+
     try {
-      const csrfToken = getCookie("csrftoken");
-      if (!csrfToken) {
-        throw new Error("CSRF token is missing.");
-      }
-      const response = await authAxios.post(
-        "/rfxs/",
-        {
-          title: formData.title,
-          spend_category: formData.spend_category,
-          type: formData.type,
-          procedure: formData.procedure,
-          priority: formData.priority,
-          note: formData.note,
-          items: formData.items
-            .filter((item) => item.name.trim() && item.unit_of_measure.trim() && item.quantity > 0)
-            .map((item) => ({
-              name: item.name,
-              description: item.description || "",
-              unit_of_measure: item.unit_of_measure,
-              quantity: parseInt(item.quantity, 10),
-              special_handles: item.special_handles,
-            })),
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken,
-          },
-        }
-      );
-      console.log("RFx created successfully:", response.data);
+      await authAxios.post("rfxs/", formData, {
+        headers: { "X-CSRFToken": csrfToken },
+      });
       toast.success("RFx created successfully!");
+      setFormValues(initialFormValues);
+      setFormErrors({});
+      if (isLocalStorageAvailable) {
+        try {
+          console.log("Clearing localStorage after successful submission");
+          localStorage.removeItem("rfxFormValues");
+        } catch (err) {
+          console.error("Failed to clear localStorage:", err);
+          toast.error("Unable to clear form data. Local storage may be disabled.");
+        }
+      }
       navigate("/dashboard/rfxs/issued");
     } catch (error) {
-      console.error("RFx creation error:", error.response?.data || error);
-      let errorMessage = "Failed to create RFx.";
-      if (error.response?.data) {
-        // Handle item-specific errors
-        if (error.response.data.items && Array.isArray(error.response.data.items)) {
-          const descriptionErrors = error.response.data.items
-            .map((item, index) =>
-              item.description && item.description.length > 0
-                ? `Item ${index + 1}: ${item.description.join(", ")}`
-                : null
-            )
-            .filter(Boolean);
-          if (descriptionErrors.length > 0) {
-            errorMessage = descriptionErrors.join("; ");
-          } else {
-            errorMessage = error.response.data.detail || JSON.stringify(error.response.data);
-          }
-        } else if (error.response.data.detail) {
-          errorMessage = error.response.data.detail;
-        } else if (error.response.data.spend_category) {
-          errorMessage = error.response.data.spend_category[0];
-        } else {
-          errorMessage = JSON.stringify(error.response.data);
-        }
-      }
+      const errorMessage =
+        error.response?.data?.non_field_errors?.[0] ||
+        error.response?.data?.title?.[0] ||
+        error.response?.data?.items?.[0]?.name?.[0] ||
+        error.response?.data?.detail ||
+        "Failed to create RFx. Please try again.";
       toast.error(errorMessage);
+      console.error("RFx creation error:", error.response?.data || error);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <Save className="w-8 h-8 mr-2 text-indigo-600" />
-          Create RFx
-        </h1>
-        <button
-          onClick={() => navigate("/dashboard/rfxs")}
-          className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to RFxs
-        </button>
+  if (jobTitle !== "lead buyer") {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+          <p className="text-xl text-gray-900">Access denied. Only lead buyers can create RFxs.</p>
+          <Link
+            to="/dashboard/rfxs"
+            className="mt-6 flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 shadow-md hover:shadow-lg"
+          >
+            <X className="w-5 h-5 mr-2" />
+            Back to RFxs
+          </Link>
+        </div>
       </div>
-      <div className="bg-white shadow-lg rounded-lg p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-4 sm:p-6 md:p-8">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-800">Create RFx</h1>
+      <form onSubmit={handleSubmit} className="mb-8 bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">Create RFx</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
             <input
               type="text"
               name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-              required
+              value={formValues.title}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.title ? "border-red-500" : "border-gray-300"}`}
+              placeholder="Enter RFx title"
+              maxLength={128}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Spend Category</label>
-            <select
-              name="spend_category"
-              value={formData.spend_category}
-              onChange={handleInputChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            >
-              <option value="communications">Communications</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-            <select
-              name="type"
-              value={formData.type}
-              onChange={handleInputChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            >
-              <option value="information">Information</option>
-              <option value="quotation">Quotation</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Procedure</label>
-            <select
-              name="procedure"
-              value={formData.procedure}
-              onChange={handleInputChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            >
-              <option value="open">Open</option>
-              <option value="restricted">Restricted</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-            <select
-              name="priority"
-              value={formData.priority}
-              onChange={handleInputChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            >
-              <option value="non urgent">Non Urgent</option>
-              <option value="urgent">Urgent</option>
-            </select>
+            {formErrors.title && <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
             <textarea
               name="note"
-              value={formData.note}
-              onChange={handleInputChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+              value={formValues.note}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.note ? "border-red-500" : "border-gray-300"}`}
+              placeholder="Enter note"
+              maxLength={500}
             />
+            {formErrors.note && <p className="text-red-500 text-sm mt-1">{formErrors.note}</p>}
           </div>
           <div>
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Items</h2>
-            {formData.items.map((item, index) => (
-              <div key={index} className="space-y-4 border-t pt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <select
+              name="type"
+              value={formValues.type}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.type ? "border-red-500" : "border-gray-300"}`}
+            >
+              <option value="information">Information</option>
+              <option value="quotation">Quotation</option>
+              <option value="proposal">Proposal</option>
+            </select>
+            {formErrors.type && <p className="text-red-500 text-sm mt-1">{formErrors.type}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Procedure</label>
+            <select
+              name="procedure"
+              value={formValues.procedure}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.procedure ? "border-red-500" : "border-gray-300"}`}
+            >
+              <option value="open">Open</option>
+              <option value="sealed">Sealed</option>
+            </select>
+            {formErrors.procedure && <p className="text-red-500 text-sm mt-1">{formErrors.procedure}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Spend Category</label>
+            <select
+              name="spend_category"
+              value={formValues.spend_category}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.spend_category ? "border-red-500" : "border-gray-300"}`}
+            >
+              <option value="communications">Communications</option>
+            </select>
+            {formErrors.spend_category && <p className="text-red-500 text-sm mt-1">{formErrors.spend_category}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <select
+              name="priority"
+              value={formValues.priority}
+              onChange={handleChange}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
+            >
+              <option value="non urgent">Non Urgent</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <input
+              type="datetime-local"
+              name="start_datetime"
+              value={formValues.start_datetime}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.start_datetime ? "border-red-500" : "border-gray-300"}`}
+              title="Select the start date and time for the RFx"
+            />
+            {formErrors.start_datetime && <p className="text-red-500 text-sm mt-1">{formErrors.start_datetime}</p>}
+          </div>
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Submission Due Date</label>
+            <input
+              type="datetime-local"
+              name="submission_datetime"
+              value={formValues.submission_datetime}
+              onChange={handleChange}
+              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.submission_datetime ? "border-red-500" : "border-gray-300"}`}
+              title="Select the submission due date and time"
+            />
+            {formErrors.submission_datetime && <p className="text-red-500 text-sm mt-1">{formErrors.submission_datetime}</p>}
+          </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              name="is_approved"
+              checked={formValues.is_approved}
+              onChange={handleChange}
+              className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded"
+            />
+            <label className="ml-2 block text-sm font-medium text-gray-700">Is Approved</label>
+          </div>
+        </div>
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-2 text-gray-800">Items</h3>
+          {formValues.items.map((item, index) => (
+            <div key={index} className="mb-4 p-4 bg-white border border-gray-200 rounded-md shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
                   <input
                     type="text"
-                    name={`item_name_${index}`}
+                    name="name"
                     value={item.name}
-                    onChange={(e) => handleInputChange(e, index)}
-                    className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
+                    onChange={(e) => handleChange(e, index)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors[`items[${index}].name`] ? "border-red-500" : "border-gray-300"}`}
+                    placeholder="Enter item name"
+                    maxLength={255}
                   />
+                  {formErrors[`items[${index}].name`] && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors[`items[${index}].name`]}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <textarea
-                    name={`item_description_${index}`}
+                    name="description"
                     value={item.description}
-                    onChange={(e) => handleInputChange(e, index)}
-                    className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    maxLength={225}
+                    onChange={(e) => handleChange(e, index)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors[`items[${index}].description`] ? "border-red-500" : "border-gray-300"}`}
+                    placeholder="Enter item description"
+                    maxLength={500}
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    {item.description.length}/225 characters
-                  </p>
+                  {formErrors[`items[${index}].description`] && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors[`items[${index}].description`]}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit of Measure</label>
+                  <select
+                    name="unit_of_measure"
+                    value={item.unit_of_measure}
+                    onChange={(e) => handleChange(e, index)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
+                  >
+                    <option value="pc">Piece (pc)</option>
+                    <option value="kg">Kilogram (kg)</option>
+                    <option value="g">Gram (g)</option>
+                    <option value="mg">Milligram (mg)</option>
+                    <option value="t">Ton (t)</option>
+                    <option value="lb">Pound (lb)</option>
+                    <option value="oz">Ounce (oz)</option>
+                    <option value="L">Liter (L)</option>
+                    <option value="mL">Milliliter (mL)</option>
+                    <option value="m³">Cubic meter (m³)</option>
+                    <option value="cm³">Cubic centimeter (cm³)</option>
+                    <option value="gal">Gallon (gal)</option>
+                    <option value="qt">Quart (qt)</option>
+                    <option value="pt">Pint (pt)</option>
+                    <option value="fl oz">Fluid ounce (fl oz)</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                   <input
                     type="number"
-                    name={`item_quantity_${index}`}
+                    name="quantity"
                     value={item.quantity}
-                    onChange={(e) => handleInputChange(e, index)}
-                    className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
+                    onChange={(e) => handleChange(e, index)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors[`items[${index}].quantity`] ? "border-red-500" : "border-gray-300"}`}
                     min="1"
                   />
+                  {formErrors[`items[${index}].quantity`] && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors[`items[${index}].quantity`]}</p>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit of Measure</label>
-                  <select
-                    name={`item_unit_of_measure_${index}`}
-                    value={item.unit_of_measure}
-                    onChange={(e) => handleInputChange(e, index)}
-                    className="block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    required
-                  >
-                    <option value="pc">Pieces</option>
-                    <option value="kg">Kilogram</option>
-                    <option value="g">Gram</option>
-                    <option value="mg">Milligram</option>
-                    <option value="t">Ton</option>
-                    <option value="lb">Pound</option>
-                    <option value="oz">Ounce</option>
-                    <option value="L">Liter</option>
-                    <option value="mL">Milliliter</option>
-                    <option value="m³">Cubic meter</option>
-                    <option value="cm³">Cubic centimeter</option>
-                    <option value="gal">Gallon</option>
-                    <option value="qt">Quart</option>
-                    <option value="pt">Pint</option>
-                    <option value="fl oz">Fluid ounce</option>
-                  </select>
-                </div>
-                {formData.items.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeItem(index)}
-                    className="mt-2 flex items-center bg-red-100 text-red-700 py-2 px-4 rounded-md hover:bg-red-200 transition duration-200"
-                  >
-                    <Trash2 className="w-5 h-5 mr-2" />
-                    Remove Item
-                  </button>
-                )}
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={addItem}
-              className="mt-4 bg-indigo-100 text-indigo-700 py-2 px-4 rounded-md hover:bg-indigo-200 transition duration-200"
-            >
-              Add Item
-            </button>
-          </div>
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => navigate("/dashboard/rfxs")}
-              className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition duration-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-md disabled:opacity-50"
-            >
-              <Save className="w-5 h-5 mr-2" />
-              {loading ? "Creating..." : "Create RFx"}
-            </button>
-          </div>
-        </form>
-      </div>
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Special Handles</h4>
+                {item.special_handles.map((handle, hIndex) => (
+                  <div key={hIndex} className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      name="handling_description"
+                      value={handle.handling_description}
+                      onChange={(e) => handleChange(e, index, "special_handles", hIndex)}
+                      className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors[`items[${index}].special_handles[${hIndex}].handling_description`] ? "border-red-500" : "border-gray-300"}`}
+                      placeholder="Enter handling description"
+                      maxLength={500}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeSpecialHandle(index, hIndex)}
+                      className="ml-2 text-red-600 hover:text-red-800"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                    {formErrors[`items[${index}].special_handles[${hIndex}].handling_description`] && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {formErrors[`items[${index}].special_handles[${hIndex}].handling_description`]}
+                      </p>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addSpecialHandle(index)}
+                  className="mt-2 text-gray-600 hover:text-gray-800 flex items-center"
+                >
+                  <Plus className="w-5 h-5 mr-1" /> Add Special Handle
+                </button>
+              </div>
+              {formValues.items.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeItem(index)}
+                  className="mt-4 text-red-600 hover:text-red-800 flex items-center"
+                >
+                  <Trash2 className="w-5 h-5 mr-1" /> Remove Item
+                </button>
+              )}
+            </div>
+          ))}
+          {formErrors.items && <p className="text-red-500 text-sm mt-1">{formErrors.items}</p>}
+          <button
+            type="button"
+            onClick={addItem}
+            className="mt-4 bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 flex items-center shadow-md hover:shadow-lg"
+          >
+            <Plus className="w-5 h-5 mr-2" /> Add Item
+          </button>
+        </div>
+        <div className="mt-6 flex space-x-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 flex items-center shadow-md hover:shadow-lg disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Save className="w-5 h-5 mr-2" />}
+            {loading ? "Creating..." : "Create RFx"}
+          </button>
+          <button
+            type="button"
+            onClick={resetForm}
+            className="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 flex items-center shadow-md hover:shadow-lg"
+          >
+            <RefreshCw className="w-5 h-5 mr-2" /> Reset Form
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              resetForm();
+              navigate("/dashboard/rfxs");
+            }}
+            className="bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 flex items-center shadow-md hover:shadow-lg"
+          >
+            <X className="w-5 h-5 mr-2" /> Cancel
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

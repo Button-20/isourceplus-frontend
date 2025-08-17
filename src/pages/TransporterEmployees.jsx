@@ -84,7 +84,7 @@ const AllTransporterEmployees = () => {
           <div className="text-red-500 mb-4">Error loading employees</div>
           <button
             onClick={() => navigate("/dashboard")}
-            className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center justify-center gap-2"
+            className="text-gray-600 hover:text-gray-800 font-medium flex items-center justify-center gap-2"
           >
             <ArrowLeft size={16} />
             Back to Dashboard
@@ -115,7 +115,7 @@ const AllTransporterEmployees = () => {
               placeholder="Search employees..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
             />
             <svg
               className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
@@ -133,7 +133,7 @@ const AllTransporterEmployees = () => {
           </div>
           <Link
             to="/dashboard/employee/new"
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             <Plus size={18} />
             <span className="hidden sm:inline">Add Employee</span>
@@ -156,7 +156,7 @@ const AllTransporterEmployees = () => {
           </p>
           <Link
             to="/dashboard/employee/new"
-            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             <Plus size={16} />
             Add New Employee
@@ -172,8 +172,8 @@ const AllTransporterEmployees = () => {
               <div className="p-6">
                 {/* Employee header */}
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                    <User className="text-indigo-600" size={24} />
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                    <User className="text-gray-600" size={24} />
                   </div>
                   <div>
                     <h2 className="font-semibold text-gray-800">
@@ -239,7 +239,7 @@ const AllTransporterEmployees = () => {
                 <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
                   <Link
                     to={`/dashboard/employees/${employee.id}`}
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                    className="text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center gap-1"
                     title={`View details for ${employee.email}`}
                     aria-label={`View details for ${employee.email}`}
                     state={{ employee }}

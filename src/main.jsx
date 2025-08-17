@@ -8,6 +8,7 @@ import "slick-carousel/slick/slick-theme.css";
 import { AppProvider } from "./contexts/app.context";
 import { Toaster } from "sonner";
 import axios from "axios";
+import ScrollToTop from "./components/ScrollToTop";
 
 // ── AUTO‐CSRF CONFIGURATION ────────────────────────────────
 // Axios will:
@@ -23,6 +24,7 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AppProvider>
       <div className="font-montserrat">
+        <ScrollToTop/>
         <RouterProvider router={appRoutes} />
       </div>
       <Toaster position="top-right" richColors />

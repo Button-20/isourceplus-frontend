@@ -14,6 +14,10 @@ const CompanyChoices = () => {
 
   const handleChoiceSelect = (choice) => {
     setSelectedChoice(choice);
+    window.scrollTo({
+      top: "300",
+      behavior: "smooth"
+    })
   };
 
   // useEffect(() => {

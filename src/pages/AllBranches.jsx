@@ -1,11 +1,14 @@
 import { useAuth } from "@/contexts/app.context";
-import { Plus, MapPin, Phone, Mail, Building, Navigation } from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Plus, MapPin, Phone, Mail, Building, Navigation, MoreVertical } from "lucide-react";
+import React, { useEffect, useState, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { getCookie } from "@/utility/getCookie";
 
+// No changes to component declaration
 const AllBranches = () => {
   const { authAxios } = useAuth();
+  const navigate = useNavigate(); // Added: For Add Branch button navigation
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,7 +19,13 @@ const AllBranches = () => {
     currentPage: 1,
   });
   const [searchTerm, setSearchTerm] = useState("");
+  // Added: State for menu and modal
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [deleteModal, setDeleteModal] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const menuRef = useRef(null);
 
+  // No changes to fetchBranches
   const fetchBranches = async (page = 1, search = "") => {
     try {
       setLoading(true);
@@ -40,10 +49,55 @@ const AllBranches = () => {
     }
   };
 
+  // Added: Handle delete branch
+  const handleDelete = async (branchId) => {
+    setDeleting(true);
+    try {
+      const csrfToken = getCookie("csrftoken");
+      await authAxios.delete(`branches/${branchId}/`, {
+        headers: {
+          "X-CSRFToken": csrfToken,
+        },
+      });
+      toast.success("Branch deleted successfully!");
+      setDeleteModal(null);
+      fetchBranches(pagination.currentPage, searchTerm);
+    } catch (err) {
+      const errorMessage = err.response?.data?.detail || "Failed to delete branch";
+      toast.error(errorMessage);
+      console.error("Error deleting branch:", err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Added: Click-outside handler for submenu
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Added: Focus management for modal
+  const modalRef = useRef(null);
+  useEffect(() => {
+    if (deleteModal && modalRef.current) {
+      modalRef.current.focus();
+    }
+  }, [deleteModal]);
+
+  // No changes to initial useEffect
   useEffect(() => {
     fetchBranches();
   }, [authAxios]);
 
+  // No changes to loading state
   if (loading) {
     return (
       <div className="p-4">
@@ -75,6 +129,7 @@ const AllBranches = () => {
     );
   }
 
+  // No changes to error state
   if (error) {
     return (
       <div className="p-4 text-red-600 bg-red-50 rounded-lg">
@@ -85,7 +140,7 @@ const AllBranches = () => {
 
   return (
     <div className="p-4">
-      {/* Header with search and add button */}
+      {/* Modified: Added conditional Add Branch button */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Branch Locations</h1>
         <div className="flex items-center gap-4 w-full md:w-auto">
@@ -98,7 +153,7 @@ const AllBranches = () => {
                 setSearchTerm(e.target.value);
                 fetchBranches(1, e.target.value);
               }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
             />
             <svg
               className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
@@ -114,13 +169,15 @@ const AllBranches = () => {
               />
             </svg>
           </div>
-          <Link
-            to="/dashboard/branches/new"
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            <Plus size={18} />
-            <span className="hidden sm:inline">Add Branch</span>
-          </Link>
+          {branches.length > 0 && (
+            <button
+              onClick={() => navigate("/dashboard/branches/new")}
+              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              <Plus size={18} />
+              <span className="hidden sm:inline">Add Branch</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -133,7 +190,7 @@ const AllBranches = () => {
           <p className="text-gray-500 mb-4">Create your first branch to get started</p>
           <Link
             to="/dashboard/branches/new"
-            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             <Plus size={16} />
             Add New Branch
@@ -148,15 +205,54 @@ const AllBranches = () => {
                 className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
               >
                 <div className="p-5">
-                  <div className="flex justify-between items-start mb-4">
+                  {/* Modified: Added three-dot menu */}
+                  <div className="flex justify-between items-start mb-4 relative">
                     <h2 className="text-xl font-semibold text-gray-800">{branch.name}</h2>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                      Branch
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Branch
+                      </span>
+                      <button
+                        onClick={() => setOpenMenuId(openMenuId === branch.id ? null : branch.id)}
+                        className="text-gray-500 hover:text-gray-700"
+                        aria-label="Branch options"
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                      {openMenuId === branch.id && (
+                        <div
+                          ref={menuRef}
+                          className="absolute top-8 right-4 bg-white shadow-lg rounded-lg border border-gray-200 z-10"
+                        >
+                          <ul className="text-sm">
+                            <li>
+                              <Link
+                                to={`/dashboard/branches/${branch.id}/edit`}
+                                className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                onClick={() => setOpenMenuId(null)}
+                              >
+                                Edit
+                              </Link>
+                            </li>
+                            <li>
+                              <button
+                                onClick={() => {
+                                  setDeleteModal(branch.id);
+                                  setOpenMenuId(null);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                              >
+                                Delete
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-3">
-                    {/* Email */}
+                    {/* Email - No changes */}
                     <div className="flex items-start gap-3">
                       <Mail className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
@@ -167,7 +263,7 @@ const AllBranches = () => {
                       </div>
                     </div>
 
-                    {/* Phone Numbers */}
+                    {/* Phone Numbers - No changes */}
                     <div className="flex items-start gap-3">
                       <Phone className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
@@ -185,7 +281,7 @@ const AllBranches = () => {
                       </div>
                     </div>
 
-                    {/* Address - Now properly structured */}
+                    {/* Address - No changes */}
                     <div className="flex items-start gap-3">
                       <MapPin className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
@@ -206,7 +302,7 @@ const AllBranches = () => {
                             ].filter(Boolean).join(', ')}
                           </p>
                           {branch.location.gps && (
-                            <p className="flex items-center gap-1 text-sm text-indigo-600">
+                            <p className="flex items-center gap-1 text-sm text-gray-600">
                               <Navigation size={14} />
                               GPS: {branch.location.gps}
                             </p>
@@ -219,7 +315,7 @@ const AllBranches = () => {
                   <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
                     <Link
                       to={`/dashboard/branches/${branch.id}`}
-                      className="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      className="text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center gap-1"
                     >
                       View details
                       <svg
@@ -242,7 +338,7 @@ const AllBranches = () => {
             ))}
           </div>
 
-          {/* Pagination */}
+          {/* Pagination - No changes */}
           {pagination.count > 0 && (
             <div className="flex justify-between items-center mt-8">
               <button
@@ -251,7 +347,7 @@ const AllBranches = () => {
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
                   !pagination.previous
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-white text-indigo-600 border border-gray-300 hover:bg-gray-50"
+                    : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
                 }`}
               >
                 <svg
@@ -278,7 +374,7 @@ const AllBranches = () => {
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
                   !pagination.next
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-white text-indigo-600 border border-gray-300 hover:bg-gray-50"
+                    : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
                 }`}
               >
                 Next
@@ -299,6 +395,71 @@ const AllBranches = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Added: Delete confirmation modal */}
+      {deleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
+            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+          >
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Delete Branch</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete{" "}
+              <span className="font-medium">
+                {branches.find((b) => b.id === deleteModal)?.name || "this branch"}
+              </span>
+              ? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteModal(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteModal)}
+                disabled={deleting}
+                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+                  deleting ? "opacity-70 cursor-not-allowed" : ""
+                }`}
+              >
+                {deleting ? (
+                  <span className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Deleting...
+                  </span>
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

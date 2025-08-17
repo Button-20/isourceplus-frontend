@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 import { getCookie } from "@/utility/getCookie";
 import Pagination from "@/components/pagination";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const IssuedProformaInvoicesPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -95,7 +96,7 @@ const IssuedProformaInvoicesPage = () => {
           <p className="text-gray-600 mb-6">Only logistics managers can view issued proforma invoices.</p>
           <button
             onClick={() => navigate("/dashboard")}
-            className="flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
+            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Dashboard
@@ -108,17 +109,17 @@ const IssuedProformaInvoicesPage = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
+        <Loader2 className="animate-spin h-12 w-12 text-gray-600" />
         <p className="mt-4 text-lg text-gray-700 font-medium">Loading Issued Proforma Invoices...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-8 max-w-6xl">
+    <div className="container mx-auto p-8 max-w-6xl"><ScrollToTop/>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-semibold text-gray-900 flex items-center">
-          <FileText className="w-8 h-8 mr-2 text-indigo-600" />
+          <FileText className="w-8 h-8 mr-2 text-gray-600" />
           Issued Proforma Invoices
         </h1>
         {jobTitle === "logistics manager" && (
@@ -243,7 +244,7 @@ const IssuedProformaInvoicesPage = () => {
                     <div className="flex space-x-4">
                       <Link
                         to={`/dashboard/proforma-invoices/issued/${invoice.ref_num}`}
-                        className="text-indigo-600 hover:text-indigo-800"
+                        className="text-gray-600 hover:text-gray-800"
                       >
                         View Details
                       </Link>

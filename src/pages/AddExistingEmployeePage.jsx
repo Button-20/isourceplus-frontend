@@ -75,7 +75,7 @@ export default function AddExistingEmployeePage() {
       <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border border-gray-100 relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-100 rounded-full opacity-20"></div>
-        <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-indigo-100 rounded-full opacity-20"></div>
+        <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-gray-100 rounded-full opacity-20"></div>
         
         <div className="relative z-10">
           <button
@@ -122,7 +122,7 @@ export default function AddExistingEmployeePage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              className="w-full bg-gradient-to-r from-blue-600 to-gray-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             >
               {loading ? (
                 <>

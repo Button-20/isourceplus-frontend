@@ -236,6 +236,7 @@ export function SignUpPage() {
   const [displayPassword, setDisplayPassword] = useState(false);
   const navigate = useNavigate();
 
+  // No changes to the state declarations above
 
   const handleDisplayPassword = () => {
     setDisplayPassword(!displayPassword);
@@ -243,13 +244,13 @@ export function SignUpPage() {
   };
 
   const handleEmailSignUp = async (e) => {
-  e.preventDefault();
-  try {
-    await signup(email, password1, password2, navigate); 
-  } catch (error) {
-    console.error("Signup error:", error);
-  }
-};
+    e.preventDefault();
+    try {
+      await signup(email, password1, password2, navigate);
+    } catch (error) {
+      console.error("Signup error:", error);
+    }
+  };
 
   return (
     <>
@@ -339,28 +340,45 @@ export function SignUpPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
               />
-              <Input
-                type={displayPassword ? `text` : `password`}
-                name="password"
-                value={password1}
-                onChange={(e) => setPassword1(e.target.value)}
-                placeholder="Enter your password"
-                required
-              />
-
-              <Input
-                type={displayPassword ? `text` : `password`}
-                name="password"
-                value={password2}
-                onChange={(e) => setPassword2(e.target.value)}
-                placeholder="Confirm your password"
-                required
-              />
-
-              <div className="flex gap-2 text-sm justify-end">
+              {/* Modified: Wrapped password input in a relative div and added eye icon */}
+              <div className="relative">
+                <Input
+                  type={displayPassword ? "text" : "password"}
+                  name="password"
+                  value={password1}
+                  onChange={(e) => setPassword1(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                />
+                <div
+                  onClick={handleDisplayPassword}
+                  className="absolute right-5 top-2 cursor-pointer"
+                >
+                  {displayPassword ? <EyeClosed /> : <Eye />}
+                </div>
+              </div>
+              {/* Modified: Wrapped confirm password input in a relative div and added eye icon */}
+              <div className="relative">
+                <Input
+                  type={displayPassword ? "text" : "password"}
+                  name="password"
+                  value={password2}
+                  onChange={(e) => setPassword2(e.target.value)}
+                  placeholder="Confirm your password"
+                  required
+                />
+                <div
+                  onClick={handleDisplayPassword}
+                  className="absolute right-5 top-2 cursor-pointer"
+                >
+                  {displayPassword ? <EyeClosed /> : <Eye />}
+                </div>
+              </div>
+              {/* Modified: Removed checkbox for show/hide password as eye icons are now used */}
+              {/* <div className="flex gap-2 text-sm justify-end">
                 <input type="checkbox" onClick={handleDisplayPassword} />
                 <p>{!displayPassword ? "Show" : "Hide"} Password</p>
-              </div>
+              </div> */}
               <Button
                 disabled={loading}
                 type="submit"

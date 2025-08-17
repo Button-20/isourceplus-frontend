@@ -108,7 +108,7 @@ const PaymentOrderDetailPage = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
+        <Loader2 className="animate-spin h-12 w-12 text-gray-600" />
         <p className="mt-4 text-lg text-gray-700 font-medium">Loading Payment Order Details...</p>
       </div>
     );
@@ -122,7 +122,7 @@ const PaymentOrderDetailPage = () => {
           <p className="mt-4 text-xl font-semibold text-gray-900">Payment Order Not Found</p>
           <button
             onClick={() => navigate("/dashboard/payment-orders/issued")}
-            className="mt-6 flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
+            className="mt-6 flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Payment Orders
@@ -137,7 +137,7 @@ const PaymentOrderDetailPage = () => {
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <FileText className="h-16 w-16 text-indigo-600" />
+            <FileText className="h-16 w-16 text-gray-600" />
             <h1 className="text-3xl font-semibold text-gray-900">
               Payment Order: {paymentOrder.title || "Untitled"} <span className="text-gray-500 text-sm">({paymentOrder.ref_num})</span>
             </h1>
@@ -161,7 +161,7 @@ const PaymentOrderDetailPage = () => {
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
             >
               <h2 className="text-xl font-medium text-gray-900">Payment Order Details</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
+              <span className="flex items-center text-gray-600 font-medium">
                 {detailsOpen ? "Collapse" : "Expand"}
                 {detailsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
               </span>
@@ -178,7 +178,7 @@ const PaymentOrderDetailPage = () => {
                       name="title"
                       value={formData.title}
                       onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-200 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full border border-gray-200 rounded-md p-2 focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -187,7 +187,7 @@ const PaymentOrderDetailPage = () => {
                       name="priority"
                       value={formData.priority}
                       onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-200 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full border border-gray-200 rounded-md p-2 focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
                     >
                       <option value="normal">Normal</option>
                       <option value="urgent">Urgent</option>
@@ -201,7 +201,7 @@ const PaymentOrderDetailPage = () => {
                       name="payment_method"
                       value={formData.payment_method}
                       onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-200 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full border border-gray-200 rounded-md p-2 focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
                     />
                   </div>
                   <div className="flex items-center">
@@ -280,7 +280,7 @@ const PaymentOrderDetailPage = () => {
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
             >
               <h2 className="text-xl font-medium text-gray-900">Items</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
+              <span className="flex items-center text-gray-600 font-medium">
                 {itemsOpen ? "Collapse" : "Expand"}
                 {itemsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
               </span>

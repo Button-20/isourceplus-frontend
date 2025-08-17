@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const AllWaybillsPage = () => {
   const { authAxios, jobTitle, BASE_URL } = useAuth();
@@ -74,6 +75,7 @@ const AllWaybillsPage = () => {
 
   return (
     <div className="container mx-auto p-6">
+      <ScrollToTop/>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">All Waybills</h1>
       </div>

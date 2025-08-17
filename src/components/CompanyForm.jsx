@@ -1,10 +1,17 @@
-// components/CompanyForm.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { Loader2, Upload, Check, X, Building2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { getCookie } from "@/utility/getCookie";
+
+// Added: Validation function for localStorage data
+const validateStoredData = (data, expectedKeys) => {
+  if (!data || typeof data !== "object") return false;
+  return expectedKeys.every((key) =>
+    Object.prototype.hasOwnProperty.call(data, key)
+  );
+};
 
 const CompanyForm = () => {
   const { authAxios, companyId, setCompanyId, jobTitle } = useAuth();
@@ -36,25 +43,148 @@ const CompanyForm = () => {
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Added: Load form data from localStorage on component mount
+  useEffect(() => {
+    try {
+      const storedValues = localStorage.getItem("companyFormValues");
+      const storedPreviews = localStorage.getItem("companyFormFilePreviews");
+
+      if (storedValues) {
+        const parsedValues = JSON.parse(storedValues);
+        const expectedKeys = [
+          "name",
+          "type",
+          "field",
+          "industry",
+          "sector",
+          "bio",
+          "email",
+          "office_line",
+          "office_line_2",
+          "web_address",
+        ];
+        if (validateStoredData(parsedValues, expectedKeys)) {
+          setValues(parsedValues);
+          toast.info("Form data restored from previous session.");
+        } else {
+          console.warn("Invalid stored values in localStorage, skipping load.");
+        }
+      }
+
+      if (storedPreviews) {
+        const parsedPreviews = JSON.parse(storedPreviews);
+        const expectedKeys = ["logo", "image_front_view"];
+        if (validateStoredData(parsedPreviews, expectedKeys)) {
+          setFilePreviews(parsedPreviews);
+        } else {
+          console.warn(
+            "Invalid stored file previews in localStorage, skipping load."
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load form data from localStorage:", err);
+      toast.error(
+        "Unable to restore form data. Local storage may be disabled."
+      );
+    }
+  }, []);
+
+  // Modified: Save values to localStorage on change
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setValues((v) => ({ ...v, [name]: value }));
+    setValues((v) => {
+      const updatedValues = { ...v, [name]: value };
+      try {
+        localStorage.setItem(
+          "companyFormValues",
+          JSON.stringify(updatedValues)
+        );
+      } catch (err) {
+        console.error("Failed to save form values to localStorage:", err);
+        toast.error("Unable to save form data. Local storage may be disabled.");
+      }
+      return updatedValues;
+    });
   };
 
+  // Modified: Save filePreviews to localStorage on file change
   const handleFileChange = (e) => {
     const { name, files } = e.target;
     const file = files[0];
     if (file) {
       setFiles((f) => ({ ...f, [name]: file }));
-      setFilePreviews((p) => ({ ...p, [name]: URL.createObjectURL(file) }));
+      setFilePreviews((p) => {
+        const updatedPreviews = { ...p, [name]: URL.createObjectURL(file) };
+        try {
+          localStorage.setItem(
+            "companyFormFilePreviews",
+            JSON.stringify(updatedPreviews)
+          );
+        } catch (err) {
+          console.error("Failed to save file previews to localStorage:", err);
+          toast.error(
+            "Unable to save file previews. Local storage may be disabled."
+          );
+        }
+        return updatedPreviews;
+      });
     }
   };
 
+  // Modified: Update localStorage when removing a file
   const removeFile = (name) => {
     setFiles((f) => ({ ...f, [name]: null }));
-    setFilePreviews((p) => ({ ...p, [name]: null }));
+    setFilePreviews((p) => {
+      const updatedPreviews = { ...p, [name]: null };
+      try {
+        localStorage.setItem(
+          "companyFormFilePreviews",
+          JSON.stringify(updatedPreviews)
+        );
+      } catch (err) {
+        console.error("Failed to save file previews to localStorage:", err);
+        toast.error(
+          "Unable to save file previews. Local storage may be disabled."
+        );
+      }
+      return updatedPreviews;
+    });
   };
 
+  // Added: Reset form and clear localStorage
+  const handleReset = () => {
+    window.scrollTo({
+      top:0,
+      behavior:"smooth"
+    })
+    const resetValues = {
+      name: "",
+      type: "",
+      field: "",
+      industry: "",
+      sector: "",
+      bio: "",
+      email: "",
+      office_line: "",
+      office_line_2: "",
+      web_address: "",
+    };
+    const resetPreviews = { logo: null, image_front_view: null };
+    setValues(resetValues);
+    setFiles(resetPreviews);
+    setFilePreviews(resetPreviews);
+    try {
+      localStorage.removeItem("companyFormValues");
+      localStorage.removeItem("companyFormFilePreviews");
+      toast.success("Form reset successfully.");
+    } catch (err) {
+      console.error("Failed to clear localStorage:", err);
+      toast.error("Unable to reset form. Local storage may be disabled.");
+    }
+  };
+
+  // Modified: Clear localStorage on successful submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -80,20 +210,26 @@ const CompanyForm = () => {
         },
       });
 
-      const results = res.data
+      const results = res.data;
 
-      console.log("raw",results)
-      // console.log("name",results.name)
-      // console.log("id",results.id)
-      // console.log("url",results.url)
-
+      console.log("raw", results);
       toast.success("Company registered successfully!");
-      setCompanyId(results.id)
+      setCompanyId(results.id);
       localStorage.setItem("company_id", results.id);
-      // console.log("company id", companyId)
-      // navigate("/dashboard");
+      navigate("/company/edit");
 
-      // Reset form
+      // Added: Clear localStorage on successful submission
+      try {
+        localStorage.removeItem("companyFormValues");
+        localStorage.removeItem("companyFormFilePreviews");
+      } catch (err) {
+        console.error("Failed to clear localStorage:", err);
+        toast.error(
+          "Unable to clear form data. Local storage may be disabled."
+        );
+      }
+
+      // No changes to form reset
       setValues({
         name: "",
         type: "",
@@ -110,14 +246,17 @@ const CompanyForm = () => {
       setFilePreviews({ logo: null, image_front_view: null });
     } catch (err) {
       console.error("Registration failed:", err);
-      toast.error(err.response?.data.detail || err.response?.data[0] || "Registration failed");
+      toast.error(
+        err.response?.data.detail ||
+          err.response?.data[0] ||
+          "Registration failed"
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-      // console.log("company id2", companyId)
-
+  // console.log("company id2", companyId)
 
   return (
     <form
@@ -207,8 +346,12 @@ const CompanyForm = () => {
                 className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
               >
                 <option value="">Select type</option>
-                {jobTitle === "lead buyer" && <option value="buyer">Buyer</option>}
-                {jobTitle === "sales manager" &&<option value="supplier">Supplier</option>}
+                {jobTitle === "lead buyer" && (
+                  <option value="buyer">Buyer</option>
+                )}
+                {jobTitle === "sales manager" && (
+                  <option value="supplier">Supplier</option>
+                )}
               </select>
             </div>
 
@@ -418,23 +561,31 @@ const CompanyForm = () => {
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="flex justify-end pt-4 border-t border-gray-200">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="bg-black text-white py-2.5 px-6 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                Registering...
-              </>
-            ) : (
-              "Register Company"
-            )}
-          </button>
-        </div>
+        {/* Modified: Added Reset button alongside Submit button */}
+      <div className="flex justify-end pt-4 border-t border-gray-200 space-x-4">
+        <button
+          type="button"
+          onClick={handleReset}
+          disabled={submitting}
+          className="bg-gray-200 text-gray-700 py-2.5 px-6 rounded-md font-medium hover:bg-gray-300 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          Reset Form
+        </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="bg-black text-white py-2.5 px-6 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="animate-spin mr-2 h-4 w-4" />
+              Registering...
+            </>
+          ) : (
+            "Register Company"
+          )}
+        </button>
+      </div>
       </div>
     </form>
   );

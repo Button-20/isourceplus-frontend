@@ -16,26 +16,7 @@ const PaymentOrdersPage = () => {
     previous: null,
     currentPage: 1,
   });
-
-  if (!["sales manager", "logistics manager"].includes(jobTitle)) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
-          <p className="mt-4 text-xl font-semibold text-gray-900">Access Denied</p>
-          <p className="text-gray-600 mt-2 font-medium">Only sales managers and logistics managers can view payment orders.</p>
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="mt-6 flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  
   useEffect(() => {
     const fetchPaymentOrders = async (url = "payment-orders/issued/") => {
       try {
@@ -60,6 +41,26 @@ const PaymentOrdersPage = () => {
     };
     fetchPaymentOrders();
   }, [authAxios]);
+
+  if (!["sales manager", "logistics manager"].includes(jobTitle)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
+          <p className="mt-4 text-xl font-semibold text-gray-900">Access Denied</p>
+          <p className="text-gray-600 mt-2 font-medium">Only sales managers and logistics managers can view payment orders.</p>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="mt-6 flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
 
   const handlePageChange = async (url, page) => {
     if (!url) return;
@@ -94,7 +95,7 @@ const PaymentOrdersPage = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
+        <Loader2 className="animate-spin h-12 w-12 text-gray-600" />
         <p className="mt-4 text-lg text-gray-700 font-medium">Loading Payment Orders...</p>
       </div>
     );
@@ -174,7 +175,7 @@ const PaymentOrdersPage = () => {
                     <td className="py-3 px-4 text-gray-900">
                       <Link
                         to={`/dashboard/payment-orders/${order.ref_num}`}
-                        className="text-indigo-600 hover:text-indigo-800"
+                        className="text-gray-600 hover:text-gray-800"
                       >
                         View Details
                       </Link>
