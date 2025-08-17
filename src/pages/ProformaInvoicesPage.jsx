@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Loader2, FileText, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
-import Pagination from "@/components/pagination";
+import Pagination from "@/components/Pagination";
 
 const ProformaInvoicesPage = () => {
   const { authAxios, jobTitle } = useAuth();
