@@ -1,6 +1,5 @@
-import { pricingData } from "@/assets/assets";
 import React from "react";
-import PricingCard from "./PricingCard";
+import { Link } from "react-router-dom";
 
 const Pricing = () => {
   return (
@@ -8,13 +7,18 @@ const Pricing = () => {
       <h1 className="text-4xl font-medium text-gray-800 text-center mb-12">
         Organization Subscription Plan
       </h1>
-      <div className="grid grid-cols-1  md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {pricingData.map((plan, index) => (
-          <PricingCard key={index} {...plan} />
-        ))}
+      <div className="text-center">
+        <p className="text-lg text-gray-600 mb-6">
+          Discover our flexible subscription plans tailored for Buyers and Suppliers. Click below to explore all pricing options and find the perfect plan for your business.
+        </p>
+        <Link
+          to="/pricing"
+          className="inline-block bg-black text-white py-3 px-6 rounded-md font-medium hover:bg-gray-800 transition-colors"
+        >
+          Go to Pricing Page
+        </Link>
       </div>
     </div>
-
   );
 };
 

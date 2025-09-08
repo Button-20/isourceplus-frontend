@@ -64,9 +64,11 @@ import CreatePaymentOrderPage from "./pages/CreatePaymentOrderPage";
 import PaymentOrdersPage from "./pages/PaymentOrdersPage";
 import IssuedSalesInvoicesPage from "./pages/IssuedSalesInvoicesPage";
 import EditBranch from "./pages/EditBranch";
+import { PricingPage } from "./pages/PricingPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
+  { path: "/pricing", element: <PricingPage /> },
   { path: "/marketplace", element: <MarketplacePage /> },
   { path: "/store", element: <Store /> },
   { path: "/about", element: <AboutPage /> },
