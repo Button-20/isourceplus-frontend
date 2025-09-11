@@ -160,12 +160,19 @@ const commonFeatures = [
 export function PricingPage() {
   const [activeTab, setActiveTab] = useState("buyer");
   const [showComparison, setShowComparison] = useState(false);
+  const [selectedPlans, setSelectedPlans] = useState(
+    buyerPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "sixMonth" }), {})
+  );
 
   const plans = activeTab === "buyer" ? buyerPlans : supplierPlans;
   const marketAccessKey = activeTab === "buyer" ? "suppliersMarketBase" : "buyersMarketBase";
   const marketAccessLabel = activeTab === "buyer" ? "Suppliers’ Market Base" : "Buyers’ Market Base";
   const opportunityLabel = activeTab === "buyer" ? "Competitive Offers" : "Business Opportunities";
   const registeredLabel = activeTab === "buyer" ? "Registered Buyers" : "Registered Suppliers";
+
+  const handlePlanSelection = (planName, value) => {
+    setSelectedPlans((prev) => ({ ...prev, [planName]: value }));
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -184,13 +191,19 @@ export function PricingPage() {
           <div className="flex justify-center space-x-4 mt-4">
             <button
               className={`px-6 py-2 rounded-md font-medium ${activeTab === "buyer" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-              onClick={() => setActiveTab("buyer")}
+              onClick={() => {
+                setActiveTab("buyer");
+                setSelectedPlans(buyerPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "sixMonth" }), {}));
+              }}
             >
               Buyer Plans
             </button>
             <button
               className={`px-6 py-2 rounded-md font-medium ${activeTab === "supplier" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-              onClick={() => setActiveTab("supplier")}
+              onClick={() => {
+                setActiveTab("supplier");
+                setSelectedPlans(supplierPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "sixMonth" }), {}));
+              }}
             >
               Supplier Plans
             </button>
@@ -207,8 +220,30 @@ export function PricingPage() {
               <h2 className="text-2xl font-bold text-center mb-4">{plan.name}</h2>
               <div className="text-center mb-4">
                 <p className="text-3xl font-semibold">Ghc {plan.monthlyRate}/mo</p>
-                <p className="text-sm text-gray-600">6-Month: Ghc {plan.sixMonthRate} (20% off)</p>
-                <p className="text-sm text-gray-600">12-Month: Ghc {plan.twelveMonthRate} (30% off)</p>
+                <div className="mt-2">
+                  <label className="inline-flex items-center mr-4">
+                    <input
+                      type="radio"
+                      name={`${plan.name}-duration`}
+                      value="sixMonth"
+                      checked={selectedPlans[plan.name] === "sixMonth"}
+                      onChange={() => handlePlanSelection(plan.name, "sixMonth")}
+                      className="form-radio text-black focus:ring-black"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">6-Month: Ghc {plan.sixMonthRate} (20% off)</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      name={`${plan.name}-duration`}
+                      value="twelveMonth"
+                      checked={selectedPlans[plan.name] === "twelveMonth"}
+                      onChange={() => handlePlanSelection(plan.name, "twelveMonth")}
+                      className="form-radio text-black focus:ring-black"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">12-Month: Ghc {plan.twelveMonthRate} (30% off)</span>
+                  </label>
+                </div>
                 <p className="text-sm text-gray-500">VAT Included</p>
               </div>
               <ul className="space-y-2 mb-6">
@@ -251,12 +286,20 @@ export function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                to="/signup"
-                className="block w-full text-center bg-black text-white py-2 rounded-md hover:bg-gray-800"
-              >
-                Select Plan
-              </Link>
+              <div className="flex space-x-4">
+                <Link
+                  to="/signup?trial=true"
+                  className="flex-1 text-center bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300"
+                >
+                  Start Trial
+                </Link>
+                <Link
+                  to="/signup"
+                  className="flex-1 text-center bg-black text-white py-2 rounded-md hover:bg-gray-800"
+                >
+                  Subscribe
+                </Link>
+              </div>
             </div>
           ))}
         </div>
@@ -265,8 +308,9 @@ export function PricingPage() {
         <div className="text-center mb-12">
           <button
             className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-            onClick={() => {setShowComparison(!showComparison)
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            onClick={() => {
+              setShowComparison(!showComparison);
+              window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             }}
           >
             {showComparison ? "Hide Comparison" : "Compare Plans"}
