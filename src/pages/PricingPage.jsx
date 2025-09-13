@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, MessageSquare, Users, Building } from "lucide-react";
+import { Check, MessageSquare, Users, Building, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -15,6 +15,7 @@ const buyerPlans = [
     competitiveOffers: "1X",
     suppliersMarketBase: 356,
     registeredBuyers: 100,
+    registeredTransporters: 100, // Added from Transporters section
     transactionalSMS: 50,
     promoSMS: 15,
   },
@@ -29,6 +30,7 @@ const buyerPlans = [
     competitiveOffers: "2X",
     suppliersMarketBase: 629,
     registeredBuyers: 208,
+    registeredTransporters: 308, // Added from Transporters section
     transactionalSMS: 60,
     promoSMS: 20,
   },
@@ -43,6 +45,7 @@ const buyerPlans = [
     competitiveOffers: "3X",
     suppliersMarketBase: 1005,
     registeredBuyers: 504,
+    registeredTransporters: 812, // Added from Transporters section
     transactionalSMS: 70,
     promoSMS: 30,
   },
@@ -57,6 +60,7 @@ const buyerPlans = [
     competitiveOffers: "4X",
     suppliersMarketBase: 1139,
     registeredBuyers: 708,
+    registeredTransporters: 1520, // Added from Transporters section
     transactionalSMS: 100,
     promoSMS: 40,
   },
@@ -71,6 +75,7 @@ const buyerPlans = [
     competitiveOffers: "5X",
     suppliersMarketBase: 1515,
     registeredBuyers: 987,
+    registeredTransporters: 2507, // Added from Transporters section
     transactionalSMS: 110,
     promoSMS: 50,
   },
@@ -157,7 +162,7 @@ const transporterPlans = [
     twelveMonthRate: 180,
     defaultUsers: 1,
     addOnFee: 10,
-    smsBonus: 0, // Not specified in document
+    smsBonus: 0,
     businessOpportunities: "1X",
     buyersMarketBase: 100,
     registeredTransporters: 100,
@@ -249,7 +254,7 @@ export function PricingPage() {
   const registeredLabel = activeTab === "buyer" ? "Registered Buyers" : activeTab === "supplier" ? "Registered Suppliers" : "Registered Transporters";
 
   const handlePlanSelection = (planName, value) => {
-    setSelectedPlans((prev) => ({ ...prev, [planName]: value }));
+    setSelectedPlans((prev) => ({ ...acc, [planName]: value }));
   };
 
   return (
@@ -298,7 +303,7 @@ export function PricingPage() {
         </div>
 
         {/* Card-Based Layout */}
-        <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6 mb-12">
           {plans.map((plan) => (
             <div
               key={plan.name}
@@ -367,12 +372,22 @@ export function PricingPage() {
                   <span>{plan[marketAccessKey]} {marketAccessLabel}</span>
                 </li>
                 <li className="flex items-center">
-                  <Users className="w-5 h-5 text-green-500 mr-2" />
+                  {activeTab === "transporter" ? (
+                    <Truck className="w-5 h-5 text-green-500 mr-2" />
+                  ) : (
+                    <Users className="w-5 h-5 text-green-500 mr-2" />
+                  )}
                   <span>
                     {activeTab === "buyer" ? plan.registeredBuyers : activeTab === "supplier" ? plan.registeredSuppliers : plan.registeredTransporters} {registeredLabel}
                   </span>
                 </li>
-                {activeTab !== "buyer" && (
+                {activeTab === "buyer" && (
+                  <li className="flex items-center">
+                    <Truck className="w-5 h-5 text-green-500 mr-2" />
+                    <span>{plan.registeredTransporters} Registered Transporters</span>
+                  </li>
+                )}
+                {activeTab === "transporter" && (
                   <li className="flex items-center">
                     <Users className="w-5 h-5 text-green-500 mr-2" />
                     <span>{plan.registeredSuppliers} Registered Suppliers</span>
@@ -387,13 +402,13 @@ export function PricingPage() {
               </ul>
               <div className="flex space-x-4">
                 <Link
-                  to={`/signup?trial=true&plan=${plan.name.toLowerCase()}&duration=${selectedPlans[plan.name]}`}
+                  to={`/signup?trial=true&plan=${plan.name.toLowerCase()}&duration=${selectedPlans[plan.name]}&type=${activeTab}`}
                   className="flex-1 text-center bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300"
                 >
                   Start Trial
                 </Link>
                 <Link
-                  to={`/signup?plan=${plan.name.toLowerCase()}&duration=${selectedPlans[plan.name]}`}
+                  to={`/signup?plan=${plan.name.toLowerCase()}&duration=${selectedPlans[plan.name]}&type=${activeTab}`}
                   className="flex-1 text-center bg-black text-white py-2 rounded-md hover:bg-gray-800"
                 >
                   Subscribe
@@ -493,7 +508,15 @@ export function PricingPage() {
                       </td>
                     ))}
                   </tr>
-                  {activeTab !== "buyer" && (
+                  {activeTab === "buyer" && (
+                    <tr>
+                      <td className="p-3 border-b">Registered Transporters</td>
+                      {plans.map((plan) => (
+                        <td key={plan.name} className="p-3 border-b text-center">{plan.registeredTransporters}</td>
+                      ))}
+                    </tr>
+                  )}
+                  {activeTab === "transporter" && (
                     <tr>
                       <td className="p-3 border-b">Registered Suppliers</td>
                       {plans.map((plan) => (
