@@ -11,11 +11,12 @@ const buyerPlans = [
     twelveMonthRate: 117.6,
     defaultUsers: 1,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 5,
     competitiveOffers: "1X",
     suppliersMarketBase: 356,
     registeredBuyers: 100,
-    registeredTransporters: 100, // Added from Transporters section
+    registeredTransporters: 100,
     transactionalSMS: 50,
     promoSMS: 15,
   },
@@ -26,11 +27,12 @@ const buyerPlans = [
     twelveMonthRate: 141.12,
     defaultUsers: 2,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 10,
     competitiveOffers: "2X",
     suppliersMarketBase: 629,
     registeredBuyers: 208,
-    registeredTransporters: 308, // Added from Transporters section
+    registeredTransporters: 308,
     transactionalSMS: 60,
     promoSMS: 20,
   },
@@ -41,11 +43,12 @@ const buyerPlans = [
     twelveMonthRate: 188.16,
     defaultUsers: 3,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 15,
     competitiveOffers: "3X",
     suppliersMarketBase: 1005,
     registeredBuyers: 504,
-    registeredTransporters: 812, // Added from Transporters section
+    registeredTransporters: 812,
     transactionalSMS: 70,
     promoSMS: 30,
   },
@@ -56,11 +59,12 @@ const buyerPlans = [
     twelveMonthRate: 282.24,
     defaultUsers: 3,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 20,
     competitiveOffers: "4X",
     suppliersMarketBase: 1139,
     registeredBuyers: 708,
-    registeredTransporters: 1520, // Added from Transporters section
+    registeredTransporters: 1520,
     transactionalSMS: 100,
     promoSMS: 40,
   },
@@ -71,11 +75,12 @@ const buyerPlans = [
     twelveMonthRate: 376.32,
     defaultUsers: 4,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 25,
     competitiveOffers: "5X",
     suppliersMarketBase: 1515,
     registeredBuyers: 987,
-    registeredTransporters: 2507, // Added from Transporters section
+    registeredTransporters: 2507,
     transactionalSMS: 110,
     promoSMS: 50,
   },
@@ -89,10 +94,12 @@ const supplierPlans = [
     twelveMonthRate: 176.4,
     defaultUsers: 1,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 5,
     businessOpportunities: "1X",
     buyersMarketBase: 100,
     registeredSuppliers: 356,
+    registeredTransporters: 100, // Added from Transporters section
     transactionalSMS: 50,
     promoSMS: 15,
   },
@@ -103,10 +110,12 @@ const supplierPlans = [
     twelveMonthRate: 235.2,
     defaultUsers: 2,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 10,
     businessOpportunities: "2X",
     buyersMarketBase: 308,
     registeredSuppliers: 273,
+    registeredTransporters: 308, // Added from Transporters section
     transactionalSMS: 60,
     promoSMS: 20,
   },
@@ -117,10 +126,12 @@ const supplierPlans = [
     twelveMonthRate: 294,
     defaultUsers: 3,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 15,
     businessOpportunities: "3X",
     buyersMarketBase: 812,
     registeredSuppliers: 376,
+    registeredTransporters: 812, // Added from Transporters section
     transactionalSMS: 70,
     promoSMS: 30,
   },
@@ -131,10 +142,12 @@ const supplierPlans = [
     twelveMonthRate: 411.6,
     defaultUsers: 3,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 20,
     businessOpportunities: "4X",
     buyersMarketBase: 1520,
     registeredSuppliers: 134,
+    registeredTransporters: 1520, // Added from Transporters section
     transactionalSMS: 100,
     promoSMS: 40,
   },
@@ -145,10 +158,12 @@ const supplierPlans = [
     twelveMonthRate: 588,
     defaultUsers: 4,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 25,
     businessOpportunities: "5X",
     buyersMarketBase: 2507,
     registeredSuppliers: 376,
+    registeredTransporters: 2507, // Added from Transporters section
     transactionalSMS: 110,
     promoSMS: 50,
   },
@@ -162,11 +177,12 @@ const transporterPlans = [
     twelveMonthRate: 180,
     defaultUsers: 1,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 0,
     businessOpportunities: "1X",
     buyersMarketBase: 100,
-    registeredTransporters: 100,
     registeredSuppliers: 356,
+    registeredTransporters: 100,
     transactionalSMS: 50,
     promoSMS: 15,
   },
@@ -177,11 +193,12 @@ const transporterPlans = [
     twelveMonthRate: 225,
     defaultUsers: 2,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 0,
     businessOpportunities: "2X",
     buyersMarketBase: 308,
-    registeredTransporters: 308,
     registeredSuppliers: 273,
+    registeredTransporters: 308,
     transactionalSMS: 60,
     promoSMS: 20,
   },
@@ -192,11 +209,12 @@ const transporterPlans = [
     twelveMonthRate: 270,
     defaultUsers: 3,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 0,
     businessOpportunities: "3X",
     buyersMarketBase: 812,
-    registeredTransporters: 812,
     registeredSuppliers: 376,
+    registeredTransporters: 812,
     transactionalSMS: 70,
     promoSMS: 30,
   },
@@ -207,11 +225,12 @@ const transporterPlans = [
     twelveMonthRate: 315,
     defaultUsers: 3,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 0,
     businessOpportunities: "4X",
     buyersMarketBase: 1520,
-    registeredTransporters: 1520,
     registeredSuppliers: 134,
+    registeredTransporters: 1520,
     transactionalSMS: 100,
     promoSMS: 40,
   },
@@ -222,11 +241,12 @@ const transporterPlans = [
     twelveMonthRate: 360,
     defaultUsers: 4,
     addOnFee: 10,
+    branchAddOn: 10, // Added Branch Add-On
     smsBonus: 0,
     businessOpportunities: "5X",
     buyersMarketBase: 2507,
-    registeredTransporters: 2507,
     registeredSuppliers: 376,
+    registeredTransporters: 2507,
     transactionalSMS: 110,
     promoSMS: 50,
   },
@@ -254,7 +274,7 @@ export function PricingPage() {
   const registeredLabel = activeTab === "buyer" ? "Registered Buyers" : activeTab === "supplier" ? "Registered Suppliers" : "Registered Transporters";
 
   const handlePlanSelection = (planName, value) => {
-    setSelectedPlans((prev) => ({ ...acc, [planName]: value }));
+    setSelectedPlans((prev) => ({ ...prev, [planName]: value }));
   };
 
   return (
@@ -303,7 +323,7 @@ export function PricingPage() {
         </div>
 
         {/* Card-Based Layout */}
-        <div className="grid md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6 mb-12">
+        <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-6 mb-12">
           {plans.map((plan) => (
             <div
               key={plan.name}
@@ -352,6 +372,10 @@ export function PricingPage() {
                   <span>Ghc {plan.addOnFee}/user/mo Add-On</span>
                 </li>
                 <li className="flex items-center">
+                  <Check className="w-5 h-5 text-green-500 mr-2" />
+                  <span>Ghc {plan.branchAddOn}/branch/mo Add-On</span>
+                </li>
+                <li className="flex items-center">
                   <MessageSquare className="w-5 h-5 text-green-500 mr-2" />
                   <span>{plan.transactionalSMS} Transactional SMS</span>
                 </li>
@@ -382,6 +406,12 @@ export function PricingPage() {
                   </span>
                 </li>
                 {activeTab === "buyer" && (
+                  <li className="flex items-center">
+                    <Truck className="w-5 h-5 text-green-500 mr-2" />
+                    <span>{plan.registeredTransporters} Registered Transporters</span>
+                  </li>
+                )}
+                {activeTab === "supplier" && (
                   <li className="flex items-center">
                     <Truck className="w-5 h-5 text-green-500 mr-2" />
                     <span>{plan.registeredTransporters} Registered Transporters</span>
@@ -481,6 +511,12 @@ export function PricingPage() {
                     ))}
                   </tr>
                   <tr>
+                    <td className="p-3 border-b">Branch Add-On (GHC/branch/mo)</td>
+                    {plans.map((plan) => (
+                      <td key={plan.name} className="p-3 border-b text-center">{plan.branchAddOn}</td>
+                    ))}
+                  </tr>
+                  <tr>
                     <td className="p-3 border-b">Purchase SMS Bonus (GHC)</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="p-3 border-b text-center">{plan.smsBonus || "0"}</td>
@@ -509,6 +545,14 @@ export function PricingPage() {
                     ))}
                   </tr>
                   {activeTab === "buyer" && (
+                    <tr>
+                      <td className="p-3 border-b">Registered Transporters</td>
+                      {plans.map((plan) => (
+                        <td key={plan.name} className="p-3 border-b text-center">{plan.registeredTransporters}</td>
+                      ))}
+                    </tr>
+                  )}
+                  {activeTab === "supplier" && (
                     <tr>
                       <td className="p-3 border-b">Registered Transporters</td>
                       {plans.map((plan) => (
