@@ -149,6 +149,84 @@ const supplierPlans = [
   },
 ];
 
+const transporterPlans = [
+  {
+    name: "Bronze",
+    monthlyRate: 20,
+    sixMonthRate: 102,
+    twelveMonthRate: 180,
+    defaultUsers: 1,
+    addOnFee: 10,
+    smsBonus: 0, // Not specified in document
+    businessOpportunities: "1X",
+    buyersMarketBase: 100,
+    registeredTransporters: 100,
+    registeredSuppliers: 356,
+    transactionalSMS: 50,
+    promoSMS: 15,
+  },
+  {
+    name: "Silver",
+    monthlyRate: 25,
+    sixMonthRate: 127.5,
+    twelveMonthRate: 225,
+    defaultUsers: 2,
+    addOnFee: 10,
+    smsBonus: 0,
+    businessOpportunities: "2X",
+    buyersMarketBase: 308,
+    registeredTransporters: 308,
+    registeredSuppliers: 273,
+    transactionalSMS: 60,
+    promoSMS: 20,
+  },
+  {
+    name: "Gold",
+    monthlyRate: 30,
+    sixMonthRate: 153,
+    twelveMonthRate: 270,
+    defaultUsers: 3,
+    addOnFee: 10,
+    smsBonus: 0,
+    businessOpportunities: "3X",
+    buyersMarketBase: 812,
+    registeredTransporters: 812,
+    registeredSuppliers: 376,
+    transactionalSMS: 70,
+    promoSMS: 30,
+  },
+  {
+    name: "Diamond",
+    monthlyRate: 35,
+    sixMonthRate: 178.5,
+    twelveMonthRate: 315,
+    defaultUsers: 3,
+    addOnFee: 10,
+    smsBonus: 0,
+    businessOpportunities: "4X",
+    buyersMarketBase: 1520,
+    registeredTransporters: 1520,
+    registeredSuppliers: 134,
+    transactionalSMS: 100,
+    promoSMS: 40,
+  },
+  {
+    name: "Platinum",
+    monthlyRate: 40,
+    sixMonthRate: 204,
+    twelveMonthRate: 360,
+    defaultUsers: 4,
+    addOnFee: 10,
+    smsBonus: 0,
+    businessOpportunities: "5X",
+    buyersMarketBase: 2507,
+    registeredTransporters: 2507,
+    registeredSuppliers: 376,
+    transactionalSMS: 110,
+    promoSMS: 50,
+  },
+];
+
 const commonFeatures = [
   { name: "Managing User Permissions", included: true },
   { name: "SMS Recharge/Top-up", included: true },
@@ -164,11 +242,11 @@ export function PricingPage() {
     buyerPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "sixMonth" }), {})
   );
 
-  const plans = activeTab === "buyer" ? buyerPlans : supplierPlans;
+  const plans = activeTab === "buyer" ? buyerPlans : activeTab === "supplier" ? supplierPlans : transporterPlans;
   const marketAccessKey = activeTab === "buyer" ? "suppliersMarketBase" : "buyersMarketBase";
   const marketAccessLabel = activeTab === "buyer" ? "Suppliers’ Market Base" : "Buyers’ Market Base";
   const opportunityLabel = activeTab === "buyer" ? "Competitive Offers" : "Business Opportunities";
-  const registeredLabel = activeTab === "buyer" ? "Registered Buyers" : "Registered Suppliers";
+  const registeredLabel = activeTab === "buyer" ? "Registered Buyers" : activeTab === "supplier" ? "Registered Suppliers" : "Registered Transporters";
 
   const handlePlanSelection = (planName, value) => {
     setSelectedPlans((prev) => ({ ...prev, [planName]: value }));
@@ -186,7 +264,7 @@ export function PricingPage() {
           </div>
           <h1 className="text-4xl font-bold mb-4">iSourcePlus Pricing</h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Choose the perfect plan for your business needs. All prices include VAT.
+            Choose the perfect plan for your business needs. All prices exclude VAT.
           </p>
           <div className="flex justify-center space-x-4 mt-4">
             <button
@@ -206,6 +284,15 @@ export function PricingPage() {
               }}
             >
               Supplier Plans
+            </button>
+            <button
+              className={`px-6 py-2 rounded-md font-medium ${activeTab === "transporter" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
+              onClick={() => {
+                setActiveTab("transporter");
+                setSelectedPlans(transporterPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "sixMonth" }), {}));
+              }}
+            >
+              Transporter Plans
             </button>
           </div>
         </div>
@@ -230,7 +317,9 @@ export function PricingPage() {
                       onChange={() => handlePlanSelection(plan.name, "sixMonth")}
                       className="form-radio text-black focus:ring-black"
                     />
-                    <span className="ml-2 text-sm text-gray-600">6-Month: Ghc {plan.sixMonthRate} (20% off)</span>
+                    <span className="ml-2 text-sm text-gray-600">
+                      6-Month: Ghc {plan.sixMonthRate} ({activeTab === "transporter" ? "15% off" : "20% off"})
+                    </span>
                   </label>
                   <label className="inline-flex items-center">
                     <input
@@ -241,10 +330,12 @@ export function PricingPage() {
                       onChange={() => handlePlanSelection(plan.name, "twelveMonth")}
                       className="form-radio text-black focus:ring-black"
                     />
-                    <span className="ml-2 text-sm text-gray-600">12-Month: Ghc {plan.twelveMonthRate} (30% off)</span>
+                    <span className="ml-2 text-sm text-gray-600">
+                      12-Month: Ghc {plan.twelveMonthRate} ({activeTab === "transporter" ? "25% off" : "30% off"})
+                    </span>
                   </label>
                 </div>
-                <p className="text-sm text-gray-500">VAT Included</p>
+                <p className="text-sm text-gray-500">VAT Excluded</p>
               </div>
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center">
@@ -277,8 +368,16 @@ export function PricingPage() {
                 </li>
                 <li className="flex items-center">
                   <Users className="w-5 h-5 text-green-500 mr-2" />
-                  <span>{activeTab === "buyer" ? plan.registeredBuyers : plan.registeredSuppliers} {registeredLabel}</span>
+                  <span>
+                    {activeTab === "buyer" ? plan.registeredBuyers : activeTab === "supplier" ? plan.registeredSuppliers : plan.registeredTransporters} {registeredLabel}
+                  </span>
                 </li>
+                {activeTab !== "buyer" && (
+                  <li className="flex items-center">
+                    <Users className="w-5 h-5 text-green-500 mr-2" />
+                    <span>{plan.registeredSuppliers} Registered Suppliers</span>
+                  </li>
+                )}
                 {commonFeatures.map((feature) => (
                   <li key={feature.name} className="flex items-center">
                     <Check className="w-5 h-5 text-green-500 mr-2" />
@@ -288,13 +387,13 @@ export function PricingPage() {
               </ul>
               <div className="flex space-x-4">
                 <Link
-                  to="/signup?trial=true"
+                  to={`/signup?trial=true&plan=${plan.name.toLowerCase()}&duration=${selectedPlans[plan.name]}`}
                   className="flex-1 text-center bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300"
                 >
                   Start Trial
                 </Link>
                 <Link
-                  to="/signup"
+                  to={`/signup?plan=${plan.name.toLowerCase()}&duration=${selectedPlans[plan.name]}`}
                   className="flex-1 text-center bg-black text-white py-2 rounded-md hover:bg-gray-800"
                 >
                   Subscribe
@@ -310,7 +409,9 @@ export function PricingPage() {
             className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
             onClick={() => {
               setShowComparison(!showComparison);
-              window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+              if (!showComparison) {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+              }
             }}
           >
             {showComparison ? "Hide Comparison" : "Compare Plans"}
@@ -321,7 +422,7 @@ export function PricingPage() {
         {showComparison && (
           <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-12">
             <h2 className="text-2xl font-bold text-center mb-6">
-              {activeTab === "buyer" ? "Buyer Plans Comparison" : "Supplier Plans Comparison"}
+              {activeTab === "buyer" ? "Buyer Plans Comparison" : activeTab === "supplier" ? "Supplier Plans Comparison" : "Transporter Plans Comparison"}
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -341,13 +442,13 @@ export function PricingPage() {
                     ))}
                   </tr>
                   <tr>
-                    <td className="p-3 border-b">6-Month Rate (GHC, 20% off)</td>
+                    <td className="p-3 border-b">6-Month Rate (GHC, {activeTab === "transporter" ? "15% off" : "20% off"})</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="p-3 border-b text-center">{plan.sixMonthRate}</td>
                     ))}
                   </tr>
                   <tr>
-                    <td className="p-3 border-b">12-Month Rate (GHC, 30% off)</td>
+                    <td className="p-3 border-b">12-Month Rate (GHC, {activeTab === "transporter" ? "25% off" : "30% off"})</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="p-3 border-b text-center">{plan.twelveMonthRate}</td>
                     ))}
@@ -367,7 +468,7 @@ export function PricingPage() {
                   <tr>
                     <td className="p-3 border-b">Purchase SMS Bonus (GHC)</td>
                     {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan.smsBonus}</td>
+                      <td key={plan.name} className="p-3 border-b text-center">{plan.smsBonus || "0"}</td>
                     ))}
                   </tr>
                   <tr>
@@ -388,10 +489,18 @@ export function PricingPage() {
                     <td className="p-3 border-b">{registeredLabel}</td>
                     {plans.map((plan) => (
                       <td key={plan.name} className="p-3 border-b text-center">
-                        {activeTab === "buyer" ? plan.registeredBuyers : plan.registeredSuppliers}
+                        {activeTab === "buyer" ? plan.registeredBuyers : activeTab === "supplier" ? plan.registeredSuppliers : plan.registeredTransporters}
                       </td>
                     ))}
                   </tr>
+                  {activeTab !== "buyer" && (
+                    <tr>
+                      <td className="p-3 border-b">Registered Suppliers</td>
+                      {plans.map((plan) => (
+                        <td key={plan.name} className="p-3 border-b text-center">{plan.registeredSuppliers}</td>
+                      ))}
+                    </tr>
+                  )}
                   <tr>
                     <td className="p-3 border-b">Transactional SMS</td>
                     {plans.map((plan) => (
