@@ -47,6 +47,8 @@ export function BaseDashBoard() {
     authAxios,
     fetchProfileInfo,
     userProfileId,
+    companyId,
+    transporterId,
   } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -97,8 +99,16 @@ export function BaseDashBoard() {
   ]);
 
   let companiesSubmenu = [
-    { title: "Account Type", url: "/dashboard/companies" },
+    // { title: "Account Type", url: "/dashboard/companies" },
   ];
+
+  if ( !companyId && !transporterId) {
+    companiesSubmenu.push(
+      { title: "Account Type", url: "/dashboard/companies" }
+    )
+  }
+
+ 
 
   if (jobTitle === "logistics manager") {
     companiesSubmenu.push({
@@ -136,6 +146,11 @@ export function BaseDashBoard() {
   if (["logistics manager", "lead buyer", "sales manager"].includes(jobTitle)) {
     navLinks = [
       { title: "Home", url: "/dashboard/", icon: Home },
+       {
+        title: "Subscriptions",
+        icon: ShoppingCart,
+        url: "/pricing",
+      },
       {
         title: "Companies & Transporters",
         icon: Building2,

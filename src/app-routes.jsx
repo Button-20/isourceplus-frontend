@@ -65,6 +65,7 @@ import PaymentOrdersPage from "./pages/PaymentOrdersPage";
 import IssuedSalesInvoicesPage from "./pages/IssuedSalesInvoicesPage";
 import EditBranch from "./pages/EditBranch";
 import { PricingPage } from "./pages/PricingPage";
+import { SubscriptionCallbackPage } from "./pages/SubscriptionCallbackPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
@@ -72,6 +73,7 @@ export const appRoutes = createBrowserRouter([
   { path: "/marketplace", element: <MarketplacePage /> },
   { path: "/store", element: <Store /> },
   { path: "/about", element: <AboutPage /> },
+  { path: "/subscription/callback", element: <SubscriptionCallbackPage /> },
 
   {
     element: (
