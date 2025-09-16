@@ -8,6 +8,7 @@ import axios from "axios";
 import { getCookie } from "@/utility/getCookie";
 
 export function ResetPasswordConfirmPage() {
+  const { BASE_URL } = useAuth();
   const { uid, token } = useParams();
   const [newPassword1, setNewPassword1] = useState("");
   const [newPassword2, setNewPassword2] = useState("");
@@ -41,7 +42,7 @@ export function ResetPasswordConfirmPage() {
       let csrfToken = getCookie("csrftoken");
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/v1/account_auth/password/reset/confirm/",
+        `${BASE_URL}account_auth/password/reset/confirm/`,
         {
           uid,
           token,

@@ -6,6 +6,11 @@ import { useNavigate, Link } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 
 const PaymentOrdersPage = () => {
+  const NODE_ENV = import.meta.env.VITE_NODE_ENV || 'development';
+  const BASE_URL = NODE_ENV === 'development'
+    ? `${import.meta.env.VITE_SERVER_URL}`
+    : ` ${import.meta.env.VITE_SECURE_URL}`;
+
   const { authAxios, jobTitle } = useAuth();
   const navigate = useNavigate();
   const [paymentOrders, setPaymentOrders] = useState([]);
@@ -28,7 +33,7 @@ const PaymentOrdersPage = () => {
           next: response.data.next,
           previous: response.data.previous,
           currentPage: url.includes("page=")
-            ? parseInt(new URL(url, "http://127.0.0.1:8000").searchParams.get("page"), 10)
+            ? parseInt(new URL(url, BASE_URL.replace(/\/$/, "")).searchParams.get("page"), 10)
             : 1,
         });
       } catch (error) {
@@ -66,7 +71,7 @@ const PaymentOrdersPage = () => {
     if (!url) return;
     setLoading(true);
     try {
-      const response = await authAxios.get(url.replace("http://127.0.0.1:8000/api/v1/", ""));
+      const response = await authAxios.get(url.replace(`${BASE_URL}`, ""));
       console.log("PaymentOrdersPage: Paginated payment orders fetched:", response.data);
       setPaymentOrders(response.data.results || response.data || []);
       setPagination({

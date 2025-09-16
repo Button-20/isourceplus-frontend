@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/app.context";
 import { getCookie } from "@/utility/getCookie";
 
 const EmailVerifyKeyPage = () => {
-  const { authAxios } = useAuth();
+  const { authAxios, BASE_URL } = useAuth();
   const { key } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -19,7 +19,7 @@ const EmailVerifyKeyPage = () => {
     const verifyEmail = async () => {
       try {
         await authAxios.post(
-          "http://127.0.0.1:8000/api/v1/account_auth/registration/verify-email/",
+          `${BASE_URL}account_auth/registration/verify-email/`,
           { key },
           {
             headers: {

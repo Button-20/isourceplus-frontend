@@ -12,6 +12,7 @@ export function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const { BASE_URL } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -24,7 +25,7 @@ export function ForgotPasswordPage() {
       let csrfToken = getCookie("csrftoken");
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/v1/account_auth/password/reset/",
+        `${BASE_URL}account_auth/password/reset/`,
         {
           email: email.trim(),
         },
@@ -61,7 +62,7 @@ export function ForgotPasswordPage() {
     try {
       let csrfToken = getCookie("csrftoken");
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/v1/account_auth/registration/resend-email/",
+        `${BASE_URL}account_auth/registration/resend-email/`,
         {
           email: email.trim(),
         },

@@ -5,7 +5,7 @@ import { Loader2, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const IssuedSalesInvoicesPage = () => {
-  const { authAxios, jobTitle } = useAuth();
+  const { authAxios, jobTitle, BASE_URL } = useAuth();
   const navigate = useNavigate();
   const [salesInvoices, setSalesInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +47,7 @@ const IssuedSalesInvoicesPage = () => {
     if (!url) return;
     setLoading(true);
     try {
-      const response = await authAxios.get(url.replace("http://127.0.0.1:8000/api/v1/", ""));
+      const response = await authAxios.get(url.replace(`${BASE_URL}`, ""));
       console.log("IssuedSalesInvoicesPage: Paginated sales invoices fetched:", response.data);
       setSalesInvoices(response.data.results || []);
       setPagination({

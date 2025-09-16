@@ -11,6 +11,7 @@ const EmailVerificationPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const { BASE_URL } = useAuth();
 
   const csrfToken = getCookie("csrftoken");
 
@@ -23,7 +24,7 @@ const EmailVerificationPage = () => {
     setLoading(true);
     try {
       await authAxios.post(
-        "http://127.0.0.1:8000/api/v1/account_auth/registration/resend-email-verification-link/",
+        `${BASE_URL}account_auth/registration/resend-email-verification-link/`,
         { email: email.trim() },
         {
           headers: {

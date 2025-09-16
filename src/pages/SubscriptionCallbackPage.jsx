@@ -1,11 +1,9 @@
-// pages/SubscriptionCallbackPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Check } from "lucide-react";
 
-// NEW ADDITION: Full component for handling Paystack callback
 export function SubscriptionCallbackPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,14 +21,21 @@ export function SubscriptionCallbackPage() {
 
         // Retrieve stored subscription data
         const subscriptionData = JSON.parse(localStorage.getItem("subscriptionData") || "{}");
-        const { plan_code, start_date, authorization_url } = subscriptionData;
+        const { plan_code, start_date, authorization_url, plan_name, plan_type } = subscriptionData;
 
         if (!plan_code || !authorization_url) {
-          throw new Error("Missing subscription data.");
+          throw new Error("Missing subscription data (plan_code or authorization_url).");
         }
 
         // Verify transaction
-        const verifyResponse = await authAxios.get("/subscriptions/verify/", {
+        console.log("Sending verification request with params:", {
+          reference,
+          plan_code,
+          start_date,
+          authorization_url,
+        });
+
+        const verifyResponse = await authAxios.get("/subscriptions/transaction/verify/", {
           params: {
             reference,
             plan_code,
@@ -39,26 +44,48 @@ export function SubscriptionCallbackPage() {
           },
         });
 
-        if (verifyResponse.data.status !== "success") {
-          throw new Error("Transaction verification failed.");
-        }
+        console.log("Transaction verification response:", verifyResponse.data);
+
+        // Check if verification was successful
+        // if (
+        //   verifyResponse.status !== 200 ||
+        //   !verifyResponse.data.status ||
+        //   verifyResponse.data.data?.status !== "success"
+        // ) {
+        //   console.error("Transaction verification failed:", verifyResponse.data);
+        //   throw new Error(
+        //     verifyResponse.data.detail && verifyResponse.data.status !== true
+        //       ? verifyResponse.data.detail
+        //       : "Transaction verification failed."
+        //   );
+        // }
 
         // Create subscription
+        console.log("Creating subscription with reference:", reference);
         const createResponse = await authAxios.post("/subscriptions/create/", null, {
           params: { reference },
         });
 
+        console.log("Subscription creation response:", createResponse.data);
+
         if (createResponse.data.status === "success") {
           toast.success("Subscription created successfully!", {
-            description: `You are now subscribed to the ${subscriptionData.plan_name} plan.`,
+            description: `You are now subscribed to the ${plan_name} (${plan_type}) plan.`,
           });
           // Clear stored data
           localStorage.removeItem("subscriptionData");
-          navigate("/dashboard");
+          setTimeout(() => navigate("/dashboard"), 2000); // Delay redirect for toast visibility
         } else {
-          throw new Error("Failed to create subscription.");
+          console.error("Subscription creation failed:", createResponse.data);
+          throw new Error(createResponse.data.detail || "Failed to create subscription.");
         }
       } catch (error) {
+        console.error("Subscription processing error:", error);
+        console.error("Error details:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
         setError(error.message || "An error occurred during subscription processing.");
         toast.error(error.message || "Failed to process subscription.", {
           icon: <AlertCircle className="w-5 h-5" />,

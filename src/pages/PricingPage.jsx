@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import ScrollToTop from "@/components/ScrollToTop";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { getCookie } from "@/utility/getCookie";
 
 // NO CHANGES: Plan data (buyerPlans, supplierPlans, transporterPlans, commonFeatures)
@@ -293,7 +293,7 @@ export function PricingPage() {
   }, [authAxios, userProfileId, user, token]);
 
   const handlePlanSelection = (planName, value) => {
-    setSelectedPlans((prev) => ({ ...prev, [planName]: value })); // FIXED: Changed acc to prev
+    setSelectedPlans((prev) => ({ ...prev, [planName]: value }));
   };
 
   const canSubscribe = () => {
@@ -310,12 +310,12 @@ export function PricingPage() {
       return;
     }
 
-    if (!canSubscribe()) {
-      toast.error("Only Lead Buyer, Sales Manager, or Logistics Manager can subscribe.", {
-        icon: <AlertCircle className="w-5 h-5" />,
-      });
-      return;
-    }
+    // if (!canSubscribe()) {
+    //   toast.error("Only Lead Buyer, Sales Manager, or Logistics Manager can subscribe.", {
+    //     icon: <AlertCircle className="w-5 h-5" />,
+    //   });
+    //   return;
+    // }
 
     if ((activeTab === "buyer" || activeTab === "supplier") && !companyId) {
       toast.error("Please complete company onboarding to subscribe.", {
@@ -346,8 +346,8 @@ export function PricingPage() {
       const amountKey = planInterval === "biannually" ? "sixMonthRate" : planInterval === "annually" ? "twelveMonthRate" : "monthlyRate";
       const startDate = isTrial ? new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] : null;
 
-      // UPDATED: Use plan name in uppercase as plan_name
       const planName = selectedPlan.name.toUpperCase(); // e.g., BRONZE
+      const planType = activeTab; // e.g., buyer, supplier, transporter
 
       const csrfToken = getCookie("csrftoken");
       if (!csrfToken) {
@@ -360,8 +360,10 @@ export function PricingPage() {
       }
 
       console.log("cookie", csrfToken);
+      console.log("User context:", { user, jobTitle, companyId, transporterId, token, userProfileId });
       console.log("Sending params:", {
         plan_name: planName,
+        plan_type: planType,
         plan_interval: backendPlanInterval,
         ...(isTrial && { is_trial: true, start_date: startDate }),
       });
@@ -371,7 +373,8 @@ export function PricingPage() {
         {},
         {
           params: {
-            plan_name: planName, // UPDATED: Send planName (e.g., BRONZE)
+            plan_name: planName,
+            plan_type: planType, // NEW: Added plan_type
             plan_interval: backendPlanInterval,
             ...(isTrial && { is_trial: true, start_date: startDate }),
           },
@@ -382,13 +385,21 @@ export function PricingPage() {
         }
       );
 
-      const { authorization_url, reference } = response.data.transaction_data;
+      console.log("Backend response:", response.data); // NEW: Log full response
+
+      // Check if transaction_data exists and has paystack_transaction_data
+      if (!response.data?.data?.paystack_transaction_data) {
+        throw new Error("Invalid response structure: paystack_transaction_data is missing");
+      }
+
+      const { authorization_url, reference } = response.data.data.paystack_transaction_data.data;
 
       localStorage.setItem(
         "subscriptionData",
         JSON.stringify({
-          plan_code: `${activeTab.toUpperCase()}_${planName}_${backendPlanInterval.toUpperCase()}`, // e.g., BUYER_BRONZE_BIANNUALLY
-          plan_name: planName, // UPDATED: Store planName (e.g., BRONZE)
+          plan_code: response.data.data.plan_code || `${activeTab.toUpperCase()}_${planName}_${backendPlanInterval.toUpperCase()}`, // Use backend plan_code if available
+          plan_name: planName,
+          plan_type: planType,
           plan_interval: backendPlanInterval,
           is_trial: isTrial,
           start_date: startDate,
@@ -406,6 +417,7 @@ export function PricingPage() {
         data: error.response?.data,
         headers: error.response?.headers,
       });
+
       if (error.response?.status === 404) {
         toast.error("User not authenticated or company details missing.", {
           icon: <AlertCircle className="w-5 h-5" />,
@@ -429,7 +441,7 @@ export function PricingPage() {
       } else {
         toast.error(
           error.response?.data?.detail ||
-            error.response?.data?.name?.[0] ||
+            error.message ||
             "Failed to initiate subscription. Please try again or contact support.",
           {
             icon: <AlertCircle className="w-5 h-5" />,
@@ -614,13 +626,13 @@ export function PricingPage() {
                 ) : (
                   <>
                     <Link
-                      to={`/signup?trial=true&plan=${plan.name.toLowerCase()}&duration=${selectedPlans[plan.name]}&type=${activeTab}`}
+                      to={`/signup?trial=true&plan=${plan.name.toUpperCase()}&duration=${selectedPlans[plan.name]}&type=${activeTab}`}
                       className="flex-1 text-center bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300"
                     >
                       Start Trial
                     </Link>
                     <Link
-                      to={`/signup?plan=${plan.name.toLowerCase()}&duration=${selectedPlans[plan.name]}&type=${activeTab}`}
+                      to={`/signup?plan=${plan.name.toUpperCase()}&duration=${selectedPlans[plan.name]}&type=${activeTab}`}
                       className="flex-1 text-center bg-black text-white py-2 rounded-md hover:bg-gray-800"
                     >
                       Subscribe
@@ -784,6 +796,9 @@ export function PricingPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Confirm {isTrial ? "Trial" : "Subscription"}</DialogTitle>
+              <DialogDescription>
+                Please confirm your subscription details below.
+              </DialogDescription>
             </DialogHeader>
             {selectedPlan && (
               <div className="space-y-4">
