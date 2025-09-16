@@ -7,8 +7,13 @@ import { registerLogoutHandler } from "@/utils/apiService";
 
 export const AppContext = createContext();
 
+const NODE_ENV = import.meta.env.VITE_NODE_ENV || 'development';
+console.log("Environment:", NODE_ENV);
+
 export const AppProvider = ({ children }) => {
-  const BASE_URL = `${import.meta.env.VITE_SERVER_URL}api/v1/`;
+  const BASE_URL = NODE_ENV === 'development'
+    ? `${import.meta.env.VITE_SERVER_URL}api/v1/`
+    : ` ${import.meta.env.VITE_SECURE_URL}api/v1/`;
 
     const refresh = getCookie("isource-plus-refresh-token");
     let csrfToken = getCookie("csrftoken");
