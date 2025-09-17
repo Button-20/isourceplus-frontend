@@ -87,7 +87,7 @@ export function SubscriptionCallbackPage() {
           status: error.response?.status,
         });
         setError(error.message || "An error occurred during subscription processing.");
-        toast.error(error.message || "Failed to process subscription.", {
+        toast.error(error.response.data.data.message || error.message || "Failed to process subscription.", {
           icon: <AlertCircle className="w-5 h-5" />,
         });
       } finally {
