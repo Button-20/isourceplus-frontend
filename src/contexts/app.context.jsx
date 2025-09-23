@@ -102,10 +102,10 @@ export const AppProvider = ({ children }) => {
 
    const fetchCsrfToken = async () => {
       try {
-        await axios.get(`${BASE_URL}init/`, {
+        const response = await axios.get(`${BASE_URL}init/`, {
           withCredentials: true, // Ensure cookies are sent/received
         });
-        console.log("CSRF token fetched successfully");
+        console.log(response.data.message);
       } catch (error) {
         console.error("Failed to fetch CSRF token:", error);
         // Silently log error without user notification or retries, as requested
