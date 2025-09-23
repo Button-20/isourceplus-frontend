@@ -350,14 +350,14 @@ export function PricingPage() {
       const planType = activeTab; // e.g., buyer, supplier, transporter
 
       const csrfToken = getCookie("csrftoken");
-      if (!csrfToken) {
-        console.error("CSRF token is missing");
-        toast.error("CSRF token is missing. Please refresh the page and try again.", {
-          icon: <AlertCircle className="w-5 h-5" />,
-        });
-        setIsLoading(false);
-        return;
-      }
+      // if (!csrfToken) {
+      //   console.error("CSRF token is missing");
+      //   toast.error("CSRF token is missing. Please refresh the page and try again.", {
+      //     icon: <AlertCircle className="w-5 h-5" />,
+      //   });
+      //   setIsLoading(false);
+      //   return;
+      // }
 
       console.log("cookie", csrfToken);
       console.log("User context:", { user, jobTitle, companyId, transporterId, token, userProfileId });
