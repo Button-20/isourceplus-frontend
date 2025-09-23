@@ -99,6 +99,20 @@ export const AppProvider = ({ children }) => {
   const [sidebarLoading, setSidebarLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
+
+   const fetchCsrfToken = async () => {
+      try {
+        await axios.get(`${BASE_URL}init/`, {
+          withCredentials: true, // Ensure cookies are sent/received
+        });
+        console.log("CSRF token fetched successfully");
+      } catch (error) {
+        console.error("Failed to fetch CSRF token:", error);
+        // Silently log error without user notification or retries, as requested
+      }
+    };
+
+
   // Fetch user data to get transporterId or companyId
   const fetchUserData = async () => {
     try {
@@ -161,6 +175,7 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("profile_id", data.profile_id);
+      await fetchCsrfToken(); // Fetch CSRF token after signup
 
       // const profileId = await fetchUserData();
       navigate("/onboarding/user", { replace: true }); // Always go to onboarding after signup
@@ -212,6 +227,7 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("profile_id", data.profile_id);
+      await fetchCsrfToken(); // Fetch CSRF token after login
       const profileId = await fetchUserData(); // Get profileId
       const from =
         window.location.state?.from?.pathname ||
