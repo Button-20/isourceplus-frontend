@@ -5,8 +5,12 @@ import ProfileForm from "@/components/ProfileForm";
 import { Loader2, AlertCircle, Info, Bookmark, ShieldAlert } from "lucide-react";
 
 const ProfilePage = () => {
-  const { authAxios,baseData,userProfileId,loading } = useAuth();
+  const { authAxios,baseData,userProfileId,loading,logout } = useAuth();
   // const [profileId, setProfileId] = useState(null);
+
+  const logoutHandler = () => {
+    logout();
+  }
 
   console.log("baseData",baseData)
 
@@ -114,8 +118,13 @@ const ProfilePage = () => {
                   Share Profile
                 </button>
               </div>
+              <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                {/* <h3 className="font-medium text-gray-900 mb-3">Log Out</h3> */}
+                <button onClick={logoutHandler} className="w-full text-left text-sm py-2 px-3 hover:bg-gray-100 rounded-md transition-colors">
+                  Log Out
+                </button>
+              </div>
             </div>
-
             {/* Main Form */}
             <div className="md:col-span-2">
               <ProfileForm profileId={userProfileId} />

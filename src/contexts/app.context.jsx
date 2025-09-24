@@ -337,6 +337,7 @@ export const AppProvider = ({ children }) => {
   }, [token]);
 
   const logout = async () => {
+    console.log("Logging out...");
     setError(null);
     setLoading(true);
     try {

@@ -15,7 +15,7 @@ import { getCookie } from "@/utility/getCookie";
 import ScrollToTop from "./ScrollToTop";
 
 const ProfileForm = ({ profileId }) => {
-  const { authAxios, BASE_URL, refreshToken } = useAuth();
+  const { authAxios, BASE_URL, refreshToken, userProfileId } = useAuth();
   const [formValues, setFormValues] = useState({
     job_title: "",
     job_position: "",
@@ -88,7 +88,7 @@ const ProfileForm = ({ profileId }) => {
         }
       } catch (error) {
         console.error("Failed to load profile:", error);
-        toast.error("Failed to load profile.");
+        toast.error("Failed to load profile. Log in again.");
       } finally {
         setFetching(false);
       }
@@ -524,6 +524,13 @@ const ProfileForm = ({ profileId }) => {
             "Save Profile"
           )}
         </button>
+       {userProfileId && <button
+          type="button"
+          className="text-sm text-gray-500 hover:underline"
+          onClick={() => navigate("/dashboard")}
+        >
+          Go to Dashboard
+        </button>}
       </div>
     </form>
   );
