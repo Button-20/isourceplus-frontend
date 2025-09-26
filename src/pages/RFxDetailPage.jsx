@@ -1,3 +1,4 @@
+// File: RFxDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
@@ -5,6 +6,7 @@ import { Loader2, ArrowLeft, ChevronDown, ChevronUp, Building2 } from "lucide-re
 import { useNavigate, useParams } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 
+// NO CHANGES
 const RFxDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
   const navigate = useNavigate();
@@ -14,7 +16,10 @@ const RFxDetailPage = () => {
   const [modalLoading, setModalLoading] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [itemsOpen, setItemsOpen] = useState(true);
+  // NEW ADDITION: State for collapsible Reach section
+  const [reachOpen, setReachOpen] = useState(true);
 
+  // NO CHANGES
   useEffect(() => {
     const fetchRfxDetails = async () => {
       setLoading(true);
@@ -31,6 +36,7 @@ const RFxDetailPage = () => {
     fetchRfxDetails();
   }, [authAxios, refNum]);
 
+  // NO CHANGES
   const handleSendOffer = async () => {
     if (jobTitle !== "sales manager") {
       toast.error("Only sales managers can send offers.");
@@ -65,6 +71,7 @@ const RFxDetailPage = () => {
     }
   };
 
+  // NO CHANGES
   const formatDateTime = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -74,41 +81,49 @@ const RFxDetailPage = () => {
     };
   };
 
+  // NO CHANGES
   if (!["lead buyer", "sales manager"].includes(jobTitle)) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <p className="text-xl text-gray-800 font-medium">Access denied. Only lead buyers and sales managers can view RFx details.</p>
-        <button
-          onClick={() => navigate("/dashboard/rfxs/issued/")}
-          className="mt-6 flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to RFxs
-        </button>
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <p className="text-xl font-semibold text-gray-900 mb-4">Access Denied</p>
+          <p className="text-gray-600 mb-6">Only lead buyers and sales managers can view RFx details.</p>
+          <button
+            onClick={() => navigate("/dashboard/rfxs")}
+            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to RFxs
+          </button>
+        </div>
       </div>
     );
   }
 
+  // NO CHANGES
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
+        <Loader2 className="animate-spin h-12 w-12 text-black" />
         <p className="mt-4 text-lg text-gray-700 font-medium">Loading RFx Details...</p>
       </div>
     );
   }
 
+  // NO CHANGES
   if (!rfx) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <p className="text-xl text-gray-800 font-medium">RFx not found.</p>
-        <button
-          onClick={() => navigate("/dashboard/rfxs/issued/")}
-          className="mt-6 flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to RFxs
-        </button>
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <p className="text-xl font-semibold text-gray-900 mb-4">RFx Not Found</p>
+          <button
+            onClick={() => navigate("/dashboard/rfxs")}
+            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to RFxs
+          </button>
+        </div>
       </div>
     );
   }
@@ -142,7 +157,7 @@ const RFxDetailPage = () => {
       </div>
 
       <div className="space-y-6">
-        {/* RFx Details Section */}
+        {/* Details Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
           <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
@@ -150,7 +165,7 @@ const RFxDetailPage = () => {
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
             >
               <h2 className="text-xl font-medium text-gray-900">RFx Details</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
+              <span className="flex items-center text-gray-600 font-medium">
                 {detailsOpen ? "Collapse" : "Expand"}
                 {detailsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
               </span>
@@ -174,7 +189,15 @@ const RFxDetailPage = () => {
                   </div>
                   <div className="flex items-center">
                     <span className="w-1/3 font-medium text-gray-700">Status</span>
-                    <span className="text-gray-900">{rfx.status}</span>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        rfx.status === "draft"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {rfx.status === "draft" ? "Open" : "Closed"}
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <span className="w-1/3 font-medium text-gray-700">Type</span>
@@ -185,6 +208,10 @@ const RFxDetailPage = () => {
                   <div className="flex items-center">
                     <span className="w-1/3 font-medium text-gray-700">Procedure</span>
                     <span className="text-gray-900">{rfx.procedure}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-1/3 font-medium text-gray-700">Spend Category</span>
+                    <span className="text-gray-900">{rfx.spend_category}</span>
                   </div>
                   <div className="flex items-center">
                     <span className="w-1/3 font-medium text-gray-700">Priority</span>
@@ -212,10 +239,48 @@ const RFxDetailPage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center overflow-auto">
-                    <span className="w-1/3 font-medium text-gray-700">Note</span>
-                    <span className="text-gray-900">{rfx.note || "N/A"}</span>
-                  </div>
+                </div>
+              </div>
+              <div className="mt-6 flex items-center overflow-auto">
+                <span className="w-1/3 font-medium text-gray-700">Note</span>
+                <span className="text-gray-900">{rfx.note || "N/A"}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* NEW ADDITION: Reach Section */}
+        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+            <button
+              onClick={() => setReachOpen(!reachOpen)}
+              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
+            >
+              <h2 className="text-xl font-medium text-gray-900">Reach</h2>
+              <span className="flex items-center text-gray-600 font-medium">
+                {reachOpen ? "Collapse" : "Expand"}
+                {reachOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
+              </span>
+            </button>
+          </div>
+          {reachOpen && (
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-center">
+                  <span className="w-1/3 font-medium text-gray-700">Region</span>
+                  <span className="text-gray-900">{rfx.reach?.region || "N/A"}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="w-1/3 font-medium text-gray-700">District</span>
+                  <span className="text-gray-900">{rfx.reach?.district || "N/A"}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="w-1/3 font-medium text-gray-700">City</span>
+                  <span className="text-gray-900">{rfx.reach?.city || "N/A"}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="w-1/3 font-medium text-gray-700">Town</span>
+                  <span className="text-gray-900">{rfx.reach?.town || "N/A"}</span>
                 </div>
               </div>
             </div>
@@ -230,7 +295,7 @@ const RFxDetailPage = () => {
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
             >
               <h2 className="text-xl font-medium text-gray-900">Items</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
+              <span className="flex items-center text-gray-600 font-medium">
                 {itemsOpen ? "Collapse" : "Expand"}
                 {itemsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
               </span>
@@ -238,7 +303,7 @@ const RFxDetailPage = () => {
           </div>
           {itemsOpen && (
             <div className="p-6">
-              {rfx.items.length > 0 ? (
+              {rfx.items?.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>

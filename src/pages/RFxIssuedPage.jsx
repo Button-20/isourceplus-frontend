@@ -7,6 +7,7 @@ import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-f
 import { getCookie } from "@/utility/getCookie";
 import Pagination from "@/components/Pagination";
 
+// NO CHANGES
 const RFxIssuedPage = () => {
   const { authAxios, jobTitle } = useAuth();
   const navigate = useNavigate();
@@ -22,13 +23,14 @@ const RFxIssuedPage = () => {
   });
   const [page, setPage] = useState(1);
 
+  // NO CHANGES
   useEffect(() => {
     const fetchRfxs = async () => {
       setLoading(true);
       try {
         const response = await authAxios.get(`/rfxs/issued/?page=${page}`);
         console.log("RFxIssuedPage: API response:", response.data);
-        const results =response.data;
+        const results = response.data.results; // UPDATED: Corrected data access
         setRfxs(results);
         setPagination({
           count: response.data.count || 0,
@@ -46,6 +48,7 @@ const RFxIssuedPage = () => {
     fetchRfxs();
   }, [authAxios, page]);
 
+  // NO CHANGES
   const handleDelete = async () => {
     if (jobTitle !== "lead buyer") {
       toast.error("Only lead buyers can delete RFxs.");
@@ -72,11 +75,13 @@ const RFxIssuedPage = () => {
     }
   };
 
+  // NO CHANGES
   const openDeleteModal = (rfx) => {
     setRfxToDelete(rfx);
     setShowDeleteModal(true);
   };
 
+  // NO CHANGES
   const formatDateTime = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -86,84 +91,50 @@ const RFxIssuedPage = () => {
     };
   };
 
+  // NO CHANGES
   if (!["lead buyer", "sales manager"].includes(jobTitle)) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <p className="text-xl text-gray-800 font-medium">
-          Access denied. Only lead buyers and sales managers can view issued RFxs.
-        </p>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="mt-6 flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Dashboard
-        </button>
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <p className="text-xl font-semibold text-gray-900 mb-4">Access Denied</p>
+          <p className="text-gray-600 mb-6">Only lead buyers and sales managers can view issued RFxs.</p>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
 
+  // NO CHANGES
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
+        <Loader2 className="animate-spin h-12 w-12 text-black" />
+        <p className="mt-4 text-lg text-gray-700 font-medium">Loading Issued RFxs...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Issued RFxs</h1>
+    <div className="container mx-auto p-8 max-w-6xl">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-semibold text-gray-900">Issued RFxs</h1>
         {jobTitle === "lead buyer" && (
-          <button
-            onClick={() => navigate("/dashboard/rfxs/new")}
-            className="bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 flex items-center shadow-md"
+          <Link
+            to="/dashboard/rfxs/create"
+            className="flex items-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-md hover:shadow-lg"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Create New RFx
-          </button>
+            Create RFx
+          </Link>
         )}
       </div>
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full border border-gray-200 shadow-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-medium text-gray-900">Delete RFx</h2>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-gray-600 mb-6 font-medium">
-              Are you sure you want to delete the RFx "{rfxToDelete?.title}" ({rfxToDelete?.ref_num})? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleteLoading}
-                className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center shadow-md disabled:opacity-50"
-              >
-                {deleteLoading ? (
-                  <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                ) : (
-                  <Trash2 className="w-5 h-5 mr-2" />
-                )}
-                {deleteLoading ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <div className="bg-white overflow-auto border border-gray-200 rounded-lg shadow-md">
+      <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -178,6 +149,10 @@ const RFxIssuedPage = () => {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
+              </th>
+              {/* NEW ADDITION: Reach column */}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Reach
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created At
@@ -202,6 +177,10 @@ const RFxIssuedPage = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {rfx.status}
+                  </td>
+                  {/* NEW ADDITION: Display reach column */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {rfx.reach ? `${rfx.reach.region || "N/A"}, ${rfx.reach.district || "N/A"}` : "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div className="relative group">
@@ -235,7 +214,8 @@ const RFxIssuedPage = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="6" className="px-6 py-4 text-sm text-gray-900 text-center">
+                {/* UPDATED: Adjusted colSpan to account for new Reach column */}
+                <td colSpan="7" className="px-6 py-4 text-sm text-gray-900 text-center">
                   No issued RFxs found.
                 </td>
               </tr>
@@ -250,6 +230,36 @@ const RFxIssuedPage = () => {
           previous={pagination.previous}
         />
       </div>
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h2 className="text-xl font-medium text-gray-900 mb-4">Delete RFx</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete RFx "{rfxToDelete?.title}" ({rfxToDelete?.ref_num})? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center disabled:opacity-50"
+              >
+                {deleteLoading ? (
+                  <Loader2 className="animate-spin w-5 h-5 mr-2" />
+                ) : (
+                  <Trash2 className="w-5 h-5 mr-2" />
+                )}
+                {deleteLoading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

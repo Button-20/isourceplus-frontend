@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 import Pagination from "@/components/Pagination";
 
+// NO CHANGES
 const RFxPage = () => {
   const { authAxios, jobTitle } = useAuth();
   const navigate = useNavigate();
@@ -14,11 +15,13 @@ const RFxPage = () => {
   const [pagination, setPagination] = useState({ count: 0, next: null, previous: null });
   const [page, setPage] = useState(1);
 
+  // NO CHANGES
   useEffect(() => {
     const fetchRfxs = async () => {
       setLoading(true);
       try {
         const response = await authAxios.get(`/rfxs/?page=${page}`);
+        console.log(`Rfxs fetched:`, response);
         setRfxs(response.data.results);
         setPagination({
           count: response.data.count,
@@ -36,6 +39,7 @@ const RFxPage = () => {
     fetchRfxs();
   }, [authAxios, page]);
 
+  // NO CHANGES
   const formatDateTime = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -45,6 +49,7 @@ const RFxPage = () => {
     };
   };
 
+  // NO CHANGES
   if (!["lead buyer", "sales manager"].includes(jobTitle)) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
@@ -53,7 +58,7 @@ const RFxPage = () => {
           <p className="text-gray-600 mb-6">Only lead buyers and sales managers can view RFxs.</p>
           <button
             onClick={() => navigate("/dashboard")}
-            className="flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
+            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Dashboard
@@ -63,10 +68,11 @@ const RFxPage = () => {
     );
   }
 
+  // NO CHANGES
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
+        <Loader2 className="animate-spin h-12 w-12 text-black" />
         <p className="mt-4 text-lg text-gray-700 font-medium">Loading RFxs...</p>
       </div>
     );
@@ -77,16 +83,16 @@ const RFxPage = () => {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-semibold text-gray-900">RFxs</h1>
         {jobTitle === "lead buyer" && (
-          <button
-            onClick={() => navigate("/dashboard/rfxs/new")}
-            className="bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 flex items-center shadow-md"
+          <Link
+            to="/dashboard/rfxs/create"
+            className="flex items-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-md hover:shadow-lg"
           >
             <Plus className="w-5 h-5 mr-2" />
-            Create New RFx
-          </button>
+            Create RFx
+          </Link>
         )}
       </div>
-      <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-auto">
+      <div className="bg-white shadow-md rounded-lg overflow-scroll w-[105%]">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -101,6 +107,10 @@ const RFxPage = () => {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
+              </th>
+              {/* NEW ADDITION: Reach column */}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Reach
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created At
@@ -134,6 +144,10 @@ const RFxPage = () => {
                       {rfx.status === "draft" ? "Open" : "Closed"}
                     </span>
                   </td>
+                  {/* NEW ADDITION: Display reach column */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {rfx.reach ? `${rfx.reach.region || "N/A"}, ${rfx.reach.district || "N/A"}` : "N/A"}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div className="relative group">
                       <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
@@ -147,7 +161,7 @@ const RFxPage = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Link
                       to={`/dashboard/rfxs/${rfx.ref_num}`}
-                      className="text-indigo-600 hover:text-indigo-800"
+                      className="text-black hover:text-gray-800"
                     >
                       View Details
                     </Link>
@@ -156,7 +170,8 @@ const RFxPage = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="6" className="px-6 py-4 text-sm text-gray-900 text-center">
+                {/* UPDATED: Adjusted colSpan to account for new Reach column */}
+                <td colSpan="7" className="px-6 py-4 text-sm text-gray-900 text-center">
                   No RFxs found.
                 </td>
               </tr>

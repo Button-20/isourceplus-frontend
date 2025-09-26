@@ -98,7 +98,7 @@ const TenderCreationPage = () => {
         ];
         if (validateStoredData(parsed, expectedKeys)) {
           console.log("Loaded form data from localStorage:", parsed);
-          toast.info(`Form data restored. Loaded keys: ${Object.keys(parsed).join(", ")}`);
+          // toast.info(`Form data restored. Loaded keys: ${Object.keys(parsed).join(", ")}`);
           return {
             ...initialFormValues,
             ...parsed,
@@ -155,7 +155,7 @@ const TenderCreationPage = () => {
       errors.title = "Title must be 128 characters or less";
     }
     if (!formValues.spend_category) {
-      errors.spend_category = "Spend category is required";
+      errors.spend_category = "Supplier market is required";
     }
     if (!formValues.type) {
       errors.type = "Type is required";
@@ -538,7 +538,7 @@ const TenderCreationPage = () => {
                 {formErrors.title && <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Spend Category</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Supplier market</label>
                 <select
                   name="spend_category"
                   value={formValues.spend_category}

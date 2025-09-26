@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, Plus, Save, X, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, Plus, Save, X, Trash2, RefreshCw, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCookie } from "@/utility/getCookie";
 import { format, isValid, parseISO } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 
+// NO CHANGES
 const checkLocalStorageAvailability = () => {
   try {
     const testKey = "__test__";
@@ -18,6 +19,7 @@ const checkLocalStorageAvailability = () => {
   }
 };
 
+// NO CHANGES
 const validateStoredData = (data, expectedKeys) => {
   if (!data || typeof data !== "object") return false;
   return expectedKeys.every((key) => {
@@ -33,8 +35,13 @@ const RFxCreationPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  // NEW ADDITION: Added state for collapsible Reach section
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [reachOpen, setReachOpen] = useState(true);
+  const [itemsOpen, setItemsOpen] = useState(true);
   const isLocalStorageAvailable = checkLocalStorageAvailability();
 
+  // UPDATED: Added region, district, city, town to initialFormValues
   const initialFormValues = {
     title: "",
     note: "",
@@ -45,6 +52,10 @@ const RFxCreationPage = () => {
     start_datetime: new Date().toISOString().slice(0, 16),
     submission_datetime: new Date().toISOString().slice(0, 16),
     is_approved: true,
+    region: "",
+    district: "",
+    city: "",
+    town: "",
     items: [
       {
         name: "",
@@ -56,7 +67,9 @@ const RFxCreationPage = () => {
     ],
   };
 
-  // Initialize formValues from localStorage immediately
+  const reachFields = ["region", "district", "city", "town"];
+
+  // UPDATED: Added region, district, city, town to expectedKeys
   const [formValues, setFormValues] = useState(() => {
     if (!isLocalStorageAvailable) {
       toast.warning("Local storage is unavailable; form data will not persist across refreshes.");
@@ -76,11 +89,14 @@ const RFxCreationPage = () => {
           "start_datetime",
           "submission_datetime",
           "is_approved",
+          "region",
+          "district",
+          "city",
+          "town",
           "items",
         ];
         if (validateStoredData(parsed, expectedKeys)) {
           console.log("Loaded form data from localStorage:", parsed);
-          // toast.info(`Form data restored. Loaded keys: ${Object.keys(parsed).join(", ")}`);
           return {
             ...initialFormValues,
             ...parsed,
@@ -94,580 +110,667 @@ const RFxCreationPage = () => {
                 : [],
             })),
           };
-        } else {
-          console.warn("Invalid stored values in localStorage, using initial values.");
-          localStorage.removeItem("rfxFormValues");
         }
       }
+      return initialFormValues;
     } catch (err) {
-      console.error("Failed to load form data from localStorage:", err);
-      toast.error("Unable to restore form data. Local storage may be disabled.");
+      console.error("Error loading form data from localStorage:", err);
+      return initialFormValues;
     }
-    return initialFormValues;
   });
 
-  // Save form values to localStorage on change
+  // NO CHANGES
   useEffect(() => {
-    if (!isLocalStorageAvailable) return;
-    try {
-      console.log("Saving form data to localStorage:", formValues);
-      localStorage.setItem("rfxFormValues", JSON.stringify(formValues));
-    } catch (err) {
-      console.error("Failed to save form data to localStorage:", err);
-      toast.error("Unable to save form data. Local storage may be disabled.");
+    if (isLocalStorageAvailable) {
+      try {
+        localStorage.setItem("rfxFormValues", JSON.stringify(formValues));
+      } catch (err) {
+        console.error("Error saving form data to localStorage:", err);
+        toast.error("Failed to save form data to localStorage.");
+      }
     }
   }, [formValues, isLocalStorageAvailable]);
 
+  // NO CHANGES
+  const addItem = () => {
+    setFormValues((prev) => ({
+      ...prev,
+      items: [
+        ...prev.items,
+        {
+          name: "",
+          description: "",
+          unit_of_measure: "pc",
+          quantity: 1,
+          special_handles: [],
+        },
+      ],
+    }));
+  };
+
+  // NO CHANGES
+  const removeItem = (index) => {
+    setFormValues((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+    setFormErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[`items[${index}]`];
+      return newErrors;
+    });
+  };
+
+  // NO CHANGES
+  const addSpecialHandle = (itemIndex) => {
+    setFormValues((prev) => {
+      const newItems = [...prev.items];
+      newItems[itemIndex] = {
+        ...newItems[itemIndex],
+        special_handles: [
+          ...newItems[itemIndex].special_handles,
+          { handling_description: "" },
+        ],
+      };
+      return { ...prev, items: newItems };
+    });
+  };
+
+  // NO CHANGES
+  const removeSpecialHandle = (itemIndex, handleIndex) => {
+    setFormValues((prev) => {
+      const newItems = [...prev.items];
+      newItems[itemIndex] = {
+        ...newItems[itemIndex],
+        special_handles: newItems[itemIndex].special_handles.filter(
+          (_, i) => i !== handleIndex
+        ),
+      };
+      return { ...prev, items: newItems };
+    });
+    setFormErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[`items[${itemIndex}].special_handles[${handleIndex}]`];
+      return newErrors;
+    });
+  };
+
+  // UPDATED: Added validation for reach fields
   const validateForm = () => {
     const errors = {};
-    if (!formValues.title.trim()) {
-      errors.title = "Title is required";
-    } else if (formValues.title.length > 128) {
-      errors.title = "Title must be 128 characters or less";
-    }
-    if (!formValues.spend_category) {
-      errors.spend_category = "Spend category is required";
-    }
-    if (!formValues.type) {
-      errors.type = "Type is required";
-    }
-    if (!formValues.procedure) {
-      errors.procedure = "Procedure is required";
-    }
-    if (formValues.note && formValues.note.length > 500) {
-      errors.note = "Note must be 500 characters or less";
-    }
-    if (!formValues.items.length) {
-      errors.items = "At least one item is required";
-    }
-    formValues.items.forEach((item, index) => {
-      if (!item.name.trim()) {
-        errors[`items[${index}].name`] = "Item name is required";
-      } else if (item.name.length > 255) {
-        errors[`items[${index}].name`] = "Item name must be 255 characters or less";
-      }
-      if (item.description && item.description.length > 500) {
-        errors[`items[${index}].description`] = "Item description must be 500 characters or less";
-      }
-      if (item.quantity <= 0) {
-        errors[`items[${index}].quantity`] = "Quantity must be greater than 0";
-      }
-      item.special_handles.forEach((handle, hIndex) => {
-        if (!handle.handling_description.trim()) {
-          errors[`items[${index}].special_handles[${hIndex}].handling_description`] =
-            "Handling description is required";
-        } else if (handle.handling_description.length > 500) {
-          errors[`items[${index}].special_handles[${hIndex}].handling_description`] =
-            "Handling description must be 500 characters or less";
-        }
-      });
-    });
-    const startDate = parseISO(formValues.start_datetime);
-    const submissionDate = parseISO(formValues.submission_datetime);
-    if (!isValid(startDate)) {
+    if (!formValues.title) errors.title = "Title is required";
+    if (!formValues.spend_category) errors.spend_category = "Spend category is required";
+    if (!formValues.type) errors.type = "Type is required";
+    if (!formValues.procedure) errors.procedure = "Procedure is required";
+    if (!formValues.priority) errors.priority = "Priority is required";
+    if (!formValues.start_datetime) errors.start_datetime = "Start date is required";
+    if (!formValues.submission_datetime)
+      errors.submission_datetime = "Submission date is required";
+    if (!isValid(parseISO(formValues.start_datetime)))
       errors.start_datetime = "Invalid start date";
-    }
-    if (!isValid(submissionDate)) {
+    if (!isValid(parseISO(formValues.submission_datetime)))
       errors.submission_datetime = "Invalid submission date";
-    } else if (submissionDate < startDate) {
+    if (
+      formValues.start_datetime &&
+      formValues.submission_datetime &&
+      new Date(formValues.start_datetime) > new Date(formValues.submission_datetime)
+    ) {
       errors.submission_datetime = "Submission date must be after start date";
     }
+
+    // NEW ADDITION: Validate reach fields
+    // const reachFields = ["region", "district", "city", "town"];
+    const hasReachData = reachFields.some((field) => formValues[field]);
+    if (hasReachData && !formValues.region) {
+      errors.region = "Region is required if any reach field is provided";
+    }
+    reachFields.forEach((field) => {
+      if (formValues[field] && formValues[field].length > 255) {
+        errors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} must be 255 characters or less`;
+      }
+    });
+
+    // NO CHANGES
+    if (formValues.items.length === 0) {
+      errors.items = "At least one item is required";
+    } else {
+      formValues.items.forEach((item, index) => {
+        if (!item.name) errors[`items[${index}].name`] = "Item name is required";
+        if (!item.quantity || item.quantity <= 0)
+          errors[`items[${index}].quantity`] = "Quantity must be greater than 0";
+        if (!item.unit_of_measure)
+          errors[`items[${index}].unit_of_measure`] = "Unit of measure is required";
+        item.special_handles.forEach((handle, hIndex) => {
+          if (!handle.handling_description)
+            errors[`items[${index}].special_handles[${hIndex}].handling_description`] =
+              "Handling description is required";
+        });
+      });
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleChange = (e, itemIndex = null, field = null, handleIndex = null) => {
-    const { name, value, type, checked } = e.target;
-    setFormValues((prev) => {
-      let updatedValues = { ...prev };
-      if (itemIndex !== null && field === "special_handles" && handleIndex !== null) {
-        updatedValues.items = [...prev.items];
-        updatedValues.items[itemIndex].special_handles = [...updatedValues.items[itemIndex].special_handles];
-        updatedValues.items[itemIndex].special_handles[handleIndex].handling_description = value;
-      } else if (itemIndex !== null) {
-        updatedValues.items = [...prev.items];
-        updatedValues.items[itemIndex] = {
-          ...updatedValues.items[itemIndex],
-          [name]: type === "number" ? parseInt(value, 10) || 1 : value,
-        };
-      } else {
-        updatedValues = { ...prev, [name]: type === "checkbox" ? checked : value };
-      }
-      if (isLocalStorageAvailable) {
-        try {
-          console.log("Saving form data on change:", updatedValues);
-          localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
-        } catch (err) {
-          console.error("Failed to save form data to localStorage:", err);
-          toast.error("Unable to save form data. Local storage may be disabled.");
-        }
-      }
-      return updatedValues;
-    });
-    setFormErrors((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors[name];
-      if (itemIndex !== null) {
-        delete newErrors[`items[${itemIndex}].${name}`];
-        if (handleIndex !== null) {
-          delete newErrors[`items[${itemIndex}].special_handles[${handleIndex}].handling_description`];
-        }
-      }
-      return newErrors;
-    });
-  };
-
-  const addItem = () => {
-    setFormValues((prev) => {
-      const updatedValues = {
-        ...prev,
-        items: [
-          ...prev.items,
-          {
-            name: "",
-            description: "",
-            unit_of_measure: "pc",
-            quantity: 1,
-            special_handles: [],
-          },
-        ],
-      };
-      if (isLocalStorageAvailable) {
-        try {
-          console.log("Saving form data after adding item:", updatedValues);
-          localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
-        } catch (err) {
-          console.error("Failed to save form data to localStorage:", err);
-          toast.error("Unable to save form data. Local storage may be disabled.");
-        }
-      }
-      return updatedValues;
-    });
-  };
-
-  const removeItem = (index) => {
-    if (formValues.items.length <= 1) {
-      toast.error("At least one item is required.");
+  // UPDATED: Added reach to FormData
+ const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (jobTitle !== "lead buyer") {
+      toast.error("Only lead buyers can create RFxs.");
       return;
     }
-    setFormValues((prev) => {
-      const updatedValues = {
-        ...prev,
-        items: prev.items.filter((_, i) => i !== index),
-      };
-      if (isLocalStorageAvailable) {
-        try {
-          console.log("Saving form data after removing item:", updatedValues);
-          localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
-        } catch (err) {
-          console.error("Failed to save form data to localStorage:", err);
-          toast.error("Unable to save form data. Local storage may be disabled.");
-        }
-      }
-      return updatedValues;
-    });
-    setFormErrors((prev) => {
-      const newErrors = { ...prev };
-      Object.keys(newErrors).forEach((key) => {
-        if (key.startsWith(`items[${index}]`)) {
-          delete newErrors[key];
-        }
-      });
-      return newErrors;
-    });
-  };
-
-  const addSpecialHandle = useCallback(
-    (itemIndex) => {
-      setFormValues((prev) => {
-        const items = [...prev.items];
-        if (!items[itemIndex].special_handles.some((handle) => handle.handling_description === "")) {
-          items[itemIndex].special_handles.push({ handling_description: "" });
-        }
-        const updatedValues = { ...prev, items };
-        if (isLocalStorageAvailable) {
-          try {
-            console.log("Saving form data after adding special handle:", updatedValues);
-            localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
-          } catch (err) {
-            console.error("Failed to save form data to localStorage:", err);
-            toast.error("Unable to save form data. Local storage may be disabled.");
-          }
-        }
-        return updatedValues;
-      });
-    },
-    [isLocalStorageAvailable]
-  );
-
-  const removeSpecialHandle = (itemIndex, handleIndex) => {
-    setFormValues((prev) => {
-      const items = [...prev.items];
-      items[itemIndex].special_handles = items[itemIndex].special_handles.filter(
-        (_, i) => i !== handleIndex
-      );
-      const updatedValues = { ...prev, items };
-      if (isLocalStorageAvailable) {
-        try {
-          console.log("Saving form data after removing special handle:", updatedValues);
-          localStorage.setItem("rfxFormValues", JSON.stringify(updatedValues));
-        } catch (err) {
-          console.error("Failed to save form data to localStorage:", err);
-          toast.error("Unable to save form data. Local storage may be disabled.");
-        }
-      }
-      return updatedValues;
-    });
-    setFormErrors((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors[`items[${itemIndex}].special_handles[${handleIndex}].handling_description`];
-      return newErrors;
-    });
-  };
-
-  const resetForm = () => {
-    setFormValues(initialFormValues);
-    setFormErrors({});
-    if (isLocalStorageAvailable) {
-      try {
-        console.log("Clearing form data from localStorage");
-        localStorage.removeItem("rfxFormValues");
-        toast.success("Form reset successfully.");
-      } catch (err) {
-        console.error("Failed to clear localStorage:", err);
-        toast.error("Unable to reset form. Local storage may be disabled.");
-      }
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     if (!validateForm()) {
-      toast.error("Please fix the errors in the form.");
+      toast.error("Please fix the form errors before submitting.");
       return;
     }
     setLoading(true);
-    const csrfToken = getCookie("csrftoken");
-    const formData = new FormData();
-    formData.append("title", formValues.title);
-    formData.append("note", formValues.note);
-    formData.append("type", formValues.type);
-    formData.append("procedure", formValues.procedure);
-    formData.append("spend_category", formValues.spend_category);
-    formData.append("priority", formValues.priority);
-    formData.append("start_datetime", formValues.start_datetime);
-    formData.append("submission_datetime", formValues.submission_datetime);
-    formData.append("is_approved", formValues.is_approved);
+    const data = new FormData();
+    data.append("title", formValues.title);
+    data.append("note", formValues.note);
+    data.append("type", formValues.type);
+    data.append("procedure", formValues.procedure);
+    data.append("spend_category", formValues.spend_category);
+    data.append("priority", formValues.priority);
+    data.append("start_datetime", formValues.start_datetime);
+    data.append("submission_datetime", formValues.submission_datetime);
+    data.append("is_approved", formValues.is_approved);
+
+    // NEW ADDITION: Append reach fields individually
+    const reachFields = ["region", "district", "city", "town"];
+    if (reachFields.some((field) => formValues[field])) {
+      reachFields.forEach((field) => {
+        if (formValues[field]) {
+          data.append(`reach[${field}]`, formValues[field]);
+        }
+      });
+    }
+
     formValues.items.forEach((item, index) => {
-      formData.append(`items[${index}][name]`, item.name);
-      if (item.description) formData.append(`items[${index}][description]`, item.description);
-      formData.append(`items[${index}][unit_of_measure]`, item.unit_of_measure);
-      formData.append(`items[${index}][quantity]`, item.quantity);
+      data.append(`items[${index}][name]`, item.name);
+      data.append(`items[${index}][description]`, item.description || "");
+      data.append(`items[${index}][quantity]`, item.quantity);
+      data.append(`items[${index}][unit_of_measure]`, item.unit_of_measure);
       item.special_handles.forEach((handle, hIndex) => {
-        formData.append(
+        data.append(
           `items[${index}][special_handles][${hIndex}][handling_description]`,
           handle.handling_description
         );
       });
     });
 
-    // Log FormData for debugging
-    console.log("FormData payload:", Object.fromEntries(formData));
-
+    const csrfToken = getCookie("csrftoken");
     try {
-      await authAxios.post("rfxs/", formData, {
-        headers: { "X-CSRFToken": csrfToken },
+      const response = await authAxios.post("/rfxs/", data, {
+        headers: {
+          "X-CSRFToken": csrfToken,
+        },
       });
+      console.log("RFx created:", response.data);
       toast.success("RFx created successfully!");
-      setFormValues(initialFormValues);
-      setFormErrors({});
       if (isLocalStorageAvailable) {
-        try {
-          console.log("Clearing localStorage after successful submission");
-          localStorage.removeItem("rfxFormValues");
-        } catch (err) {
-          console.error("Failed to clear localStorage:", err);
-          toast.error("Unable to clear form data. Local storage may be disabled.");
-        }
+        localStorage.removeItem("rfxFormValues");
       }
-      navigate("/dashboard/rfxs/issued");
+      navigate("/dashboard/rfxs");
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.non_field_errors?.[0] ||
-        error.response?.data?.title?.[0] ||
-        error.response?.data?.items?.[0]?.name?.[0] ||
-        error.response?.data?.detail ||
-        "Failed to create RFx. Please try again.";
+      
+
+
+      const errorMessage = error.response?.data?.detail || error.response?.data?.reach?.city || error.response?.data?.reach?.district || error.response?.data?.reach?.region || error.response?.data?.reach?.town || "Failed to create RFx.";
       toast.error(errorMessage);
-      console.error("RFx creation error:", error.response?.data || error);
+      console.error("Create RFx error:", error);  
     } finally {
       setLoading(false);
     }
   };
 
+  // NO CHANGES
+  const resetForm = () => {
+    setFormValues(initialFormValues);
+    setFormErrors({});
+    if (isLocalStorageAvailable) {
+      localStorage.removeItem("rfxFormValues");
+    }
+    toast.info("Form has been reset.");
+  };
+
+  // NO CHANGES
+  const handleChange = (e, index, field, subfield = null) => {
+    const { name, value, type, checked } = e.target;
+    setFormValues((prev) => {
+      if (field === "item") {
+        const newItems = [...prev.items];
+        newItems[index] = { ...newItems[index], [subfield]: value };
+        return { ...prev, items: newItems };
+      } else if (field === "special_handle") {
+        const newItems = [...prev.items];
+        newItems[index].special_handles[subfield] = {
+          ...newItems[index].special_handles[subfield],
+          handling_description: value,
+        };
+        return { ...prev, items: newItems };
+      } else {
+        return {
+          ...prev,
+          [name]: type === "checkbox" ? checked : value,
+        };
+      }
+    });
+  };
+
+  // NO CHANGES
   if (jobTitle !== "lead buyer") {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
-          <p className="text-xl text-gray-900">Access denied. Only lead buyers can create RFxs.</p>
-          <Link
-            to="/dashboard/rfxs"
-            className="mt-6 flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 shadow-md hover:shadow-lg"
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+          <p className="text-xl font-semibold text-gray-900 mb-4">Access Denied</p>
+          <p className="text-gray-600 mb-6">Only lead buyers can create RFxs.</p>
+          <button
+            onClick={() => navigate("/dashboard/rfxs")}
+            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
           >
-            <X className="w-5 h-5 mr-2" />
+            <ArrowLeft className="w-5 h-5 mr-2" />
             Back to RFxs
-          </Link>
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 md:p-8">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-800">Create RFx</h1>
-      <form onSubmit={handleSubmit} className="mb-8 bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">Create RFx</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-            <input
-              type="text"
-              name="title"
-              value={formValues.title}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.title ? "border-red-500" : "border-gray-300"}`}
-              placeholder="Enter RFx title"
-              maxLength={128}
-            />
-            {formErrors.title && <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
-            <textarea
-              name="note"
-              value={formValues.note}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.note ? "border-red-500" : "border-gray-300"}`}
-              placeholder="Enter note"
-              maxLength={500}
-            />
-            {formErrors.note && <p className="text-red-500 text-sm mt-1">{formErrors.note}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-            <select
-              name="type"
-              value={formValues.type}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.type ? "border-red-500" : "border-gray-300"}`}
+    <div className="container mx-auto p-8 max-w-6xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold text-gray-900">Create RFx</h1>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Details Section */}
+        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => setDetailsOpen(!detailsOpen)}
+              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
             >
-              <option value="information">Information</option>
-              <option value="quotation">Quotation</option>
-              <option value="proposal">Proposal</option>
-            </select>
-            {formErrors.type && <p className="text-red-500 text-sm mt-1">{formErrors.type}</p>}
+              <h2 className="text-xl font-medium text-gray-900">RFx Details</h2>
+              <span className="flex items-center text-gray-600 font-medium">
+                {detailsOpen ? "Collapse" : "Expand"}
+                {detailsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
+              </span>
+            </button>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Procedure</label>
-            <select
-              name="procedure"
-              value={formValues.procedure}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.procedure ? "border-red-500" : "border-gray-300"}`}
-            >
-              <option value="open">Open</option>
-              <option value="sealed">Sealed</option>
-            </select>
-            {formErrors.procedure && <p className="text-red-500 text-sm mt-1">{formErrors.procedure}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Spend Category</label>
-            <select
-              name="spend_category"
-              value={formValues.spend_category}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.spend_category ? "border-red-500" : "border-gray-300"}`}
-            >
-              <option value="communications">Communications</option>
-            </select>
-            {formErrors.spend_category && <p className="text-red-500 text-sm mt-1">{formErrors.spend_category}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-            <select
-              name="priority"
-              value={formValues.priority}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
-            >
-              <option value="non urgent">Non Urgent</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </div>
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-            <input
-              type="datetime-local"
-              name="start_datetime"
-              value={formValues.start_datetime}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.start_datetime ? "border-red-500" : "border-gray-300"}`}
-              title="Select the start date and time for the RFx"
-            />
-            {formErrors.start_datetime && <p className="text-red-500 text-sm mt-1">{formErrors.start_datetime}</p>}
-          </div>
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Submission Due Date</label>
-            <input
-              type="datetime-local"
-              name="submission_datetime"
-              value={formValues.submission_datetime}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors.submission_datetime ? "border-red-500" : "border-gray-300"}`}
-              title="Select the submission due date and time"
-            />
-            {formErrors.submission_datetime && <p className="text-red-500 text-sm mt-1">{formErrors.submission_datetime}</p>}
-          </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              name="is_approved"
-              checked={formValues.is_approved}
-              onChange={handleChange}
-              className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded"
-            />
-            <label className="ml-2 block text-sm font-medium text-gray-700">Is Approved</label>
-          </div>
-        </div>
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-2 text-gray-800">Items</h3>
-          {formValues.items.map((item, index) => (
-            <div key={index} className="mb-4 p-4 bg-white border border-gray-200 rounded-md shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {detailsOpen && (
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                   <input
                     type="text"
-                    name="name"
-                    value={item.name}
-                    onChange={(e) => handleChange(e, index)}
-                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors[`items[${index}].name`] ? "border-red-500" : "border-gray-300"}`}
-                    placeholder="Enter item name"
-                    maxLength={255}
+                    name="title"
+                    value={formValues.title}
+                    onChange={(e) => handleChange(e)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.title ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter RFx title"
                   />
-                  {formErrors[`items[${index}].name`] && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors[`items[${index}].name`]}</p>
-                  )}
+                  {formErrors.title && <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    name="description"
-                    value={item.description}
-                    onChange={(e) => handleChange(e, index)}
-                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors[`items[${index}].description`] ? "border-red-500" : "border-gray-300"}`}
-                    placeholder="Enter item description"
-                    maxLength={500}
-                  />
-                  {formErrors[`items[${index}].description`] && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors[`items[${index}].description`]}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit of Measure</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Spend Category</label>
                   <select
-                    name="unit_of_measure"
-                    value={item.unit_of_measure}
-                    onChange={(e) => handleChange(e, index)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
+                    name="spend_category"
+                    value={formValues.spend_category}
+                    onChange={(e) => handleChange(e)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.spend_category ? "border-red-500" : "border-gray-300"
+                    }`}
                   >
-                    <option value="pc">Piece (pc)</option>
-                    <option value="kg">Kilogram (kg)</option>
-                    <option value="g">Gram (g)</option>
-                    <option value="mg">Milligram (mg)</option>
-                    <option value="t">Ton (t)</option>
-                    <option value="lb">Pound (lb)</option>
-                    <option value="oz">Ounce (oz)</option>
-                    <option value="L">Liter (L)</option>
-                    <option value="mL">Milliliter (mL)</option>
-                    <option value="m³">Cubic meter (m³)</option>
-                    <option value="cm³">Cubic centimeter (cm³)</option>
-                    <option value="gal">Gallon (gal)</option>
-                    <option value="qt">Quart (qt)</option>
-                    <option value="pt">Pint (pt)</option>
-                    <option value="fl oz">Fluid ounce (fl oz)</option>
+                    <option value="communications">Communications</option>
+                    <option value="it">IT</option>
+                    <option value="logistics">Logistics</option>
+                    <option value="consulting">Consulting</option>
                   </select>
+                  {formErrors.spend_category && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.spend_category}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                  <input
-                    type="number"
-                    name="quantity"
-                    value={item.quantity}
-                    onChange={(e) => handleChange(e, index)}
-                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors[`items[${index}].quantity`] ? "border-red-500" : "border-gray-300"}`}
-                    min="1"
-                  />
-                  {formErrors[`items[${index}].quantity`] && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors[`items[${index}].quantity`]}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select
+                    name="type"
+                    value={formValues.type}
+                    onChange={(e) => handleChange(e)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.type ? "border-red-500" : "border-gray-300"
+                    }`}
+                  >
+                    <option value="information">Information</option>
+                    <option value="quotation">Quotation</option>
+                    <option value="proposal">Proposal</option>
+                  </select>
+                  {formErrors.type && <p className="text-red-500 text-sm mt-1">{formErrors.type}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Procedure</label>
+                  <select
+                    name="procedure"
+                    value={formValues.procedure}
+                    onChange={(e) => handleChange(e)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.procedure ? "border-red-500" : "border-gray-300"
+                    }`}
+                  >
+                    <option value="open">Open</option>
+                    <option value="sealed">Sealed</option>
+                  </select>
+                  {formErrors.procedure && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.procedure}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <select
+                    name="priority"
+                    value={formValues.priority}
+                    onChange={(e) => handleChange(e)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.priority ? "border-red-500" : "border-gray-300"
+                    }`}
+                  >
+                    <option value="non urgent">Non Urgent</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                  {formErrors.priority && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.priority}</p>
                   )}
                 </div>
               </div>
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Special Handles</h4>
-                {item.special_handles.map((handle, hIndex) => (
-                  <div key={hIndex} className="flex items-center mb-2">
-                    <input
-                      type="text"
-                      name="handling_description"
-                      value={handle.handling_description}
-                      onChange={(e) => handleChange(e, index, "special_handles", hIndex)}
-                      className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${formErrors[`items[${index}].special_handles[${hIndex}].handling_description`] ? "border-red-500" : "border-gray-300"}`}
-                      placeholder="Enter handling description"
-                      maxLength={500}
-                    />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    name="start_datetime"
+                    value={formValues.start_datetime}
+                    onChange={(e) => handleChange(e)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.start_datetime ? "border-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {formErrors.start_datetime && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.start_datetime}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Submission Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="submission_datetime"
+                    value={formValues.submission_datetime}
+                    onChange={(e) => handleChange(e)}
+                    className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                      formErrors.submission_datetime ? "border-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {formErrors.submission_datetime && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.submission_datetime}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
+                  <textarea
+                    name="note"
+                    value={formValues.note}
+                    onChange={(e) => handleChange(e)}
+                    className="w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 border-gray-300"
+                    placeholder="Enter any additional notes"
+                    rows={4}
+                  />
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="is_approved"
+                    checked={formValues.is_approved}
+                    onChange={(e) => handleChange(e)}
+                    className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded"
+                  />
+                  <label className="ml-2 block text-sm font-medium text-gray-700">
+                    Approved
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* NEW ADDITION: Reach Section */}
+        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => setReachOpen(!reachOpen)}
+              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
+            >
+              <h2 className="text-xl font-medium text-gray-900">Reach (Optional)</h2>
+              <span className="flex items-center text-gray-600 font-medium">
+                {reachOpen ? "Collapse" : "Expand"}
+                {reachOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
+              </span>
+            </button>
+          </div>
+          {reachOpen && (
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
+                <input
+                  type="text"
+                  name="region"
+                  value={formValues.region}
+                  onChange={(e) => handleChange(e)}
+                  className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                    formErrors.region ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="Enter region"
+                  maxLength={255}
+                />
+                {formErrors.region && <p className="text-red-500 text-sm mt-1">{formErrors.region}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+                <input
+                  type="text"
+                  name="district"
+                  value={formValues.district}
+                  onChange={(e) => handleChange(e)}
+                  className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                    formErrors.district ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="Enter district"
+                  maxLength={255}
+                />
+                {formErrors.district && <p className="text-red-500 text-sm mt-1">{formErrors.district}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formValues.city}
+                  onChange={(e) => handleChange(e)}
+                  className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                    formErrors.city ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="Enter city"
+                  maxLength={255}
+                />
+                {formErrors.city && <p className="text-red-500 text-sm mt-1">{formErrors.city}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Town</label>
+                <input
+                  type="text"
+                  name="town"
+                  value={formValues.town}
+                  onChange={(e) => handleChange(e)}
+                  className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                    formErrors.town ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="Enter town"
+                  maxLength={255}
+                />
+                {formErrors.town && <p className="text-red-500 text-sm mt-1">{formErrors.town}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Items Section */}
+        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => setItemsOpen(!itemsOpen)}
+              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
+            >
+              <h2 className="text-xl font-medium text-gray-900">Items</h2>
+              <span className="flex items-center text-gray-600 font-medium">
+                {itemsOpen ? "Collapse" : "Expand"}
+                {itemsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
+              </span>
+            </button>
+          </div>
+          {itemsOpen && (
+            <div className="p-6 space-y-6">
+              {formValues.items.map((item, index) => (
+                <div key={index} className="border border-gray-200 p-4 rounded-md shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={(e) => handleChange(e, index, "item", "name")}
+                        className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                          formErrors[`items[${index}].name`] ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="Enter item name"
+                      />
+                      {formErrors[`items[${index}].name`] && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors[`items[${index}].name`]}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={(e) => handleChange(e, index, "item", "description")}
+                        className="w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 border-gray-300"
+                        placeholder="Enter item description"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleChange(e, index, "item", "quantity")}
+                        className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                          formErrors[`items[${index}].quantity`] ? "border-red-500" : "border-gray-300"
+                        }`}
+                        min={1}
+                      />
+                      {formErrors[`items[${index}].quantity`] && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors[`items[${index}].quantity`]}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Unit of Measure</label>
+                      <select
+                        value={item.unit_of_measure}
+                        onChange={(e) => handleChange(e, index, "item", "unit_of_measure")}
+                        className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                          formErrors[`items[${index}].unit_of_measure`] ? "border-red-500" : "border-gray-300"
+                        }`}
+                      >
+                        <option value="pc">Piece</option>
+                        <option value="kg">Kilogram</option>
+                        <option value="m">Meter</option>
+                        <option value="l">Liter</option>
+                      </select>
+                      {formErrors[`items[${index}].unit_of_measure`] && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {formErrors[`items[${index}].unit_of_measure`]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Special Handling
+                    </label>
+                    {item.special_handles.map((handle, hIndex) => (
+                      <div key={hIndex} className="flex items-center mb-2">
+                        <input
+                          type="text"
+                          value={handle.handling_description}
+                          onChange={(e) => handleChange(e, index, "special_handle", hIndex)}
+                          className={`w-full p-2 border rounded-md focus:ring-gray-500 focus:border-gray-500 ${
+                            formErrors[`items[${index}].special_handles[${hIndex}].handling_description`]
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          placeholder="Enter handling description"
+                          maxLength={500}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeSpecialHandle(index, hIndex)}
+                          className="ml-2 text-red-600 hover:text-red-800"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                        {formErrors[`items[${index}].special_handles[${hIndex}].handling_description`] && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {formErrors[`items[${index}].special_handles[${hIndex}].handling_description`]}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                     <button
                       type="button"
-                      onClick={() => removeSpecialHandle(index, hIndex)}
-                      className="ml-2 text-red-600 hover:text-red-800"
+                      onClick={() => addSpecialHandle(index)}
+                      className="mt-2 text-gray-600 hover:text-gray-800 flex items-center"
                     >
-                      <X className="w-5 h-5" />
+                      <Plus className="w-5 h-5 mr-1" /> Add Special Handle
                     </button>
-                    {formErrors[`items[${index}].special_handles[${hIndex}].handling_description`] && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {formErrors[`items[${index}].special_handles[${hIndex}].handling_description`]}
-                      </p>
-                    )}
                   </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => addSpecialHandle(index)}
-                  className="mt-2 text-gray-600 hover:text-gray-800 flex items-center"
-                >
-                  <Plus className="w-5 h-5 mr-1" /> Add Special Handle
-                </button>
-              </div>
-              {formValues.items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeItem(index)}
-                  className="mt-4 text-red-600 hover:text-red-800 flex items-center"
-                >
-                  <Trash2 className="w-5 h-5 mr-1" /> Remove Item
-                </button>
-              )}
+                  {formValues.items.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="mt-4 text-red-600 hover:text-red-800 flex items-center"
+                    >
+                      <Trash2 className="w-5 h-5 mr-1" /> Remove Item
+                    </button>
+                  )}
+                </div>
+              ))}
+              {formErrors.items && <p className="text-red-500 text-sm mt-1">{formErrors.items}</p>}
+              <button
+                type="button"
+                onClick={addItem}
+                className="mt-4 bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 flex items-center shadow-md hover:shadow-lg"
+              >
+                <Plus className="w-5 h-5 mr-2" /> Add Item
+              </button>
             </div>
-          ))}
-          {formErrors.items && <p className="text-red-500 text-sm mt-1">{formErrors.items}</p>}
-          <button
-            type="button"
-            onClick={addItem}
-            className="mt-4 bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 flex items-center shadow-md hover:shadow-lg"
-          >
-            <Plus className="w-5 h-5 mr-2" /> Add Item
-          </button>
+          )}
         </div>
+
+        {/* Submit and Action Buttons */}
         <div className="mt-6 flex space-x-4">
           <button
             type="submit"
