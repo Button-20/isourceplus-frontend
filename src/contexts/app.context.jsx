@@ -177,6 +177,7 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem("profile_id", data.profile_id);
       await fetchCsrfToken(); // Fetch CSRF token after signup
 
+      console.log(`Navigating to onboarding for user ${data.user_email}`);
       // const profileId = await fetchUserData();
       navigate("/onboarding/user", { replace: true }); // Always go to onboarding after signup
 
@@ -372,7 +373,21 @@ export const AppProvider = ({ children }) => {
         error.message ||
         "Logout failed. Please try again.";
       setError(errorMessage);
-      toast.error(errorMessage);
+      console.error("Logout error:", errorMessage);
+       setBaseData(null);
+      setUser(null);
+      setToken(null);
+      setUserProfileId(null);
+      setTransporterId(null); // Clear on logout
+      setCompanyId(null); // Clear on logout
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_profile");
+      localStorage.removeItem("company_id");
+      localStorage.removeItem("transporter_id");
+      localStorage.removeItem("profile_id");
+      toast.success("Logout successful.");
+      // toast.error(errorMessage);
       throw error;
     } finally {
       setLoading(false);
