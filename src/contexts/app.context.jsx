@@ -99,42 +99,59 @@ export const AppProvider = ({ children }) => {
   const [sidebarLoading, setSidebarLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
-
-   const fetchCsrfToken = async () => {
-      try {
-        const response = await axios.get(`${BASE_URL}init/`, {
-          withCredentials: true, // Ensure cookies are sent/received
-        });
-        console.log(response.data.message);
-      } catch (error) {
-        console.error("Failed to fetch CSRF token:", error);
-        // Silently log error without user notification or retries, as requested
-      }
-    };
-
+  const fetchCsrfToken = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}init/`, {
+        withCredentials: true, // Ensure cookies are sent/received
+      });
+      console.log(response.data.message);
+    } catch (error) {
+      console.error("Failed to fetch CSRF token:", error);
+      // Silently log error without user notification or retries, as requested
+    }
+  };
 
   // Fetch user data to get transporterId or companyId
   const fetchUserData = async () => {
     try {
+      console.log("Fetching user data...");
       setSidebarLoading(true);
       const res = await authAxios.get("users/"); // Fetch user data
+      console.log("Fetched user data");
+
       const userData = res.data.results[0]; // Get first user object
+      console.log("Assingend user ddata to userData");
+
       if (userData.company) {
+        console.log("111111111111111111111111111111111111111111111");
+
         // Check if company exists
         const companyUrl = userData.company;
         const id = companyUrl.split("/").slice(-2)[0]; // Extract ID from URL
         if (companyUrl.includes("/transporters/")) {
+          console.log("222222222222222222222222222222222222222");
+
           setTransporterId(id); // Set transporterId if URL is for transporter
+          console.log("333333333333333333333333333333333333");
         } else if (companyUrl.includes("/companies/")) {
+          console.log("");
+          4444444444444444444444444444444444444444444;
           setCompanyId(id); // Set companyId if URL is for company
+          console.log("5555555555555555555555555555555");
         }
       }
+      console.log("66666666666666666666666666666");
+
       const profileId = userData.profile?.split("/").slice(-2)[0] || null; // Extract profile ID
+      console.log("777777777777777777777777777777777777777");
+
       setUserProfileId(profileId); // Set userProfileId in state
+      console.log("8888888888888888888888888888888888888");
+
       return profileId; // Return profileId for navigation
     } catch (err) {
       console.error("Failed to fetch user data:", err);
-      toast.error("Failed to load user data");
+      toast.error(err.response.data.message || "Failed to load user data");
       return null; // Return null on error
     } finally {
       setSidebarLoading(false); // Reset loading state
@@ -374,7 +391,7 @@ export const AppProvider = ({ children }) => {
         "Logout failed. Please try again.";
       setError(errorMessage);
       console.error("Logout error:", errorMessage);
-       setBaseData(null);
+      setBaseData(null);
       setUser(null);
       setToken(null);
       setUserProfileId(null);
