@@ -183,12 +183,12 @@ export const AppProvider = ({ children }) => {
       setLoading(true);
       try {
         // NEW ADDITION: Fetch CSRF token if not available
-        // let csrfTokenLocal = Cookies.get("csrftoken");
-        // if (!csrfTokenLocal) {
-        //   console.log("No CSRF token found, fetching...");
-        //   csrfTokenLocal = await fetchCsrfToken();
-        // }
-        // console.log("Signup CSRF token:", csrfTokenLocal); // NEW ADDITION: Debug
+        let csrfTokenLocal = Cookies.get("csrftoken");
+        if (!csrfTokenLocal) {
+          console.log("No CSRF token found, fetching...");
+          csrfTokenLocal = await fetchCsrfToken();
+        }
+        console.log("Signup CSRF token:", csrfTokenLocal); // NEW ADDITION: Debug
   
         const response = await axios.post(
           `${BASE_URL}account_auth/registration/`,
@@ -196,7 +196,7 @@ export const AppProvider = ({ children }) => {
           {
             headers: {
               "Content-Type": "application/json",
-              // "X-CSRFToken": csrfTokenLocal, 
+              "X-CSRFToken": csrfTokenLocal, 
             },
             withCredentials: true,
           }
@@ -246,12 +246,12 @@ export const AppProvider = ({ children }) => {
     setLoading(true);
     try {
       // NEW ADDITION: Fetch CSRF token if not available
-      // let csrfTokenLocal = Cookies.get("csrftoken");
-      // if (!csrfTokenLocal) {
-      //   console.log("No CSRF token found, fetching...");
-      //   csrfTokenLocal = await fetchCsrfToken();
-      // }
-      // console.log("Login CSRF token:", csrfTokenLocal); // NEW ADDITION: Debug
+      let csrfTokenLocal = Cookies.get("csrftoken");
+      if (!csrfTokenLocal) {
+        console.log("No CSRF token found, fetching...");
+        csrfTokenLocal = await fetchCsrfToken();
+      }
+      console.log("Login CSRF token:", csrfTokenLocal); // NEW ADDITION: Debug
 
       const response = await axios.post(
         `${BASE_URL}account_auth/login/`,
@@ -259,7 +259,7 @@ export const AppProvider = ({ children }) => {
         {
           headers: {
             "Content-Type": "application/json",
-            // "X-CSRFToken": csrfTokenLocal, 
+            "X-CSRFToken": csrfTokenLocal, 
           },
           withCredentials: true,
         }
