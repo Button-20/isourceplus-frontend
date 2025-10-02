@@ -10,7 +10,6 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { getCookie } from "@/utility/getCookie";
 import { registerLogoutHandler } from "@/utils/apiService";
-import Cookies from "js-cookie";
 
 export const AppContext = createContext();
 
