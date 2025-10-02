@@ -22,53 +22,8 @@ export const AppProvider = ({ children }) => {
       ? `${import.meta.env.VITE_SERVER_URL}api/v1/`
       : ` ${import.meta.env.VITE_SECURE_URL}api/v1/`;
 
-  const refresh = getCookie("isource-plus-refresh-token");
-  let csrfToken = getCookie("csrftoken");
-
-  // console.log("refresh token:", refresh);
-  // console.log("csrf token:", csrfToken);
-
-  // Axios instance for protected API calls
-   const authAxios = useMemo(() => {
-    const inst = axios.create({
-      baseURL: BASE_URL,
-      withCredentials: true,
-      xsrfCookieName: "csrftoken",
-      xsrfHeaderName: "X-CSRFToken",
-    });
-
-    inst.interceptors.request.use((cfg) => {
-      const token = Cookies.get("isource-plus-auth-token"); // UPDATED: Read from cookie
-      if (token) cfg.headers.Authorization = `Bearer ${token}`;
-      return cfg;
-    });
-
-    inst.interceptors.response.use(
-      (res) => res,
-      async (err) => {
-        const orig = err.config;
-        if (
-          err.response?.status === 403 &&
-          err.response?.data?.code === "token_not_valid" &&
-          !orig._retry
-        ) {
-          orig._retry = true;
-          try {
-            const newTok = await refreshToken();
-            orig.headers.Authorization = `Bearer ${newTok}`;
-            return inst(orig);
-          } catch {
-            /* refreshToken calls logout() on failure */
-          }
-        }
-        return Promise.reject(err);
-      }
-    );
-
-    return inst;
-  }, []);
-
-  const tailwindValues = {
+  
+      const tailwindValues = {
     secondary: "gray-600",
     primary: "indigo-600",
   };
@@ -102,14 +57,72 @@ export const AppProvider = ({ children }) => {
   const fetchCsrfToken = async () => {
     try {
       const response = await axios.get(`${BASE_URL}init/`, {
-        withCredentials: true, // Ensure cookies are sent/received
+        withCredentials: true,
       });
-      console.log(response.data.message);
+      console.log("fetchCsrfToken response:", response.data, response.headers); // NEW ADDITION: Debug response
+      csrfToken = Cookies.get("csrftoken"); // NEW ADDITION: Update csrfToken
+      return csrfToken;
     } catch (error) {
       console.error("Failed to fetch CSRF token:", error);
-      // Silently log error without user notification or retries, as requested
+      return null;
     }
   };
+
+  // NEW ADDITION: Fetch CSRF token on mount
+  useEffect(() => {
+    fetchCsrfToken();
+  }, []);
+
+
+
+  // Axios instance for protected API calls
+   const authAxios = useMemo(() => {
+    const inst = axios.create({
+      baseURL: BASE_URL,
+      withCredentials: true,
+      xsrfCookieName: "csrftoken",
+      xsrfHeaderName: "X-CSRFToken",
+    });
+
+    inst.interceptors.request.use((cfg) => {
+      const token = Cookies.get("isource-plus-auth-token");
+      console.log("authAxios request - isource-plus-auth-token:", token); // Debug
+      if (token) cfg.headers.Authorization = `Bearer ${token}`;
+      return cfg;
+    });
+
+    inst.interceptors.response.use(
+      (res) => {
+        console.log("authAxios response headers:", res.headers); // Debug
+        return res;
+      },
+      async (err) => {
+        const orig = err.config;
+        console.error("authAxios error:", err.response?.data, err.response?.headers); // Debug
+        if (
+          err.response?.status === 403 &&
+          err.response?.data?.code === "token_not_valid" &&
+          !orig._retry
+        ) {
+          orig._retry = true;
+          try {
+            const newTok = await refreshToken();
+            orig.headers.Authorization = `Bearer ${newTok}`;
+            return inst(orig);
+          } catch {
+            /* refreshToken calls logout() on failure */
+          }
+        }
+        return Promise.reject(err);
+      }
+    );
+
+    return inst;
+  }, []);
+
+  
+
+  
 
   // Fetch user data to get transporterId or companyId
   const fetchUserData = async () => {
@@ -165,91 +178,105 @@ export const AppProvider = ({ children }) => {
     }
   }, [token]);
 
-  const signup = async (email, password1, password2, navigate) => {
-    setError(null);
-    setLoading(true);
-    try {
-      let csrfToken = getCookie("csrftoken");
-      const response = await axios.post(
-        `${BASE_URL}account_auth/registration/`,
-        { email: email.trim(), password1, password2 },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(csrfToken && { "X-CSRFToken": csrfToken }),
-          },
-          withCredentials: true,
+    const signup = async (email, password1, password2, navigate) => {
+      setError(null);
+      setLoading(true);
+      try {
+        // NEW ADDITION: Fetch CSRF token if not available
+        // let csrfTokenLocal = Cookies.get("csrftoken");
+        // if (!csrfTokenLocal) {
+        //   console.log("No CSRF token found, fetching...");
+        //   csrfTokenLocal = await fetchCsrfToken();
+        // }
+        // console.log("Signup CSRF token:", csrfTokenLocal); // NEW ADDITION: Debug
+  
+        const response = await axios.post(
+          `${BASE_URL}account_auth/registration/`,
+          { email: email.trim(), password1, password2 },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              // "X-CSRFToken": csrfTokenLocal, 
+            },
+            withCredentials: true,
+          }
+        );
+        const data = response.data;
+        console.log("Signup response:", data, response.headers); // Debug
+  
+        setBaseData(data);
+        setUser(data.user_email);
+        setUserProfileId(data.profile_id);
+        const accessToken = Cookies.get("isource-plus-auth-token");
+        if (accessToken) {
+          setToken(accessToken);
+        } else {
+          console.warn("No auth token found in cookies");
+          setError("Authentication token not received. Please try again.");
         }
-      );
-      const data = response.data;
-      console.log("Signup response data:", data);
-
-      setBaseData(data);
-      setUser(data.user_email);
-      setUserProfileId(data.profile_id);
-      // NEW ADDITION: Read token from cookie instead of response
-      const accessToken = Cookies.get("isource-plus-auth-token");
-      if (accessToken) {
-        setToken(accessToken);
-      } else {
-        throw new Error("Auth token not found in cookies");
+        localStorage.setItem("user_email", data.user_email);
+        localStorage.setItem("profile_id", data.profile_id);
+        await fetchCsrfToken();
+  
+        console.log(`Navigating to onboarding for user ${data.user_email}`);
+        navigate("/onboarding/user", { replace: true });
+  
+        toast(data.detail || "Signup successful");
+        return data;
+      } catch (error) {
+        console.error("Signup error:", error);
+        const errorMessage =
+          error.response?.data?.non_field_errors?.[0] ||
+          error.response?.data?.email?.[0] ||
+          error.response?.data?.password1?.[0] ||
+          error.response?.data?.password2?.[0] ||
+          error.response?.data?.detail ||
+          error.message ||
+          "Signup failed. Please try again.";
+        setError(errorMessage);
+        toast.error(errorMessage);
+        throw error;
+      } finally {
+        setLoading(false);
       }
-      // NO CHANGES: Store user_email and profile_id in localStorage
-      localStorage.setItem("user_email", data.user_email);
-      localStorage.setItem("profile_id", data.profile_id);
-      await fetchCsrfToken();
+    };
 
-      console.log(`Navigating to onboarding for user ${data.user_email}`);
-      navigate("/onboarding/user", { replace: true });
-
-      toast(data.detail);
-      return data;
-    } catch (error) {
-      console.error("Signup error:", error);
-      const errorMessage =
-        error.response?.data?.non_field_errors?.[0] ||
-        error.response?.data?.email?.[0] ||
-        error.response?.data?.password1?.[0] ||
-        error.response?.data?.password2?.[0] ||
-        error.response?.data?.detail ||
-        error.message ||
-        "Signup failed. Please try again.";
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
- const login = async (email, password, navigate) => {
+  const login = async (email, password, navigate) => {
     setError(null);
     setLoading(true);
     try {
-      let csrfToken = Cookies.get("csrftoken");
+      // NEW ADDITION: Fetch CSRF token if not available
+      // let csrfTokenLocal = Cookies.get("csrftoken");
+      // if (!csrfTokenLocal) {
+      //   console.log("No CSRF token found, fetching...");
+      //   csrfTokenLocal = await fetchCsrfToken();
+      // }
+      // console.log("Login CSRF token:", csrfTokenLocal); // NEW ADDITION: Debug
+
       const response = await axios.post(
         `${BASE_URL}account_auth/login/`,
         { email: email.trim(), password },
         {
           headers: {
             "Content-Type": "application/json",
-            ...(csrfToken && { "X-CSRFToken": csrfToken }),
+            // "X-CSRFToken": csrfTokenLocal, 
           },
           withCredentials: true,
         }
       );
       const data = response.data;
+      console.log("Login response:", data, response.headers); // Debug
+
       setBaseData(data);
       setUser(data.user_email);
       setUserProfileId(data.profile_id);
-      // NEW ADDITION: Read token from cookie instead of response
       const accessToken = Cookies.get("isource-plus-auth-token");
       if (accessToken) {
         setToken(accessToken);
       } else {
-        throw new Error("Auth token not found in cookies");
+        console.warn("No auth token found in cookies");
+        setError("Authentication token not received. Please try again.");
       }
-      // NO CHANGES: Store user_email and profile_id in localStorage
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("profile_id", data.profile_id);
       await fetchCsrfToken();
@@ -324,24 +351,32 @@ export const AppProvider = ({ children }) => {
   };
 
   const refreshToken = async () => {
-    const refresh = getCookie("isource-plus-refresh-token");
+    const refresh = Cookies.get("isource-plus-refresh-token"); // UPDATED: Use Cookies.get directly
     try {
-      const csrf = getCookie("csrftoken");
-      await axios.post(
+      // NEW ADDITION: Fetch CSRF token if not available
+      let csrfTokenLocal = Cookies.get("csrftoken");
+      if (!csrfTokenLocal) {
+        console.log("No CSRF token found for refresh, fetching...");
+        csrfTokenLocal = await fetchCsrfToken();
+      }
+      console.log("Refresh token CSRF:", csrfTokenLocal); // NEW ADDITION: Debug
+
+      const response = await axios.post(
         `${BASE_URL}account_auth/token/refresh/`,
         { refresh },
         {
           headers: {
             "Content-Type": "application/json",
-            ...(csrf && { "X-CSRFToken": csrf }),
+            "X-CSRFToken": csrfTokenLocal, // UPDATED: Always include CSRF token
           },
           withCredentials: true,
         }
       );
-      // NEW ADDITION: Read new token from cookie
+      console.log("Refresh token response:", response.data, response.headers); // Debug
       const newAccessToken = Cookies.get("isource-plus-auth-token");
       if (!newAccessToken) {
-        throw new Error("New auth token not found in cookies");
+        console.warn("No new auth token found in cookies");
+        throw new Error("New auth token not found");
       }
       setToken(newAccessToken);
       return newAccessToken;
@@ -366,19 +401,25 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [token]);
 
-  const logout = async () => {
+   const logout = async () => {
     console.log("Logging out...");
     setError(null);
     setLoading(true);
     try {
-      let csrfToken = getCookie("csrftoken");
+      let csrfTokenLocal = Cookies.get("csrftoken");
+      if (!csrfTokenLocal) {
+        console.log("No CSRF token found for logout, fetching...");
+        csrfTokenLocal = await fetchCsrfToken();
+      }
+      console.log("Logout CSRF token:", csrfTokenLocal); // NEW ADDITION: Debug
+
       await axios.post(
         `${BASE_URL}account_auth/logout/`,
         {},
         {
           headers: {
             "Content-Type": "application/json",
-            ...(csrfToken && { "X-CSRFToken": csrfToken }),
+            "X-CSRFToken": csrfTokenLocal, // UPDATED: Always include CSRF token
           },
           withCredentials: true,
         }
@@ -387,13 +428,9 @@ export const AppProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       setUserProfileId(null);
-      setTransporterId(null); // Clear on logout
-      setCompanyId(null); // Clear on logout
+      setTransporterId(null);
+      setCompanyId(null);
       localStorage.removeItem("user_email");
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("user_profile");
-      localStorage.removeItem("company_id");
-      localStorage.removeItem("transporter_id");
       localStorage.removeItem("profile_id");
       toast.success("Logout successful.");
     } catch (error) {
@@ -407,17 +444,11 @@ export const AppProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       setUserProfileId(null);
-      setTransporterId(null); // Clear on logout
-      setCompanyId(null); // Clear on logout
+      setTransporterId(null);
+      setCompanyId(null);
       localStorage.removeItem("user_email");
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("user_profile");
-      localStorage.removeItem("company_id");
-      localStorage.removeItem("transporter_id");
       localStorage.removeItem("profile_id");
       toast.success("Logout successful.");
-      // toast.error(errorMessage);
-      throw error;
     } finally {
       setLoading(false);
     }

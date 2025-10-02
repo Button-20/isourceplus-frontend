@@ -38,7 +38,7 @@ export function LandingPage() {
   }, []);
 
   useEffect(() => {
-    console.log('All cookies:', Cookies.get());
+    console.log('All cookies1:', Cookies.get());
     console.log('token:',   Cookies.get('token'));
   }, []);
 
