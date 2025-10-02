@@ -8,7 +8,6 @@ import React, {
 import { toast } from "sonner";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { getCookie } from "@/utility/getCookie";
 import { registerLogoutHandler } from "@/utils/apiService";
 
 export const AppContext = createContext();
@@ -16,16 +15,21 @@ export const AppContext = createContext();
 const NODE_ENV = import.meta.env.VITE_NODE_ENV || "development";
 console.log("Environment:", NODE_ENV);
 
+// NEW ADDITION: Custom function to parse document.cookie
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(";").shift();
+  return null;
+};
+
 export const AppProvider = ({ children }) => {
   const BASE_URL =
     NODE_ENV === "development"
       ? `${import.meta.env.VITE_SERVER_URL}api/v1/`
       : `${import.meta.env.VITE_SECURE_URL}api/v1/`;
 
-  // NEW ADDITION: State for CSRF token
-  const [csrfToken, setCsrfToken] = useState(null);
-
-  // NO CHANGES: Other state initialization
+  // NO CHANGES: State initialization
   const [token, setToken] = useState(
     () => Cookies.get("isource-plus-auth-token") || false
   );
@@ -48,18 +52,15 @@ export const AppProvider = ({ children }) => {
   const [sidebarLoading, setSidebarLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // UPDATED: Fetch and store CSRF token
+  // UPDATED: Fetch CSRF token and use getCookie
   const fetchCsrfToken = async () => {
     try {
       const response = await axios.get(`${BASE_URL}init/`, {
         withCredentials: true,
       });
       console.log("fetchCsrfToken response:", response.data, response.headers);
-      const newCsrfToken = Cookies.get("csrftoken");
-      console.log("Fetched CSRF token:", newCsrfToken); // NEW ADDITION: Debug
-      if (newCsrfToken) {
-        setCsrfToken(newCsrfToken); // Store in state
-      }
+      const newCsrfToken = getCookie("csrftoken"); // Use custom getCookie
+      console.log("Fetched CSRF token:", newCsrfToken, "document.cookie:", document.cookie);
       return newCsrfToken;
     } catch (error) {
       console.error("Failed to fetch CSRF token:", error);
@@ -67,24 +68,21 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // NEW ADDITION: Fetch CSRF token on mount with retry
+  // UPDATED: Fetch CSRF token on mount with retry
   useEffect(() => {
     const initCsrf = async () => {
       let newCsrfToken = await fetchCsrfToken();
-      // Retry once after a short delay if token is not set
       if (!newCsrfToken) {
         console.log("Retrying CSRF token fetch after delay...");
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // 1-second delay
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         newCsrfToken = await fetchCsrfToken();
-        if (newCsrfToken) {
-          setCsrfToken(newCsrfToken);
-        }
       }
+      console.log("CSRF token after init:", newCsrfToken);
     };
     initCsrf();
   }, []);
 
-  // NO CHANGES: authAxios configuration
+  // UPDATED: authAxios configuration with custom getCookie
   const authAxios = useMemo(() => {
     const inst = axios.create({
       baseURL: BASE_URL,
@@ -97,9 +95,11 @@ export const AppProvider = ({ children }) => {
       const token = Cookies.get("isource-plus-auth-token");
       console.log("authAxios request - isource-plus-auth-token:", token);
       if (token) cfg.headers.Authorization = `Bearer ${token}`;
-      // NEW ADDITION: Ensure CSRF token in headers for POST requests
-      if (cfg.method.toLowerCase() === "post" && csrfToken) {
-        cfg.headers["X-CSRFToken"] = csrfToken;
+      // NEW ADDITION: Add X-CSRFToken for POST requests
+      if (cfg.method.toLowerCase() === "post") {
+        const csrfToken = getCookie("csrftoken");
+        console.log("authAxios CSRF token:", csrfToken, "document.cookie:", document.cookie);
+        if (csrfToken) cfg.headers["X-CSRFToken"] = csrfToken;
       }
       return cfg;
     });
@@ -131,7 +131,7 @@ export const AppProvider = ({ children }) => {
     );
 
     return inst;
-  }, [csrfToken]); // UPDATED: Add csrfToken dependency
+  }, []);
 
   // NO CHANGES: Tailwind values
   const tailwindValues = {
@@ -183,19 +183,17 @@ export const AppProvider = ({ children }) => {
     }
   }, [token]);
 
-  // UPDATED: Fix signup CSRF handling
+  // UPDATED: Signup with custom getCookie
   const signup = async (email, password1, password2, navigate) => {
     setError(null);
     setLoading(true);
     try {
-      // NEW ADDITION: Ensure CSRF token is available
-      let csrfTokenLocal = csrfToken || Cookies.get("csrftoken");
+      let csrfTokenLocal = getCookie("csrftoken");
       if (!csrfTokenLocal) {
         console.log("No CSRF token found for signup, fetching...");
         csrfTokenLocal = await fetchCsrfToken();
-        if (csrfTokenLocal) setCsrfToken(csrfTokenLocal);
       }
-      console.log("Signup CSRF token:", csrfTokenLocal);
+      console.log("Signup CSRF token:", csrfTokenLocal, "document.cookie:", document.cookie);
 
       const response = await axios.post(
         `${BASE_URL}account_auth/registration/`,
@@ -248,19 +246,17 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: Ensure reliable CSRF token for login
+  // UPDATED: Login with custom getCookie
   const login = async (email, password, navigate) => {
     setError(null);
     setLoading(true);
     try {
-      // NEW ADDITION: Ensure CSRF token is available
-      let csrfTokenLocal = csrfToken || Cookies.get("csrftoken");
+      let csrfTokenLocal = getCookie("csrftoken");
       if (!csrfTokenLocal) {
         console.log("No CSRF token found for login, fetching...");
         csrfTokenLocal = await fetchCsrfToken();
-        if (csrfTokenLocal) setCsrfToken(csrfTokenLocal);
       }
-      console.log("Login CSRF token:", csrfTokenLocal);
+      console.log("Login CSRF token:", csrfTokenLocal, "document.cookie:", document.cookie);
 
       const response = await axios.post(
         `${BASE_URL}account_auth/login/`,
@@ -359,17 +355,16 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: Ensure CSRF token for refreshToken
+  // UPDATED: refreshToken with custom getCookie
   const refreshToken = async () => {
     const refresh = Cookies.get("isource-plus-refresh-token");
     try {
-      let csrfTokenLocal = csrfToken || Cookies.get("csrftoken");
+      let csrfTokenLocal = getCookie("csrftoken");
       if (!csrfTokenLocal) {
         console.log("No CSRF token found for refresh, fetching...");
         csrfTokenLocal = await fetchCsrfToken();
-        if (csrfTokenLocal) setCsrfToken(csrfTokenLocal);
       }
-      console.log("Refresh token CSRF:", csrfTokenLocal);
+      console.log("Refresh token CSRF:", csrfTokenLocal, "document.cookie:", document.cookie);
 
       const response = await axios.post(
         `${BASE_URL}account_auth/token/refresh/`,
@@ -412,19 +407,18 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [token]);
 
-  // UPDATED: Ensure CSRF token for logout
+  // UPDATED: logout with custom getCookie
   const logout = async () => {
     console.log("Logging out...");
     setError(null);
     setLoading(true);
     try {
-      let csrfTokenLocal = csrfToken || Cookies.get("csrftoken");
+      let csrfTokenLocal = getCookie("csrftoken");
       if (!csrfTokenLocal) {
         console.log("No CSRF token found for logout, fetching...");
         csrfTokenLocal = await fetchCsrfToken();
-        if (csrfTokenLocal) setCsrfToken(csrfTokenLocal);
       }
-      console.log("Logout CSRF token:", csrfTokenLocal);
+      console.log("Logout CSRF token:", csrfTokenLocal, "document.cookie:", document.cookie);
 
       await axios.post(
         `${BASE_URL}account_auth/logout/`,
@@ -444,7 +438,7 @@ export const AppProvider = ({ children }) => {
       setTransporterId(null);
       setCompanyId(null);
       localStorage.removeItem("user_email");
-      localStorage.setItem("profile_id");
+      localStorage.removeItem("profile_id");
       toast.success("Logout successful.");
     } catch (error) {
       const errorMessage =
