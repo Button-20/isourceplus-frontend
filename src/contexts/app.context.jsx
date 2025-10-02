@@ -10,6 +10,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { getCookie } from "@/utility/getCookie";
 import { registerLogoutHandler } from "@/utils/apiService";
+import Cookies from "js-cookie";
 
 export const AppContext = createContext();
 
@@ -29,7 +30,7 @@ export const AppProvider = ({ children }) => {
   // console.log("csrf token:", csrfToken);
 
   // Axios instance for protected API calls
-  const authAxios = useMemo(() => {
+   const authAxios = useMemo(() => {
     const inst = axios.create({
       baseURL: BASE_URL,
       withCredentials: true,
@@ -38,7 +39,7 @@ export const AppProvider = ({ children }) => {
     });
 
     inst.interceptors.request.use((cfg) => {
-      const token = localStorage.getItem("access_token");
+      const token = Cookies.get("isource-plus-auth-token"); // UPDATED: Read from cookie
       if (token) cfg.headers.Authorization = `Bearer ${token}`;
       return cfg;
     });
@@ -58,7 +59,7 @@ export const AppProvider = ({ children }) => {
             orig.headers.Authorization = `Bearer ${newTok}`;
             return inst(orig);
           } catch {
-            /* refreshAccessToken calls logout() on failure */
+            /* refreshToken calls logout() on failure */
           }
         }
         return Promise.reject(err);
@@ -77,9 +78,9 @@ export const AppProvider = ({ children }) => {
     "bg-white text-gray-500 font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-[1rem] md:px-[2rem] rounded-md hover:!scale-110 duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[1.2rem]";
   const primaryText = "text-indigo-600";
 
-  const [token, setToken] = useState(
-    () => localStorage.getItem("access_token") || false
-  );
+ const [token, setToken] = useState(
+     () => Cookies.get("isource-plus-auth-token") || false
+   );
   const [user, setUser] = useState(
     () => localStorage.getItem("user_email") || null
   );
@@ -170,7 +171,6 @@ export const AppProvider = ({ children }) => {
     setLoading(true);
     try {
       let csrfToken = getCookie("csrftoken");
-
       const response = await axios.post(
         `${BASE_URL}account_auth/registration/`,
         { email: email.trim(), password1, password2 },
@@ -187,16 +187,21 @@ export const AppProvider = ({ children }) => {
 
       setBaseData(data);
       setUser(data.user_email);
-      setToken(data.access);
       setUserProfileId(data.profile_id);
+      // NEW ADDITION: Read token from cookie instead of response
+      const accessToken = Cookies.get("isource-plus-auth-token");
+      if (accessToken) {
+        setToken(accessToken);
+      } else {
+        throw new Error("Auth token not found in cookies");
+      }
+      // NO CHANGES: Store user_email and profile_id in localStorage
       localStorage.setItem("user_email", data.user_email);
-      localStorage.setItem("access_token", data.access);
       localStorage.setItem("profile_id", data.profile_id);
-      await fetchCsrfToken(); // Fetch CSRF token after signup
+      await fetchCsrfToken();
 
       console.log(`Navigating to onboarding for user ${data.user_email}`);
-      // const profileId = await fetchUserData();
-      navigate("/onboarding/user", { replace: true }); // Always go to onboarding after signup
+      navigate("/onboarding/user", { replace: true });
 
       toast(data.detail);
       return data;
@@ -210,18 +215,15 @@ export const AppProvider = ({ children }) => {
         error.response?.data?.detail ||
         error.message ||
         "Signup failed. Please try again.";
-      console.error("Signup error:", errorMessage);
       setError(errorMessage);
-
       toast.error(errorMessage);
-
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (email, password, navigate) => {
+ const login = async (email, password, navigate) => {
     setError(null);
     setLoading(true);
     try {
@@ -240,17 +242,23 @@ export const AppProvider = ({ children }) => {
       const data = response.data;
       setBaseData(data);
       setUser(data.user_email);
-      setToken(data.access);
       setUserProfileId(data.profile_id);
+      // NEW ADDITION: Read token from cookie instead of response
+      const accessToken = Cookies.get("isource-plus-auth-token");
+      if (accessToken) {
+        setToken(accessToken);
+      } else {
+        throw new Error("Auth token not found in cookies");
+      }
+      // NO CHANGES: Store user_email and profile_id in localStorage
       localStorage.setItem("user_email", data.user_email);
-      localStorage.setItem("access_token", data.access);
       localStorage.setItem("profile_id", data.profile_id);
-      await fetchCsrfToken(); // Fetch CSRF token after login
-      const profileId = await fetchUserData(); // Get profileId
+      await fetchCsrfToken();
+      const profileId = await fetchUserData();
       const from =
         window.location.state?.from?.pathname ||
         (profileId ? "/dashboard" : "/onboarding/user");
-      navigate(from, { replace: true }); // Navigate based on profileId
+      navigate(from, { replace: true });
       return data;
     } catch (error) {
       const errorMessage =
@@ -266,6 +274,8 @@ export const AppProvider = ({ children }) => {
       setLoading(false);
     }
   };
+
+
   const googleLogin = async (navigate) => {
     setError(null);
     setLoading(true);
@@ -318,7 +328,7 @@ export const AppProvider = ({ children }) => {
     const refresh = getCookie("isource-plus-refresh-token");
     try {
       const csrf = getCookie("csrftoken");
-      const response = await axios.post(
+      await axios.post(
         `${BASE_URL}account_auth/token/refresh/`,
         { refresh },
         {
@@ -329,9 +339,12 @@ export const AppProvider = ({ children }) => {
           withCredentials: true,
         }
       );
-      const newAccessToken = response.data.access;
+      // NEW ADDITION: Read new token from cookie
+      const newAccessToken = Cookies.get("isource-plus-auth-token");
+      if (!newAccessToken) {
+        throw new Error("New auth token not found in cookies");
+      }
       setToken(newAccessToken);
-      localStorage.setItem("access_token", newAccessToken);
       return newAccessToken;
     } catch (error) {
       console.error("Refresh token failed:", error);
