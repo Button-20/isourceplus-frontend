@@ -60,7 +60,7 @@ export const AppProvider = ({ children }) => {
         withCredentials: true,
       });
       console.log("fetchCsrfToken response:", response.data, response.headers); // NEW ADDITION: Debug response
-      csrfToken = Cookies.get("csrftoken"); // NEW ADDITION: Update csrfToken
+     const csrfToken = Cookies.get("csrftoken"); // NEW ADDITION: Update csrfToken
       return csrfToken;
     } catch (error) {
       console.error("Failed to fetch CSRF token:", error);
@@ -183,23 +183,23 @@ export const AppProvider = ({ children }) => {
       setLoading(true);
       try {
         // NEW ADDITION: Fetch CSRF token if not available
-        let csrfTokenLocal = Cookies.get("csrftoken");
-        if (!csrfTokenLocal) {
-          console.log("No CSRF token found, fetching...");
-          csrfTokenLocal = await fetchCsrfToken();
-        }
-        console.log("Signup CSRF token:", csrfTokenLocal); // NEW ADDITION: Debug
+        // let csrfTokenLocal = Cookies.get("csrftoken");
+        // if (!csrfTokenLocal) {
+        //   console.log("No CSRF token found, fetching...");
+        //   csrfTokenLocal = await fetchCsrfToken();
+        // }
+        // console.log("Signup CSRF token:", csrfTokenLocal); // NEW ADDITION: Debug
   
         const response = await axios.post(
           `${BASE_URL}account_auth/registration/`,
           { email: email.trim(), password1, password2 },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": csrfTokenLocal, 
-            },
-            withCredentials: true,
-          }
+          // {
+          //   headers: {
+          //     "Content-Type": "application/json",
+          //     "X-CSRFToken": csrfTokenLocal, 
+          //   },
+          //   withCredentials: true,
+          // }
         );
         const data = response.data;
         console.log("Signup response:", data, response.headers); // Debug
