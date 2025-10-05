@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import { toast } from "sonner";
 import axios from "axios";
-import { registerLogoutHandler } from "@/utils/apiService";
 
 export const AppContext = createContext();
 
@@ -364,7 +363,7 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       console.error("Refresh token failed:", error, error.response?.data);
       toast.error("Session expired. Please login again.");
-      logout();
+      // logout();
       throw error;
     }
   };
@@ -442,10 +441,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // NO CHANGES: useEffect for registerLogoutHandler
-  useEffect(() => {
-    registerLogoutHandler(logout);
-  }, [logout]);
+
 
   // NO CHANGES: fetchProfileInfo
   const fetchProfileInfo = async () => {
