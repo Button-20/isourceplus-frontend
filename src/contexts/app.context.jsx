@@ -21,7 +21,7 @@ export const AppProvider = ({ children }) => {
       ? `${import.meta.env.VITE_SERVER_URL}api/v1/`
       : `${import.meta.env.VITE_SECURE_URL}api/v1/`;
 
-  // UPDATED: State initialization, initialize tokens from localStorage
+  // NO CHANGES: State initialization
   const [token, setToken] = useState(
     () => localStorage.getItem("access_token") || null
   ); // Access token
@@ -86,21 +86,28 @@ export const AppProvider = ({ children }) => {
     initCsrf();
   }, []);
 
-  // NEW ADDITION: Attempt token refresh on mount if tokens exist
+  // UPDATED: Attempt token refresh on mount only after CSRF token is available
   useEffect(() => {
     const attemptRefreshOnMount = async () => {
-      if (token && refreshToken && !loading) {
+      if (token && refreshToken && csrfToken && !loading) {
         try {
-          console.log("Attempting token refresh on mount...");
+          console.log("Attempting token refresh on mount with CSRF:", csrfToken);
           await refreshTokenFunction();
         } catch (error) {
-          console.error("Initial token refresh failed:", error);
-          // Don't call logout here to avoid immediate redirect
+          console.error("Initial token refresh failed:", error, error.response?.data);
+          // Do not call logout here to avoid immediate redirect
+          toast.error("Failed to refresh session. You may need to log in again.");
         }
+      } else {
+        console.log("Skipping on-mount refresh: missing token, refreshToken, or csrfToken", {
+          token,
+          refreshToken,
+          csrfToken,
+        });
       }
     };
     attemptRefreshOnMount();
-  }, []); // Run once on mount
+  }, [csrfToken]); // Depend on csrfToken to ensure it's available
 
   // NO CHANGES: authAxios configuration
   const authAxios = useMemo(() => {
@@ -133,7 +140,7 @@ export const AppProvider = ({ children }) => {
           err.response?.headers
         );
         if (
-          err.response?.status === 403 &&
+          err.response?.status === 401 &&
           err.response?.data?.code === "token_not_valid" &&
           !orig._retry
         ) {
@@ -163,7 +170,7 @@ export const AppProvider = ({ children }) => {
     "bg-white text-gray-500 font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-[1rem] md:px-[2rem] rounded-md hover:!scale-110 duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[1.2rem]";
   const primaryText = "text-indigo-600";
 
-  // UPDATED: fetchUserData, added error check for missing results
+  // NO CHANGES: fetchUserData
   const fetchUserData = async () => {
     try {
       console.log("Fetching user data...");
@@ -207,7 +214,7 @@ export const AppProvider = ({ children }) => {
     }
   }, [token]);
 
-  // UPDATED: Signup, persist tokens to localStorage
+  // NO CHANGES: Signup
   const signup = async (email, password1, password2, navigate) => {
     setError(null);
     setLoading(true);
@@ -266,7 +273,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: Login, persist tokens to localStorage
+  // NO CHANGES: Login
   const login = async (email, password, navigate) => {
     setError(null);
     setLoading(true);
@@ -322,12 +329,15 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: refreshTokenFunction, persist new access token
+  // UPDATED: refreshTokenFunction, improved error logging
   const refreshTokenFunction = async () => {
     try {
       if (!csrfToken) {
         console.log("No CSRF token found for refresh, fetching...");
         await fetchCsrfToken();
+      }
+      if (!csrfToken) {
+        throw new Error("CSRF token unavailable after fetch attempt");
       }
       console.log("Refresh token CSRF:", csrfToken);
 
@@ -337,7 +347,7 @@ export const AppProvider = ({ children }) => {
         {
           headers: {
             "Content-Type": "application/json",
-            ...(csrfToken && { "X-CSRFToken": csrfToken }),
+            "X-CSRFToken": csrfToken,
           },
           withCredentials: true,
         }
@@ -352,7 +362,7 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem("access_token", newAccessToken);
       return newAccessToken;
     } catch (error) {
-      console.error("Refresh token failed:", error);
+      console.error("Refresh token failed:", error, error.response?.data);
       toast.error("Session expired. Please login again.");
       logout();
       throw error;
@@ -373,7 +383,7 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [token]);
 
-  // UPDATED: logout, clear tokens from localStorage
+  // NO CHANGES: logout
   const logout = async () => {
     console.log("Logging out...");
     setError(null);
@@ -404,7 +414,7 @@ export const AppProvider = ({ children }) => {
       setTransporterId(null);
       setCompanyId(null);
       localStorage.removeItem("user_email");
-      localStorage.removeItem("profile_id");
+      localStorage.setItem("profile_id", "");
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       toast.success("Logout successful.");
@@ -423,7 +433,7 @@ export const AppProvider = ({ children }) => {
       setTransporterId(null);
       setCompanyId(null);
       localStorage.removeItem("user_email");
-      localStorage.removeItem("profile_id");
+      localStorage.setItem("profile_id", "");
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       toast.success("Logout successful.");
@@ -451,7 +461,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: AppContext.Provider, fixed refreshToken naming
+  // NO CHANGES: AppContext.Provider
   return (
     <AppContext.Provider
       value={{
@@ -479,7 +489,7 @@ export const AppProvider = ({ children }) => {
         authAxios,
         setLastPath,
         BASE_URL,
-        refreshTokenFunction, // Fixed naming to match function
+        refreshTokenFunction,
         jobTitle,
         setJobTitle,
         profileLoading,
