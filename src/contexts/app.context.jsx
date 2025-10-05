@@ -362,7 +362,7 @@ export const AppProvider = ({ children }) => {
       return newAccessToken;
     } catch (error) {
       console.error("Refresh token failed:", error, error.response?.data);
-      toast.error("Session expired. Please login again.");
+      toast.error(error.response?.data?.error || "Session expired. Please login again.");
       // logout();
       throw error;
     }
