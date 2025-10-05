@@ -47,14 +47,14 @@ export function LoginPage() {
   };
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      await login(email, password, navigate); // Pass navigate to login
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Login failed. Please try again."
-      );
-      console.error("Login error:", err);
-    }
+    // try {
+    await login(email, password, navigate); // Pass navigate to login
+    // } catch (err) {
+    //   setError(
+    //     err.response?.data?.message || "Login failed. Please try again."
+    //   );
+    //   console.error("Login error:", err);
+    // }
   };
 
   const handleGoogleLogin = async () => {
