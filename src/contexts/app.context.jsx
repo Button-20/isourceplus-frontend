@@ -107,7 +107,11 @@ export const AppProvider = ({ children }) => {
       },
       async (err) => {
         const orig = err.config;
-        console.error("authAxios error:", err.response?.data, err.response?.headers);
+        console.error(
+          "authAxios error:",
+          err.response?.data,
+          err.response?.headers
+        );
         if (
           err.response?.status === 403 &&
           err.response?.data?.code === "token_not_valid" &&
@@ -147,7 +151,11 @@ export const AppProvider = ({ children }) => {
       const res = await authAxios.get("users/");
       console.log("Fetched user data");
 
-      const userData = res.data.results[0];
+      const userData = res.data?.results[0];
+      if (!userData) {
+        console.error("No user data found in response:", res.data);
+        return null;
+      }
       console.log("Assigned user data to userData");
 
       if (userData.company) {
@@ -165,7 +173,7 @@ export const AppProvider = ({ children }) => {
       return profileId;
     } catch (err) {
       console.error("Failed to fetch user data:", err);
-      toast.error(err.response.data.message || "Failed to load user data");
+      toast.error(err.response?.data?.message || "Failed to load user data");
       return null;
     } finally {
       setSidebarLoading(false);
