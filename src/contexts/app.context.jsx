@@ -7,21 +7,13 @@ import React, {
 } from "react";
 import { toast } from "sonner";
 import axios from "axios";
-import Cookies from "js-cookie";
 import { registerLogoutHandler } from "@/utils/apiService";
 
 export const AppContext = createContext();
 
+// NO CHANGES: Environment setup
 const NODE_ENV = import.meta.env.VITE_NODE_ENV || "development";
 console.log("Environment:", NODE_ENV);
-
-// NEW ADDITION: Custom function to parse document.cookie
-const getCookie = (name) => {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(";").shift();
-  return null;
-};
 
 export const AppProvider = ({ children }) => {
   const BASE_URL =
@@ -29,10 +21,10 @@ export const AppProvider = ({ children }) => {
       ? `${import.meta.env.VITE_SERVER_URL}api/v1/`
       : `${import.meta.env.VITE_SECURE_URL}api/v1/`;
 
-  // NO CHANGES: State initialization
-  const [token, setToken] = useState(
-    () => Cookies.get("isource-plus-auth-token") || false
-  );
+  // UPDATED: State initialization, removed cookie usage, added csrfToken and refreshToken
+  const [token, setToken] = useState(null); // Access token
+  const [refreshToken, setRefreshToken] = useState(null); // Refresh token
+  const [csrfToken, setCsrfToken] = useState(null); // CSRF token
   const [user, setUser] = useState(
     () => localStorage.getItem("user_email") || null
   );
@@ -52,15 +44,20 @@ export const AppProvider = ({ children }) => {
   const [sidebarLoading, setSidebarLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // UPDATED: Fetch CSRF token and use getCookie
+  // UPDATED: Fetch CSRF token from response body
   const fetchCsrfToken = async () => {
     try {
       const response = await axios.get(`${BASE_URL}init/`, {
         withCredentials: true,
       });
       console.log("fetchCsrfToken response:", response.data, response.headers);
-      const newCsrfToken = getCookie("csrftoken"); // Use custom getCookie
-      console.log("Fetched CSRF token:", newCsrfToken, "document.cookie:", document.cookie);
+      const newCsrfToken = response.data.csrftoken;
+      if (!newCsrfToken) {
+        console.error("CSRF token not found in response");
+        return null;
+      }
+      setCsrfToken(newCsrfToken);
+      console.log("Fetched CSRF token:", newCsrfToken);
       return newCsrfToken;
     } catch (error) {
       console.error("Failed to fetch CSRF token:", error);
@@ -76,30 +73,29 @@ export const AppProvider = ({ children }) => {
         console.log("Retrying CSRF token fetch after delay...");
         await new Promise((resolve) => setTimeout(resolve, 1000));
         newCsrfToken = await fetchCsrfToken();
+        if (!newCsrfToken) {
+          console.error("Failed to fetch CSRF token after retry");
+        }
       }
       console.log("CSRF token after init:", newCsrfToken);
     };
     initCsrf();
   }, []);
 
-  // UPDATED: authAxios configuration with custom getCookie
+  // UPDATED: authAxios configuration, use state instead of cookies
   const authAxios = useMemo(() => {
     const inst = axios.create({
       baseURL: BASE_URL,
       withCredentials: true,
-      xsrfCookieName: "csrftoken",
       xsrfHeaderName: "X-CSRFToken",
     });
 
     inst.interceptors.request.use((cfg) => {
-      const token = Cookies.get("isource-plus-auth-token");
-      console.log("authAxios request - isource-plus-auth-token:", token);
+      console.log("authAxios request - token:", token);
       if (token) cfg.headers.Authorization = `Bearer ${token}`;
-      // NEW ADDITION: Add X-CSRFToken for POST requests
-      if (cfg.method.toLowerCase() === "post") {
-        const csrfToken = getCookie("csrftoken");
-        console.log("authAxios CSRF token:", csrfToken, "document.cookie:", document.cookie);
-        if (csrfToken) cfg.headers["X-CSRFToken"] = csrfToken;
+      if (cfg.method.toLowerCase() === "post" && csrfToken) {
+        console.log("authAxios CSRF token:", csrfToken);
+        cfg.headers["X-CSRFToken"] = csrfToken;
       }
       return cfg;
     });
@@ -119,7 +115,7 @@ export const AppProvider = ({ children }) => {
         ) {
           orig._retry = true;
           try {
-            const newTok = await refreshToken();
+            const newTok = await refreshTokenFunction();
             orig.headers.Authorization = `Bearer ${newTok}`;
             return inst(orig);
           } catch {
@@ -131,7 +127,7 @@ export const AppProvider = ({ children }) => {
     );
 
     return inst;
-  }, []);
+  }, [token, csrfToken]); // Depend on token and csrfToken
 
   // NO CHANGES: Tailwind values
   const tailwindValues = {
@@ -183,17 +179,16 @@ export const AppProvider = ({ children }) => {
     }
   }, [token]);
 
-  // UPDATED: Signup with custom getCookie
+  // UPDATED: Signup, use response body for tokens
   const signup = async (email, password1, password2, navigate) => {
     setError(null);
     setLoading(true);
     try {
-      let csrfTokenLocal = getCookie("csrftoken");
-      if (!csrfTokenLocal) {
+      if (!csrfToken) {
         console.log("No CSRF token found for signup, fetching...");
-        csrfTokenLocal = await fetchCsrfToken();
+        await fetchCsrfToken();
       }
-      console.log("Signup CSRF token:", csrfTokenLocal, "document.cookie:", document.cookie);
+      console.log("Signup CSRF token:", csrfToken);
 
       const response = await axios.post(
         `${BASE_URL}account_auth/registration/`,
@@ -201,7 +196,7 @@ export const AppProvider = ({ children }) => {
         {
           headers: {
             "Content-Type": "application/json",
-            ...(csrfTokenLocal && { "X-CSRFToken": csrfTokenLocal }),
+            ...(csrfToken && { "X-CSRFToken": csrfToken }),
           },
           withCredentials: true,
         }
@@ -212,13 +207,8 @@ export const AppProvider = ({ children }) => {
       setBaseData(data);
       setUser(data.user_email);
       setUserProfileId(data.profile_id);
-      const accessToken = Cookies.get("isource-plus-auth-token");
-      if (accessToken) {
-        setToken(accessToken);
-      } else {
-        console.warn("No auth token found in cookies");
-        setError("Authentication token not received. Please try again.");
-      }
+      setToken(data.access);
+      setRefreshToken(data.refresh);
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("profile_id", data.profile_id);
       await fetchCsrfToken();
@@ -246,17 +236,16 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: Login with custom getCookie
+  // UPDATED: Login, use response body for tokens
   const login = async (email, password, navigate) => {
     setError(null);
     setLoading(true);
     try {
-      let csrfTokenLocal = getCookie("csrftoken");
-      if (!csrfTokenLocal) {
+      if (!csrfToken) {
         console.log("No CSRF token found for login, fetching...");
-        csrfTokenLocal = await fetchCsrfToken();
+        await fetchCsrfToken();
       }
-      console.log("Login CSRF token:", csrfTokenLocal, "document.cookie:", document.cookie);
+      console.log("Login CSRF token:", csrfToken);
 
       const response = await axios.post(
         `${BASE_URL}account_auth/login/`,
@@ -264,7 +253,7 @@ export const AppProvider = ({ children }) => {
         {
           headers: {
             "Content-Type": "application/json",
-            ...(csrfTokenLocal && { "X-CSRFToken": csrfTokenLocal }),
+            ...(csrfToken && { "X-CSRFToken": csrfToken }),
           },
           withCredentials: true,
         }
@@ -275,13 +264,8 @@ export const AppProvider = ({ children }) => {
       setBaseData(data);
       setUser(data.user_email);
       setUserProfileId(data.profile_id);
-      const accessToken = Cookies.get("isource-plus-auth-token");
-      if (accessToken) {
-        setToken(accessToken);
-      } else {
-        console.warn("No auth token found in cookies");
-        setError("Authentication token not received. Please try again.");
-      }
+      setToken(data.access);
+      setRefreshToken(data.refresh);
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("profile_id", data.profile_id);
       await fetchCsrfToken();
@@ -306,82 +290,31 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // NO CHANGES: googleLogin
-  const googleLogin = async (navigate) => {
-    setError(null);
-    setLoading(true);
+  // UPDATED: refreshToken, use state for refresh token
+  const refreshTokenFunction = async () => {
     try {
-      const width = 500;
-      const height = 600;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-      const popup = window.open(
-        `${BASE_URL}auth/google/`,
-        "Google OAuth",
-        `width=${width},height=${height},top=${top},left=${left}`
-      );
-      return new Promise((resolve, reject) => {
-        const messageListener = (event) => {
-          if (event.origin !== "http://127.0.0.1:8000") return;
-          if (event.data.type === "OAUTH_SUCCESS") {
-            const { access_token, user } = event.data;
-            setToken(access_token);
-            setUser(user.email);
-            localStorage.setItem("access_token", access_token);
-            localStorage.setItem("user_email", user.email);
-            popup.close();
-            window.removeEventListener("message", messageListener);
-            fetchUserData().then((profileId) => {
-              const from =
-                window.location.state?.from?.pathname ||
-                (profileId ? "/dashboard" : "/onboarding/user");
-              navigate(from, { replace: true });
-              resolve(user);
-            });
-          } else if (event.data.type === "OAUTH_ERROR") {
-            setError(event.data.message);
-            popup.close();
-            window.removeEventListener("message", messageListener);
-            reject(new Error(event.data.message));
-          }
-        };
-        window.addEventListener("message", messageListener);
-      });
-    } catch (error) {
-      setError(error.message || "Google login failed");
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // UPDATED: refreshToken with custom getCookie
-  const refreshToken = async () => {
-    const refresh = Cookies.get("isource-plus-refresh-token");
-    try {
-      let csrfTokenLocal = getCookie("csrftoken");
-      if (!csrfTokenLocal) {
+      if (!csrfToken) {
         console.log("No CSRF token found for refresh, fetching...");
-        csrfTokenLocal = await fetchCsrfToken();
+        await fetchCsrfToken();
       }
-      console.log("Refresh token CSRF:", csrfTokenLocal, "document.cookie:", document.cookie);
+      console.log("Refresh token CSRF:", csrfToken);
 
       const response = await axios.post(
         `${BASE_URL}account_auth/token/refresh/`,
-        { refresh },
+        { refresh: refreshToken },
         {
           headers: {
             "Content-Type": "application/json",
-            ...(csrfTokenLocal && { "X-CSRFToken": csrfTokenLocal }),
+            ...(csrfToken && { "X-CSRFToken": csrfToken }),
           },
           withCredentials: true,
         }
       );
       console.log("Refresh token response:", response.data, response.headers);
-      const newAccessToken = Cookies.get("isource-plus-auth-token");
+      const newAccessToken = response.data.access;
       if (!newAccessToken) {
-        console.warn("No new auth token found in cookies");
-        throw new Error("New auth token not found");
+        console.warn("No new access token found in response");
+        throw new Error("New access token not found");
       }
       setToken(newAccessToken);
       return newAccessToken;
@@ -398,7 +331,7 @@ export const AppProvider = ({ children }) => {
     if (!token) return;
     const interval = setInterval(async () => {
       try {
-        await refreshToken();
+        await refreshTokenFunction();
       } catch (error) {
         console.error("Auto-refresh failed:", error);
         clearInterval(interval);
@@ -407,18 +340,17 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [token]);
 
-  // UPDATED: logout with custom getCookie
+  // UPDATED: logout, use csrfToken state
   const logout = async () => {
     console.log("Logging out...");
     setError(null);
     setLoading(true);
     try {
-      let csrfTokenLocal = getCookie("csrftoken");
-      if (!csrfTokenLocal) {
+      if (!csrfToken) {
         console.log("No CSRF token found for logout, fetching...");
-        csrfTokenLocal = await fetchCsrfToken();
+        await fetchCsrfToken();
       }
-      console.log("Logout CSRF token:", csrfTokenLocal, "document.cookie:", document.cookie);
+      console.log("Logout CSRF token:", csrfToken);
 
       await axios.post(
         `${BASE_URL}account_auth/logout/`,
@@ -426,7 +358,7 @@ export const AppProvider = ({ children }) => {
         {
           headers: {
             "Content-Type": "application/json",
-            ...(csrfTokenLocal && { "X-CSRFToken": csrfTokenLocal }),
+            ...(csrfToken && { "X-CSRFToken": csrfToken }),
           },
           withCredentials: true,
         }
@@ -434,6 +366,7 @@ export const AppProvider = ({ children }) => {
       setBaseData(null);
       setUser(null);
       setToken(null);
+      setRefreshToken(null);
       setUserProfileId(null);
       setTransporterId(null);
       setCompanyId(null);
@@ -450,6 +383,7 @@ export const AppProvider = ({ children }) => {
       setBaseData(null);
       setUser(null);
       setToken(null);
+      setRefreshToken(null);
       setUserProfileId(null);
       setTransporterId(null);
       setCompanyId(null);
@@ -480,7 +414,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // NO CHANGES: AppContext.Provider
+  // UPDATED: AppContext.Provider, removed googleLogin
   return (
     <AppContext.Provider
       value={{
@@ -500,7 +434,6 @@ export const AppProvider = ({ children }) => {
         setLoading,
         signup,
         login,
-        googleLogin,
         logout,
         error,
         setError,
