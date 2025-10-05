@@ -21,9 +21,13 @@ export const AppProvider = ({ children }) => {
       ? `${import.meta.env.VITE_SERVER_URL}api/v1/`
       : `${import.meta.env.VITE_SECURE_URL}api/v1/`;
 
-  // UPDATED: State initialization, removed cookie usage, added csrfToken and refreshToken
-  const [token, setToken] = useState(null); // Access token
-  const [refreshToken, setRefreshToken] = useState(null); // Refresh token
+  // UPDATED: State initialization, initialize tokens from localStorage
+  const [token, setToken] = useState(
+    () => localStorage.getItem("access_token") || null
+  ); // Access token
+  const [refreshToken, setRefreshToken] = useState(
+    () => localStorage.getItem("refresh_token") || null
+  ); // Refresh token
   const [csrfToken, setCsrfToken] = useState(null); // CSRF token
   const [user, setUser] = useState(
     () => localStorage.getItem("user_email") || null
@@ -44,7 +48,7 @@ export const AppProvider = ({ children }) => {
   const [sidebarLoading, setSidebarLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // UPDATED: Fetch CSRF token from response body
+  // NO CHANGES: Fetch CSRF token from response body
   const fetchCsrfToken = async () => {
     try {
       const response = await axios.get(`${BASE_URL}init/`, {
@@ -65,7 +69,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: Fetch CSRF token on mount with retry
+  // NO CHANGES: Fetch CSRF token on mount with retry
   useEffect(() => {
     const initCsrf = async () => {
       let newCsrfToken = await fetchCsrfToken();
@@ -82,7 +86,23 @@ export const AppProvider = ({ children }) => {
     initCsrf();
   }, []);
 
-  // UPDATED: authAxios configuration, use state instead of cookies
+  // NEW ADDITION: Attempt token refresh on mount if tokens exist
+  useEffect(() => {
+    const attemptRefreshOnMount = async () => {
+      if (token && refreshToken && !loading) {
+        try {
+          console.log("Attempting token refresh on mount...");
+          await refreshTokenFunction();
+        } catch (error) {
+          console.error("Initial token refresh failed:", error);
+          // Don't call logout here to avoid immediate redirect
+        }
+      }
+    };
+    attemptRefreshOnMount();
+  }, []); // Run once on mount
+
+  // NO CHANGES: authAxios configuration
   const authAxios = useMemo(() => {
     const inst = axios.create({
       baseURL: BASE_URL,
@@ -123,7 +143,7 @@ export const AppProvider = ({ children }) => {
             orig.headers.Authorization = `Bearer ${newTok}`;
             return inst(orig);
           } catch {
-            /* refreshToken calls logout() on failure */
+            /* refreshTokenFunction calls logout() on failure */
           }
         }
         return Promise.reject(err);
@@ -143,7 +163,7 @@ export const AppProvider = ({ children }) => {
     "bg-white text-gray-500 font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-[1rem] md:px-[2rem] rounded-md hover:!scale-110 duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[1.2rem]";
   const primaryText = "text-indigo-600";
 
-  // NO CHANGES: fetchUserData
+  // UPDATED: fetchUserData, added error check for missing results
   const fetchUserData = async () => {
     try {
       console.log("Fetching user data...");
@@ -187,7 +207,7 @@ export const AppProvider = ({ children }) => {
     }
   }, [token]);
 
-  // UPDATED: Signup, use response body for tokens
+  // UPDATED: Signup, persist tokens to localStorage
   const signup = async (email, password1, password2, navigate) => {
     setError(null);
     setLoading(true);
@@ -219,6 +239,8 @@ export const AppProvider = ({ children }) => {
       setRefreshToken(data.refresh);
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("profile_id", data.profile_id);
+      localStorage.setItem("access_token", data.access);
+      localStorage.setItem("refresh_token", data.refresh);
       await fetchCsrfToken();
 
       console.log(`Navigating to onboarding for user ${data.user_email}`);
@@ -244,7 +266,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: Login, use response body for tokens
+  // UPDATED: Login, persist tokens to localStorage
   const login = async (email, password, navigate) => {
     setError(null);
     setLoading(true);
@@ -276,6 +298,8 @@ export const AppProvider = ({ children }) => {
       setRefreshToken(data.refresh);
       localStorage.setItem("user_email", data.user_email);
       localStorage.setItem("profile_id", data.profile_id);
+      localStorage.setItem("access_token", data.access);
+      localStorage.setItem("refresh_token", data.refresh);
       await fetchCsrfToken();
       const profileId = await fetchUserData();
       const from =
@@ -298,7 +322,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: refreshToken, use state for refresh token
+  // UPDATED: refreshTokenFunction, persist new access token
   const refreshTokenFunction = async () => {
     try {
       if (!csrfToken) {
@@ -325,6 +349,7 @@ export const AppProvider = ({ children }) => {
         throw new Error("New access token not found");
       }
       setToken(newAccessToken);
+      localStorage.setItem("access_token", newAccessToken);
       return newAccessToken;
     } catch (error) {
       console.error("Refresh token failed:", error);
@@ -348,7 +373,7 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [token]);
 
-  // UPDATED: logout, use csrfToken state
+  // UPDATED: logout, clear tokens from localStorage
   const logout = async () => {
     console.log("Logging out...");
     setError(null);
@@ -380,6 +405,8 @@ export const AppProvider = ({ children }) => {
       setCompanyId(null);
       localStorage.removeItem("user_email");
       localStorage.removeItem("profile_id");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
       toast.success("Logout successful.");
     } catch (error) {
       const errorMessage =
@@ -397,6 +424,8 @@ export const AppProvider = ({ children }) => {
       setCompanyId(null);
       localStorage.removeItem("user_email");
       localStorage.removeItem("profile_id");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
       toast.success("Logout successful.");
     } finally {
       setLoading(false);
@@ -422,7 +451,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // UPDATED: AppContext.Provider, removed googleLogin
+  // UPDATED: AppContext.Provider, fixed refreshToken naming
   return (
     <AppContext.Provider
       value={{
@@ -450,7 +479,7 @@ export const AppProvider = ({ children }) => {
         authAxios,
         setLastPath,
         BASE_URL,
-        refreshToken,
+        refreshTokenFunction, // Fixed naming to match function
         jobTitle,
         setJobTitle,
         profileLoading,
