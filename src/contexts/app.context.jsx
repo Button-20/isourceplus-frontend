@@ -95,7 +95,7 @@ export const AppProvider = ({ children }) => {
         } catch (error) {
           console.error("Initial token refresh failed:", error, error.response?.data);
           // Do not call logout here to avoid immediate redirect
-          toast.error("Failed to refresh session. You may need to log in again.");
+          toast.error(error.response?.data?.error || "Failed to refresh session. You may need to log in again.");
         }
       } else {
         console.log("Skipping on-mount refresh: missing token, refreshToken, or csrfToken", {
