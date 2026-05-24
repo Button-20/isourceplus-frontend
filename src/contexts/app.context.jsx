@@ -13,6 +13,8 @@ export const AppContext = createContext();
 // NO CHANGES: Environment setup
 const NODE_ENV = import.meta.env.VITE_NODE_ENV || "development";
 console.log("Environment:", NODE_ENV);
+console.log("VITE_SERVER_URL", import.meta.env.VITE_SERVER_URL);
+console.log("VITE_SECURE_URL", import.meta.env.VITE_SECURE_URL);
 
 export const AppProvider = ({ children }) => {
   const BASE_URL =
@@ -22,17 +24,17 @@ export const AppProvider = ({ children }) => {
 
   // NO CHANGES: State initialization
   const [token, setToken] = useState(
-    () => localStorage.getItem("access_token") || null
+    () => localStorage.getItem("access_token") || null,
   ); // Access token
   const [refreshToken, setRefreshToken] = useState(
-    () => localStorage.getItem("refresh_token") || null
+    () => localStorage.getItem("refresh_token") || null,
   ); // Refresh token
   const [csrfToken, setCsrfToken] = useState(null); // CSRF token
   const [user, setUser] = useState(
-    () => localStorage.getItem("user_email") || null
+    () => localStorage.getItem("user_email") || null,
   );
   const [userProfileId, setUserProfileId] = useState(
-    () => localStorage.getItem("profile_id") || null
+    () => localStorage.getItem("profile_id") || null,
   );
   const [baseData, setBaseData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -90,19 +92,32 @@ export const AppProvider = ({ children }) => {
     const attemptRefreshOnMount = async () => {
       if (token && refreshToken && csrfToken && !loading) {
         try {
-          console.log("Attempting token refresh on mount with CSRF:", csrfToken);
+          console.log(
+            "Attempting token refresh on mount with CSRF:",
+            csrfToken,
+          );
           await refreshTokenFunction();
         } catch (error) {
-          console.error("Initial token refresh failed:", error, error.response?.data);
+          console.error(
+            "Initial token refresh failed:",
+            error,
+            error.response?.data,
+          );
           // Do not call logout here to avoid immediate redirect
-          toast.error(error.response?.data?.error || "Failed to refresh session. You may need to log in again.");
+          // toast.error(
+          //   error.response?.data?.error ||
+          //     "Failed to refresh session. You may need to log in again.",
+          // );
         }
       } else {
-        console.log("Skipping on-mount refresh: missing token, refreshToken, or csrfToken", {
-          token,
-          refreshToken,
-          csrfToken,
-        });
+        console.log(
+          "Skipping on-mount refresh: missing token, refreshToken, or csrfToken",
+          {
+            token,
+            refreshToken,
+            csrfToken,
+          },
+        );
       }
     };
     attemptRefreshOnMount();
@@ -136,7 +151,7 @@ export const AppProvider = ({ children }) => {
         console.error(
           "authAxios error:",
           err.response?.data,
-          err.response?.headers
+          err.response?.headers,
         );
         if (
           err.response?.status === 401 &&
@@ -153,7 +168,7 @@ export const AppProvider = ({ children }) => {
           }
         }
         return Promise.reject(err);
-      }
+      },
     );
 
     return inst;
@@ -233,7 +248,7 @@ export const AppProvider = ({ children }) => {
             ...(csrfToken && { "X-CSRFToken": csrfToken }),
           },
           withCredentials: true,
-        }
+        },
       );
       const data = response.data;
       console.log("Signup response:", data, response.headers);
@@ -292,7 +307,7 @@ export const AppProvider = ({ children }) => {
             ...(csrfToken && { "X-CSRFToken": csrfToken }),
           },
           withCredentials: true,
-        }
+        },
       );
       const data = response.data;
       console.log("Login response:", data, response.headers);
@@ -349,7 +364,7 @@ export const AppProvider = ({ children }) => {
             "X-CSRFToken": csrfToken,
           },
           withCredentials: true,
-        }
+        },
       );
       console.log("Refresh token response:", response.data, response.headers);
       const newAccessToken = response.data.access;
@@ -362,7 +377,9 @@ export const AppProvider = ({ children }) => {
       return newAccessToken;
     } catch (error) {
       console.error("Refresh token failed:", error, error.response?.data);
-      toast.error(error.response?.data?.error || "Session expired. Please login again.");
+      // toast.error(
+      //   error.response?.data?.error || "Session expired. Please login again.",
+      // );
       // logout();
       throw error;
     }
@@ -371,14 +388,17 @@ export const AppProvider = ({ children }) => {
   // NO CHANGES: useEffect for token refresh
   useEffect(() => {
     if (!token) return;
-    const interval = setInterval(async () => {
-      try {
-        await refreshTokenFunction();
-      } catch (error) {
-        console.error("Auto-refresh failed:", error);
-        clearInterval(interval);
-      }
-    }, 4.5 * 60 * 1000); // 4.5 minutes
+    const interval = setInterval(
+      async () => {
+        try {
+          await refreshTokenFunction();
+        } catch (error) {
+          console.error("Auto-refresh failed:", error);
+          clearInterval(interval);
+        }
+      },
+      4.5 * 60 * 1000,
+    ); // 4.5 minutes
     return () => clearInterval(interval);
   }, [token]);
 
@@ -403,7 +423,7 @@ export const AppProvider = ({ children }) => {
             ...(csrfToken && { "X-CSRFToken": csrfToken }),
           },
           withCredentials: true,
-        }
+        },
       );
       setBaseData(null);
       setUser(null);
@@ -440,8 +460,6 @@ export const AppProvider = ({ children }) => {
       setLoading(false);
     }
   };
-
-
 
   // NO CHANGES: fetchProfileInfo
   const fetchProfileInfo = async () => {

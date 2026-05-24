@@ -374,7 +374,7 @@ export function PricingPage() {
         {
           params: {
             plan_name: planName,
-            plan_type: planType, // NEW: Added plan_type
+            plan_type: planType,
             plan_interval: backendPlanInterval,
             ...(isTrial && { is_trial: true, start_date: startDate }),
           },
