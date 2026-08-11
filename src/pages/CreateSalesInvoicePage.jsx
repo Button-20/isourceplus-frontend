@@ -120,7 +120,7 @@ const CreateSalesInvoicePage = () => {
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-gray-700 sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-xs focus:ring-black focus:border-gray-700 sm:text-sm"
                 required
               />
             </div>
@@ -131,7 +131,7 @@ const CreateSalesInvoicePage = () => {
                 name="spend_category"
                 value={formData.spend_category}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-gray-700 sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-xs focus:ring-black focus:border-gray-700 sm:text-sm"
                 readOnly
               />
             </div>

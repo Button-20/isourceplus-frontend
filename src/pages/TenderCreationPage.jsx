@@ -509,7 +509,7 @@ const TenderCreationPage = () => {
 
         {/* Tender Details Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md mb-6">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               type="button"
               onClick={() => setDetailsOpen(!detailsOpen)}
@@ -669,7 +669,7 @@ const TenderCreationPage = () => {
 
         {/* Reach Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md mb-6">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               type="button"
               onClick={() => setReachOpen(!reachOpen)}
@@ -742,7 +742,7 @@ const TenderCreationPage = () => {
 
         {/* Items Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md mb-6">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               type="button"
               onClick={() => setItemsOpen(!itemsOpen)}
@@ -768,7 +768,7 @@ const TenderCreationPage = () => {
                 </button>
               </div>
               {formValues.items.map((item, index) => (
-                <div key={index} className="mb-4 p-4 bg-white border border-gray-200 rounded-md shadow-sm">
+                <div key={index} className="mb-4 p-4 bg-white border border-gray-200 rounded-md shadow-xs">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
@@ -902,7 +902,7 @@ const TenderCreationPage = () => {
 
         {/* Attachments Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md mb-6">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               type="button"
               onClick={() => setAttachmentsOpen(!attachmentsOpen)}
@@ -928,7 +928,7 @@ const TenderCreationPage = () => {
                 </button>
               </div>
               {formValues.attachments.map((attachment, index) => (
-                <div key={index} className="mb-4 p-4 bg-white border border-gray-200 rounded-md shadow-sm">
+                <div key={index} className="mb-4 p-4 bg-white border border-gray-200 rounded-md shadow-xs">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Attachment Name</label>

@@ -50,7 +50,7 @@ const AllTransporterEmployees = () => {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse"
+              className="bg-white rounded-xl shadow-xs border border-gray-100 p-5 animate-pulse"
             >
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
@@ -80,7 +80,7 @@ const AllTransporterEmployees = () => {
   if (error) {
     return (
       <div className="p-4">
-        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
+        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-xs border border-gray-100 p-6 text-center">
           <div className="text-red-500 mb-4">Error loading employees</div>
           <button
             onClick={() => navigate("/dashboard")}
@@ -142,7 +142,7 @@ const AllTransporterEmployees = () => {
       </div>
 
       {filteredEmployees.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-8 text-center">
           <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <User className="text-gray-400" size={40} />
           </div>
@@ -167,7 +167,7 @@ const AllTransporterEmployees = () => {
           {filteredEmployees.map((employee) => (
             <div
               key={employee.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
             >
               <div className="p-6">
                 {/* Employee header */}

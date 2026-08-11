@@ -80,7 +80,7 @@ const TenderPage = () => {
         </p>
         <button
           onClick={() => navigate("/dashboard")}
-          className="mt-6 flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
+          className="mt-6 flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-xs"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Back to Dashboard

@@ -103,7 +103,7 @@ const AllBranches = () => {
       <div className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 animate-pulse">
+            <div key={i} className="bg-white rounded-xl shadow-xs border border-gray-100 p-5 animate-pulse">
               <div className="space-y-4">
                 <div className="h-6 bg-gray-200 rounded w-3/4"></div>
                 <div className="flex items-center gap-3">
@@ -182,7 +182,7 @@ const AllBranches = () => {
       </div>
 
       {branches.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-8 text-center">
           <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <Building className="text-gray-400" size={40} />
           </div>
@@ -202,7 +202,7 @@ const AllBranches = () => {
             {branches.map((branch) => (
               <div
                 key={branch.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+                className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
               >
                 <div className="p-5">
                   {/* Modified: Added three-dot menu */}
@@ -254,7 +254,7 @@ const AllBranches = () => {
                   <div className="space-y-3">
                     {/* Email - No changes */}
                     <div className="flex items-start gap-3">
-                      <Mail className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <Mail className="shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
                         <p className="text-sm text-gray-500">Email</p>
                         <p className="text-gray-800 font-medium">
@@ -265,7 +265,7 @@ const AllBranches = () => {
 
                     {/* Phone Numbers - No changes */}
                     <div className="flex items-start gap-3">
-                      <Phone className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <Phone className="shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
                         <p className="text-sm text-gray-500">Phone</p>
                         <div className="space-y-1">
@@ -283,7 +283,7 @@ const AllBranches = () => {
 
                     {/* Address - No changes */}
                     <div className="flex items-start gap-3">
-                      <MapPin className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <MapPin className="shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
                         <p className="text-sm text-gray-500">Address</p>
                         <div className="text-gray-800 font-medium space-y-1">
@@ -425,7 +425,7 @@ const AllBranches = () => {
               <button
                 onClick={() => handleDelete(deleteModal)}
                 disabled={deleting}
-                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
                   deleting ? "opacity-70 cursor-not-allowed" : ""
                 }`}
               >

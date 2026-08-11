@@ -296,15 +296,15 @@ const CompanyForm = () => {
           <h3 className="font-medium text-gray-900 mb-3">Upload Guidelines</h3>
           <ul className="text-sm text-gray-600 space-y-2">
             <li className="flex items-start">
-              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 shrink-0" />
               <span>Logo should be square (1:1 ratio)</span>
             </li>
             <li className="flex items-start">
-              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 shrink-0" />
               <span>Images must be under 2MB</span>
             </li>
             <li className="flex items-start">
-              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 shrink-0" />
               <span>Acceptable formats: JPG, PNG</span>
             </li>
           </ul>

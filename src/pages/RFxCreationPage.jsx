@@ -366,7 +366,7 @@ const RFxCreationPage = () => {
           <p className="text-gray-600 mb-6">Only lead buyers can create RFxs.</p>
           <button
             onClick={() => navigate("/dashboard/rfxs")}
-            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
+            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-xs"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to RFxs
@@ -384,7 +384,7 @@ const RFxCreationPage = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Details Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               type="button"
               onClick={() => setDetailsOpen(!detailsOpen)}
@@ -547,7 +547,7 @@ const RFxCreationPage = () => {
 
         {/* NEW ADDITION: Reach Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               type="button"
               onClick={() => setReachOpen(!reachOpen)}
@@ -628,7 +628,7 @@ const RFxCreationPage = () => {
 
         {/* Items Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               type="button"
               onClick={() => setItemsOpen(!itemsOpen)}
@@ -644,7 +644,7 @@ const RFxCreationPage = () => {
           {itemsOpen && (
             <div className="p-6 space-y-6">
               {formValues.items.map((item, index) => (
-                <div key={index} className="border border-gray-200 p-4 rounded-md shadow-sm">
+                <div key={index} className="border border-gray-200 p-4 rounded-md shadow-xs">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>

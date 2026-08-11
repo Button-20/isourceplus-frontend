@@ -56,7 +56,7 @@ const PaymentOrdersPage = () => {
           <p className="text-gray-600 mt-2 font-medium">Only sales managers and logistics managers can view payment orders.</p>
           <button
             onClick={() => navigate("/dashboard")}
-            className="mt-6 flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
+            className="mt-6 flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-xs"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Dashboard
@@ -122,7 +122,7 @@ const PaymentOrdersPage = () => {
           )}
           <button
             onClick={() => navigate("/dashboard")}
-            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-sm"
+            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-xs"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Dashboard

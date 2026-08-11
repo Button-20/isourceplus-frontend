@@ -113,7 +113,7 @@ const TenderDetailPage = () => {
           <p className="text-gray-600 mb-6">Only lead buyers and sales managers can view tender details.</p>
           <button
             onClick={() => navigate("/dashboard/tenders")}
-            className="flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
+            className="flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-xs"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Tenders
@@ -139,7 +139,7 @@ const TenderDetailPage = () => {
           <p className="text-xl font-semibold text-gray-900 mb-4">Tender Not Found</p>
           <button
             onClick={() => navigate("/dashboard/tenders")}
-            className="flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
+            className="flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-xs"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Tenders
@@ -169,7 +169,7 @@ const TenderDetailPage = () => {
           </div>
           <button
             onClick={() => navigate("/dashboard/tenders")}
-            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-sm"
+            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-xs"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Tenders
@@ -180,7 +180,7 @@ const TenderDetailPage = () => {
       <div className="space-y-6">
         {/* Tender Details Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               onClick={() => setDetailsOpen(!detailsOpen)}
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
@@ -272,7 +272,7 @@ const TenderDetailPage = () => {
 
         {/* Attachments Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               onClick={() => setAttachmentsOpen(!attachmentsOpen)}
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"

@@ -702,7 +702,7 @@ const IssuedWaybillsPage = () => {
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-2 text-gray-800">Items</h3>
             {formValues.items.map((item, index) => (
-              <div key={index} className="mb-4 p-4 bg-white border border-gray-200 rounded-md shadow-sm">
+              <div key={index} className="mb-4 p-4 bg-white border border-gray-200 rounded-md shadow-xs">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>

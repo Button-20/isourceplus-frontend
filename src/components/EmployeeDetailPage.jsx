@@ -52,7 +52,7 @@ const EmployeeDetailPage = () => {
   if (loading) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-pulse">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-6 animate-pulse">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 bg-gray-200 rounded-full"></div>
@@ -85,7 +85,7 @@ const EmployeeDetailPage = () => {
   if (error) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-6 text-center">
           <div className="text-red-500 mb-4">{error}</div>
           <button
             onClick={() => navigate(-1)}
@@ -119,7 +119,7 @@ const EmployeeDetailPage = () => {
           Edit Employee
         </Link> */}
       </div>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
         <div className="p-6">
           <div className="flex items-center gap-6 mb-6">
             <img

@@ -40,7 +40,7 @@ const EmailVerifyKeyPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white p-8 rounded-lg shadow-sm w-full max-w-md text-center">
+      <div className="bg-white p-8 rounded-lg shadow-xs w-full max-w-md text-center">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center text-gray-600 hover:text-black mb-6"

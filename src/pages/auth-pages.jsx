@@ -1,436 +1,262 @@
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import {
-  ArrowRight,
-  LineChart,
-  ChartBar,
-  Laptop2,
-  Signature,
-  Info,
-  User,
-  Facebook,
-  FacebookIcon,
-  Mail,
-  MailIcon,
-  Linkedin,
-  EyeClosed,
-  Eye,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, Eye, EyeOff, Mail } from "lucide-react";
 import { FaFacebook, FaLinkedin } from "react-icons/fa";
-import { GiMailbox } from "react-icons/gi";
-import { AppContext, useAuth } from "@/contexts/app.context";
-import { useContext, useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Logo from "@/components/common/Logo";
+import AuthBrandPanel from "@/components/auth/AuthBrandPanel";
+import { useAuth } from "@/services/context/app.context";
+
+function SocialButtons({ onGoogle }) {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <Button variant="outline" type="button">
+        <FaLinkedin className="text-[#0077B5]" />
+        <span className="ml-1.5 hidden sm:inline">LinkedIn</span>
+      </Button>
+      <Button variant="outline" type="button" onClick={onGoogle}>
+        <Mail className="h-4 w-4" />
+        <span className="ml-1.5 hidden sm:inline">Google</span>
+      </Button>
+      <Button variant="outline" type="button">
+        <FaFacebook className="text-[#1877F2]" />
+        <span className="ml-1.5 hidden sm:inline">Facebook</span>
+      </Button>
+    </div>
+  );
+}
+
+function Divider({ children }) {
+  return (
+    <div className="relative my-6">
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full border-t border-border" />
+      </div>
+      <div className="relative flex justify-center text-xs uppercase">
+        <span className="bg-background px-2 text-muted-foreground">
+          {children}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export function LoginPage() {
-  const { login, loading, error, setError, user, token, googleLogin } =
-    useAuth();
+  const { login, loading, error, googleLogin } = useAuth();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const navigate = useNavigate();
-
-  const location = useLocation();
-
-  const [displayPassword, setDisplayPassword] = useState(false);
-
-  const handleDisplayPassword = () => {
-    setDisplayPassword(!displayPassword);
-  };
   const handleLogin = async (e) => {
     e.preventDefault();
-    // try {
-    await login(email, password, navigate); // Pass navigate to login
-    // } catch (err) {
-    //   setError(
-    //     err.response?.data?.message || "Login failed. Please try again."
-    //   );
-    //   console.error("Login error:", err);
-    // }
-  };
-
-  const handleGoogleLogin = async () => {
-    await googleLogin();
+    await login(email, password, navigate);
   };
 
   return (
-    <>
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-        {/* Left panel - hidden on mobile, visible on lg screens */}
-        <div className="hidden lg:flex login-01 text-white p-8 w-full  rounded overflow-hidden">
-          <div className="glassDiv h-full w-full p-10 flex flex-col justify-center space-y-8">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-                Move Fast.
-                <br />
-                Break Nothing.
-              </h1>
-            </div>
+    <div className="grid min-h-screen lg:grid-cols-2">
+      <AuthBrandPanel
+        title="Welcome back to iSource+"
+        subtitle="Sign in to manage your quotes, tenders, orders, and payments — all in one secure workspace."
+      />
 
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="rounded-lg bg-white/50 p-2">
-                  <Laptop2 className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-xl">Lorem, ipsum.</h3>
-                  <p className="text-sm">
-                    Lorem ipsum dolor sit amet, consectetur adipisicing elit.
-                    Impedit, maxime repellendus! Suscipit perferendis enim
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="rounded-lg bg-white/50 p-2">
-                  <ChartBar className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-xl">Lorem, ipsum.</h3>
-                  <p className="text-sm">
-                    Lorem ipsum dolor sit amet, consectetur adipisicing elit.
-                    Impedit, maxime repellendus! Suscipit perferendis enim
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="rounded-lg bg-white/50 p-2">
-                  <LineChart className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-xl">Lorem, ipsum.</h3>
-                  <p className="text-sm">
-                    Lorem ipsum dolor sit amet, consectetur adipisicing elit.
-                    Impedit, maxime repellendus! Suscipit perferendis enim
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h1 className="font-bold tracking-tight">
-                <Link to={"/"}>I Source Plus</Link>
-              </h1>
-            </div>
-          </div>
-        </div>
-
-        {/* Right panel - login form (always visible) */}
-        <div className="p-8 flex flex-col">
-          <div className="flex justify-end mb-8">
-            <Button variant="secondary">
-              <Link to={"/signup"} className="text-sm font-medium">
-                Sign Up
-              </Link>
-              <ArrowRight className="h-3 w-3 ml-4" />
+      <div className="flex flex-col p-6 sm:p-10">
+        <div className="flex items-center justify-between">
+          <Logo imgClassName="h-8 lg:hidden" />
+          <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+            New here?
+            <Button variant="ghost" size="sm" onClick={() => navigate("/signup")}>
+              Sign up <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           </div>
+        </div>
 
-          <div className="flex-grow flex flex-col justify-center max-w-sm mx-auto w-full">
-            <h1 className="text-2xl font-bold mb-4">Login</h1>
-            <p className="text-sm text-gray-600 mb-4">
-              Enter your email and password to login
-            </p>
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
+          <h1 className="font-display text-2xl font-bold">Sign in</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Enter your email and password to continue.
+          </p>
 
-            <form className="space-y-4" onSubmit={handleLogin}>
+          <form className="mt-6 space-y-4" onSubmit={handleLogin}>
+            <Input
+              type="email"
+              name="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <div className="relative">
               <Input
-                type="email"
-                name="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
-
-              <div className="relative">
-                <Input
-                  type={displayPassword ? "text" : "password"}
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                />
-                <div
-                  onClick={handleDisplayPassword}
-                  className="absolute right-5 top-2 cursor-pointer"
-                >
-                  {displayPassword ? <EyeClosed /> : <Eye />}
-                </div>
-              </div>
-
-              <Button
-                className="w-full bg-black text-white hover:bg-gray-800"
-                type="submit"
-                disabled={loading}
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {loading ? "Logging in..." : "Login with Email"}
-              </Button>
-            </form>
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
 
-            {/* forgot password */}
-            <div className="flex justify-end mt-4">
-              <Link to="/forgot-password" className="text-sm text-gray-600">
-                Forgot Password?
+            <div className="flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-brand hover:underline"
+              >
+                Forgot password?
               </Link>
             </div>
 
-            {error && (
-              <div className="text-red-500 text-sm mt-2">
-                {typeof error === "string" ? error : "An error occurred"}
-              </div>
-            )}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-brand-gradient text-brand-foreground hover:opacity-90"
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
 
-            <div className="relative mt-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground">
-                  or sign up with
-                </span>
-              </div>
-            </div>
+          {error && (
+            <p className="mt-3 text-sm text-destructive">
+              {typeof error === "string" ? error : "An error occurred"}
+            </p>
+          )}
 
-            <div className="grid grid-cols-3 gap-4 mt-4">
-              <Button variant="outline" className="">
-                <FaLinkedin color="#0077B5" />
-                LinkedIn
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={handleGoogleLogin}
-                className=""
-              >
-                <MailIcon />
-                Gmail
-              </Button>
-
-              <Button variant="outline" className="">
-                <FaFacebook color="#1877F2" />
-                Facebook
-              </Button>
-            </div>
-          </div>
+          <Divider>or continue with</Divider>
+          <SocialButtons onGoogle={googleLogin} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
 export function SignUpPage() {
-  const { signup, loading, error, user, token } = useAuth();
+  const { signup, loading, error, googleLogin } = useAuth();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password1, setPassword1] = useState("");
   const [password2, setPassword2] = useState("");
-  const [displayPassword, setDisplayPassword] = useState(false);
-  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
-  // No changes to the state declarations above
-
-  const handleDisplayPassword = () => {
-    setDisplayPassword(!displayPassword);
-    console.log("display", displayPassword);
-  };
-
-  const handleEmailSignUp = async (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
     try {
       await signup(email, password1, password2, navigate);
-    } catch (error) {
-      console.error("Signup error:", error);
+    } catch {
+      /* error surfaced via context toast + error state */
     }
   };
 
   return (
-    <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
-        {/* Left side - hidden on small screens */}
-        <div className="lg:flex hidden w-full  login-01 text-white py-8 px-16  flex-col  rounded overflow-hidden">
-          <div className="glassDiv h-full w-full p-10 flex flex-col justify-center space-y-8">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-                Sign Up.
-                <br />
-                Source Now.
-              </h1>
-            </div>
+    <div className="grid min-h-screen lg:grid-cols-2">
+      <AuthBrandPanel
+        title="Start sourcing with iSource+"
+        subtitle="Create your account to connect with verified buyers and suppliers and run your procurement end to end."
+      />
 
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="rounded-lg bg-white/50 p-2">
-                  <Signature className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-xl">Lorem, ipsum.</h3>
-                  <p className="text-sm">
-                    Lorem ipsum dolor sit amet, consectetur adipisicing elit.
-                    Impedit, maxime repellendus! Suscipit perferendis enim
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="rounded-lg bg-white/50 p-2">
-                  <Info className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-xl">Lorem, ipsum.</h3>
-                  <p className="text-sm">
-                    Lorem ipsum dolor sit amet, consectetur adipisicing elit.
-                    Impedit, maxime repellendus! Suscipit perferendis enim
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="rounded-lg bg-white/50 p-2">
-                  <User className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-xl">Lorem, ipsum.</h3>
-                  <p className="text-sm">
-                    Lorem ipsum dolor sit amet, consectetur adipisicing elit.
-                    Impedit, maxime repellendus! Suscipit perferendis enim
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h1 className="font-bold tracking-tight">
-                <Link to={"/"}>I Source Plus</Link>
-              </h1>
-            </div>
-          </div>
-        </div>
-
-        {/* Right side - always visible */}
-        <div className="p-8 flex flex-col">
-          <div className="flex justify-end mb-8">
-            <Button variant="secondary">
-              <Link to={"/login"} className="text-sm font-medium">
-                Login
-              </Link>
-              <ArrowRight className="h-3 w-3 ml-4" />
+      <div className="flex flex-col p-6 sm:p-10">
+        <div className="flex items-center justify-between">
+          <Logo imgClassName="h-8 lg:hidden" />
+          <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+            Have an account?
+            <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
+              Sign in <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           </div>
+        </div>
 
-          <div className="flex-grow flex flex-col justify-center max-w-sm mx-auto w-full">
-            <h1 className="text-2xl font-bold mb-4">Create an account</h1>
-            <p className="text-sm text-gray-600 mb-4">
-              Enter your email below to create your account
-            </p>
-            <form className="space-y-4" onSubmit={handleEmailSignUp}>
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-8">
+          <h1 className="font-display text-2xl font-bold">Create your account</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Enter your email and choose a password to get started.
+          </p>
+
+          <form className="mt-6 space-y-4" onSubmit={handleSignUp}>
+            <Input
+              type="email"
+              name="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <div className="relative">
               <Input
+                type={showPassword ? "text" : "password"}
+                name="password1"
+                placeholder="Create a password"
+                value={password1}
+                onChange={(e) => setPassword1(e.target.value)}
                 required
-                type="email"
-                name="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
               />
-              {/* Modified: Wrapped password input in a relative div and added eye icon */}
-              <div className="relative">
-                <Input
-                  type={displayPassword ? "text" : "password"}
-                  name="password"
-                  value={password1}
-                  onChange={(e) => setPassword1(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                />
-                <div
-                  onClick={handleDisplayPassword}
-                  className="absolute right-5 top-2 cursor-pointer"
-                >
-                  {displayPassword ? <EyeClosed /> : <Eye />}
-                </div>
-              </div>
-              {/* Modified: Wrapped confirm password input in a relative div and added eye icon */}
-              <div className="relative">
-                <Input
-                  type={displayPassword ? "text" : "password"}
-                  name="password"
-                  value={password2}
-                  onChange={(e) => setPassword2(e.target.value)}
-                  placeholder="Confirm your password"
-                  required
-                />
-                <div
-                  onClick={handleDisplayPassword}
-                  className="absolute right-5 top-2 cursor-pointer"
-                >
-                  {displayPassword ? <EyeClosed /> : <Eye />}
-                </div>
-              </div>
-              {/* Modified: Removed checkbox for show/hide password as eye icons are now used */}
-              {/* <div className="flex gap-2 text-sm justify-end">
-                <input type="checkbox" onClick={handleDisplayPassword} />
-                <p>{!displayPassword ? "Show" : "Hide"} Password</p>
-              </div> */}
-              <Button
-                disabled={loading}
-                type="submit"
-                className="w-full bg-black text-white hover:bg-gray-800"
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {loading ? "Signing up..." : "Sign up with Email"}
-              </Button>
-            </form>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            {loading && <p className="text-sm text-gray-500">Signing up...</p>}
-
-            <div className="relative mt-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground">
-                  or sign up with
-                </span>
-              </div>
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
             </div>
+            <Input
+              type={showPassword ? "text" : "password"}
+              name="password2"
+              placeholder="Confirm your password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              required
+            />
 
-            <div className="grid grid-cols-3 gap-4 mt-4">
-              <Button variant="outline" className="">
-                <FaLinkedin color="#0077B5" />
-                LinkedIn
-              </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-brand-gradient text-brand-foreground hover:opacity-90"
+            >
+              {loading ? "Creating account..." : "Create account"}
+            </Button>
+          </form>
 
-              <Button variant="outline" className="">
-                <MailIcon />
-                Gmail
-              </Button>
-
-              <Button variant="outline" className="">
-                <FaFacebook color="#1877F2" />
-                Facebook
-              </Button>
-            </div>
-            <p className="mt-4 text-xs text-center text-gray-600">
-              By clicking continue, you agree to our{" "}
-              <Link to="/terms" className="underline">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link to="/privacy" className="underline">
-                Privacy Policy
-              </Link>
-              .
+          {error && (
+            <p className="mt-3 text-sm text-destructive">
+              {typeof error === "string" ? error : "An error occurred"}
             </p>
-          </div>
+          )}
+
+          <Divider>or continue with</Divider>
+          <SocialButtons onGoogle={googleLogin} />
+
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            By continuing, you agree to our{" "}
+            <Link to="/terms" className="text-brand hover:underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="text-brand hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </div>
       </div>
-    </>
+    </div>
   );
 }

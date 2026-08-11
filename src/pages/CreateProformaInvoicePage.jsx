@@ -121,7 +121,7 @@ const CreateProformaInvoicePage = () => {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
         Create Proforma Invoice
       </h1>
-      <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white shadow-sm rounded-lg p-6 space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Title

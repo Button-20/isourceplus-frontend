@@ -58,7 +58,7 @@ const RFxPage = () => {
           <p className="text-gray-600 mb-6">Only lead buyers and sales managers can view RFxs.</p>
           <button
             onClick={() => navigate("/dashboard")}
-            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-sm"
+            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-xs"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Dashboard

@@ -72,7 +72,7 @@ const BranchDetails = () => {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-pulse">
+        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-xs border border-gray-100 p-6 animate-pulse">
           <div className="flex justify-between items-center mb-8">
             <div className="h-8 bg-gray-200 rounded w-1/4"></div>
             <div className="h-10 bg-gray-200 rounded w-24"></div>
@@ -99,7 +99,7 @@ const BranchDetails = () => {
   if (error || !branch) {
     return (
       <div className="p-4">
-        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
+        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-xs border border-gray-100 p-6 text-center">
           <div className="text-red-500 mb-4">Error loading branch details</div>
           <button 
             onClick={() => navigate('/dashboard/branches')}
@@ -145,7 +145,7 @@ const BranchDetails = () => {
         </div>
 
         {/* Main card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
           {/* Branch header */}
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
             <div className="flex items-center gap-3">
@@ -167,7 +167,7 @@ const BranchDetails = () => {
                 <div className="space-y-4">
                   {/* Email */}
                   <div className="flex items-start gap-3">
-                    <Mail className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                    <Mail className="shrink-0 text-gray-500 mt-0.5" size={18} />
                     <div>
                       <p className="text-sm text-gray-500">Email Address</p>
                       <p className="text-gray-800 font-medium">
@@ -178,7 +178,7 @@ const BranchDetails = () => {
 
                   {/* Primary Phone */}
                   <div className="flex items-start gap-3">
-                    <Phone className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                    <Phone className="shrink-0 text-gray-500 mt-0.5" size={18} />
                     <div>
                       <p className="text-sm text-gray-500">Primary Phone</p>
                       <p className="text-gray-800 font-medium">
@@ -190,7 +190,7 @@ const BranchDetails = () => {
                   {/* Secondary Phone */}
                   {branch.office_line_2 && (
                     <div className="flex items-start gap-3">
-                      <Phone className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <Phone className="shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
                         <p className="text-sm text-gray-500">Secondary Phone</p>
                         <p className="text-gray-800 font-medium">
@@ -213,7 +213,7 @@ const BranchDetails = () => {
                   {/* Street Address */}
                   {branch.location.street_address && (
                     <div className="flex items-start gap-3">
-                      <Home className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <Home className="shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
                         <p className="text-sm text-gray-500">Street Address</p>
                         <p className="text-gray-800 font-medium">
@@ -226,7 +226,7 @@ const BranchDetails = () => {
                   {/* Popular Area */}
                   {branch.location.popular_area_name && (
                     <div className="flex items-start gap-3">
-                      <Map className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <Map className="shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
                         <p className="text-sm text-gray-500">Landmark/Nearby</p>
                         <p className="text-gray-800 font-medium">
@@ -238,7 +238,7 @@ const BranchDetails = () => {
 
                   {/* Region/District */}
                   <div className="flex items-start gap-3">
-                    <Layers className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                    <Layers className="shrink-0 text-gray-500 mt-0.5" size={18} />
                     <div>
                       <p className="text-sm text-gray-500">Region/District</p>
                       <p className="text-gray-800 font-medium">
@@ -249,7 +249,7 @@ const BranchDetails = () => {
 
                   {/* City/Town */}
                   <div className="flex items-start gap-3">
-                    <Globe className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                    <Globe className="shrink-0 text-gray-500 mt-0.5" size={18} />
                     <div>
                       <p className="text-sm text-gray-500">City/Town</p>
                       <p className="text-gray-800 font-medium">
@@ -261,7 +261,7 @@ const BranchDetails = () => {
                   {/* GPS Coordinates */}
                   {branch.location.gps && (
                     <div className="flex items-start gap-3">
-                      <Navigation className="flex-shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <Navigation className="shrink-0 text-gray-500 mt-0.5" size={18} />
                       <div>
                         <p className="text-sm text-gray-500">GPS Coordinates</p>
                         <p className="text-gray-800 font-medium">

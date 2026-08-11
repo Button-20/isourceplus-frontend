@@ -206,7 +206,7 @@ const Marketplace = () => {
                 placeholder="Search services..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                className="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:outline-hidden focus:border-indigo-600"
               />
             </div>
           </div>

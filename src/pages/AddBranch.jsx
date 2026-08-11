@@ -277,7 +277,7 @@ const AddBranch = () => {
         <h1 className="text-2xl font-bold text-gray-800">Add New Branch</h1>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Branch Information Section */}
           <div className="space-y-4">
@@ -552,7 +552,7 @@ const AddBranch = () => {
             <button
               type="submit"
               disabled={submitting}
-              className={`px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 ${
+              className={`px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 ${
                 submitting ? "opacity-70 cursor-not-allowed" : ""
               }`}
             >

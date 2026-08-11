@@ -1,276 +1,42 @@
-// PricingPage.jsx
 import { useEffect, useState } from "react";
-import { Check, MessageSquare, Users, Building, Truck, AlertCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import ScrollToTop from "@/components/ScrollToTop";
-import { useAuth } from "@/contexts/app.context";
+import {
+  Check,
+  MessageSquare,
+  Users,
+  Building,
+  Truck,
+  AlertCircle,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { getCookie } from "@/utility/getCookie";
 
-// NO CHANGES: Plan data (buyerPlans, supplierPlans, transporterPlans, commonFeatures)
-const buyerPlans = [
-  {
-    name: "Bronze",
-    monthlyRate: 14,
-    sixMonthRate: 134.4,
-    twelveMonthRate: 117.6,
-    defaultUsers: 1,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 5,
-    competitiveOffers: "1X",
-    suppliersMarketBase: 356,
-    registeredBuyers: 100,
-    registeredTransporters: 100,
-    transactionalSMS: 50,
-    promoSMS: 15,
-  },
-  {
-    name: "Silver",
-    monthlyRate: 21,
-    sixMonthRate: 201.6,
-    twelveMonthRate: 141.12,
-    defaultUsers: 2,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 10,
-    competitiveOffers: "2X",
-    suppliersMarketBase: 629,
-    registeredBuyers: 208,
-    registeredTransporters: 308,
-    transactionalSMS: 60,
-    promoSMS: 20,
-  },
-  {
-    name: "Gold",
-    monthlyRate: 28,
-    sixMonthRate: 268.8,
-    twelveMonthRate: 188.16,
-    defaultUsers: 3,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 15,
-    competitiveOffers: "3X",
-    suppliersMarketBase: 1005,
-    registeredBuyers: 504,
-    registeredTransporters: 812,
-    transactionalSMS: 70,
-    promoSMS: 30,
-  },
-  {
-    name: "Diamond",
-    monthlyRate: 42,
-    sixMonthRate: 403.2,
-    twelveMonthRate: 282.24,
-    defaultUsers: 3,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 20,
-    competitiveOffers: "4X",
-    suppliersMarketBase: 1139,
-    registeredBuyers: 708,
-    registeredTransporters: 1520,
-    transactionalSMS: 100,
-    promoSMS: 40,
-  },
-  {
-    name: "Platinum",
-    monthlyRate: 56,
-    sixMonthRate: 537.6,
-    twelveMonthRate: 376.32,
-    defaultUsers: 4,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 25,
-    competitiveOffers: "5X",
-    suppliersMarketBase: 1515,
-    registeredBuyers: 987,
-    registeredTransporters: 2507,
-    transactionalSMS: 110,
-    promoSMS: 50,
-  },
-];
-
-const supplierPlans = [
-  {
-    name: "Bronze",
-    monthlyRate: 21,
-    sixMonthRate: 201.6,
-    twelveMonthRate: 176.4,
-    defaultUsers: 1,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 5,
-    businessOpportunities: "1X",
-    buyersMarketBase: 100,
-    registeredSuppliers: 356,
-    registeredTransporters: 100,
-    transactionalSMS: 50,
-    promoSMS: 15,
-  },
-  {
-    name: "Silver",
-    monthlyRate: 28,
-    sixMonthRate: 268.8,
-    twelveMonthRate: 235.2,
-    defaultUsers: 2,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 10,
-    businessOpportunities: "2X",
-    buyersMarketBase: 308,
-    registeredSuppliers: 273,
-    registeredTransporters: 308,
-    transactionalSMS: 60,
-    promoSMS: 20,
-  },
-  {
-    name: "Gold",
-    monthlyRate: 35,
-    sixMonthRate: 336,
-    twelveMonthRate: 294,
-    defaultUsers: 3,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 15,
-    businessOpportunities: "3X",
-    buyersMarketBase: 812,
-    registeredSuppliers: 376,
-    registeredTransporters: 812,
-    transactionalSMS: 70,
-    promoSMS: 30,
-  },
-  {
-    name: "Diamond",
-    monthlyRate: 49,
-    sixMonthRate: 470.4,
-    twelveMonthRate: 411.6,
-    defaultUsers: 3,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 20,
-    businessOpportunities: "4X",
-    buyersMarketBase: 1520,
-    registeredSuppliers: 134,
-    registeredTransporters: 1520,
-    transactionalSMS: 100,
-    promoSMS: 40,
-  },
-  {
-    name: "Platinum",
-    monthlyRate: 70,
-    sixMonthRate: 672,
-    twelveMonthRate: 588,
-    defaultUsers: 4,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 25,
-    businessOpportunities: "5X",
-    buyersMarketBase: 2507,
-    registeredSuppliers: 376,
-    registeredTransporters: 2507,
-    transactionalSMS: 110,
-    promoSMS: 50,
-  },
-];
-
-const transporterPlans = [
-  {
-    name: "Bronze",
-    monthlyRate: 20,
-    sixMonthRate: 102,
-    twelveMonthRate: 180,
-    defaultUsers: 1,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 0,
-    businessOpportunities: "1X",
-    buyersMarketBase: 100,
-    registeredSuppliers: 356,
-    registeredTransporters: 100,
-    transactionalSMS: 50,
-    promoSMS: 15,
-  },
-  {
-    name: "Silver",
-    monthlyRate: 25,
-    sixMonthRate: 127.5,
-    twelveMonthRate: 225,
-    defaultUsers: 2,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 0,
-    businessOpportunities: "2X",
-    buyersMarketBase: 308,
-    registeredSuppliers: 273,
-    registeredTransporters: 308,
-    transactionalSMS: 60,
-    promoSMS: 20,
-  },
-  {
-    name: "Gold",
-    monthlyRate: 30,
-    sixMonthRate: 153,
-    twelveMonthRate: 270,
-    defaultUsers: 3,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 0,
-    businessOpportunities: "3X",
-    buyersMarketBase: 812,
-    registeredSuppliers: 376,
-    registeredTransporters: 812,
-    transactionalSMS: 70,
-    promoSMS: 30,
-  },
-  {
-    name: "Diamond",
-    monthlyRate: 35,
-    sixMonthRate: 178.5,
-    twelveMonthRate: 315,
-    defaultUsers: 3,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 0,
-    businessOpportunities: "4X",
-    buyersMarketBase: 1520,
-    registeredSuppliers: 134,
-    registeredTransporters: 1520,
-    transactionalSMS: 100,
-    promoSMS: 40,
-  },
-  {
-    name: "Platinum",
-    monthlyRate: 40,
-    sixMonthRate: 204,
-    twelveMonthRate: 360,
-    defaultUsers: 4,
-    addOnFee: 10,
-    branchAddOn: 10,
-    smsBonus: 0,
-    businessOpportunities: "5X",
-    buyersMarketBase: 2507,
-    registeredSuppliers: 376,
-    registeredTransporters: 2507,
-    transactionalSMS: 110,
-    promoSMS: 50,
-  },
-];
-
-const commonFeatures = [
-  { name: "Managing User Permissions", included: true },
-  { name: "SMS Recharge/Top-up", included: true },
-  { name: "Reports", included: true },
-  { name: "Two-Way Authentication", included: true },
-  { name: "12-Month Support", included: true },
-];
+import ScrollToTop from "@/components/ScrollToTop";
+import LandingNav from "@/components/landing/LandingNav";
+import LandingFooter from "@/components/landing/LandingFooter";
+import { useAuth } from "@/services/context/app.context";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  buyerPlans,
+  supplierPlans,
+  transporterPlans,
+  commonFeatures,
+  planTabs,
+} from "@/data/pricing-plans";
 
 export function PricingPage() {
   const [activeTab, setActiveTab] = useState("buyer");
   const [showComparison, setShowComparison] = useState(false);
   const [selectedPlans, setSelectedPlans] = useState(
-    buyerPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "biannually" }), {})
+    buyerPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "biannually" }), {}),
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -278,44 +44,61 @@ export function PricingPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { authAxios, user, companyId, transporterId, jobTitle, token, userProfileId, fetchProfileInfo } = useAuth();
+  const {
+    authAxios,
+    user,
+    companyId,
+    transporterId,
+    token,
+    userProfileId,
+    fetchProfileInfo,
+  } = useAuth();
 
-  const plans = activeTab === "buyer" ? buyerPlans : activeTab === "supplier" ? supplierPlans : transporterPlans;
-  const marketAccessKey = activeTab === "buyer" ? "suppliersMarketBase" : "buyersMarketBase";
-  const marketAccessLabel = activeTab === "buyer" ? "Suppliers’ Market Base" : "Buyers’ Market Base";
-  const opportunityLabel = activeTab === "buyer" ? "Competitive Offers" : "Business Opportunities";
-  const registeredLabel = activeTab === "buyer" ? "Registered Buyers" : activeTab === "supplier" ? "Registered Suppliers" : "Registered Transporters";
+  const plans =
+    activeTab === "buyer"
+      ? buyerPlans
+      : activeTab === "supplier"
+        ? supplierPlans
+        : transporterPlans;
+  const marketAccessKey =
+    activeTab === "buyer" ? "suppliersMarketBase" : "buyersMarketBase";
+  const marketAccessLabel =
+    activeTab === "buyer" ? "Suppliers’ Market Base" : "Buyers’ Market Base";
+  const opportunityLabel =
+    activeTab === "buyer" ? "Competitive Offers" : "Business Opportunities";
+  const registeredLabel =
+    activeTab === "buyer"
+      ? "Registered Buyers"
+      : activeTab === "supplier"
+        ? "Registered Suppliers"
+        : "Registered Transporters";
 
   useEffect(() => {
     if (user && token && userProfileId) {
       fetchProfileInfo();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authAxios, userProfileId, user, token]);
+
+  const selectTab = (tab, source) => {
+    setActiveTab(tab);
+    setSelectedPlans(
+      source.reduce((acc, plan) => ({ ...acc, [plan.name]: "biannually" }), {}),
+    );
+  };
 
   const handlePlanSelection = (planName, value) => {
     setSelectedPlans((prev) => ({ ...prev, [planName]: value }));
   };
 
-  const canSubscribe = () => {
-    if (!user) return false;
-    const allowedTitles = activeTab === "transporter" ? ["logistics manager"] : ["lead buyer", "sales manager"];
-    console.log("User Job Title:", jobTitle);
-    return allowedTitles.includes(jobTitle?.toLowerCase());
-  };
-
-  const initiateSubscription = async (plan, isTrialMode) => {
+  const initiateSubscription = (plan, isTrialMode) => {
     if (!user) {
-      toast.error("Please log in to subscribe.", { icon: <AlertCircle className="w-5 h-5" /> });
+      toast.error("Please log in to subscribe.", {
+        icon: <AlertCircle className="w-5 h-5" />,
+      });
       navigate("/login");
       return;
     }
-
-    // if (!canSubscribe()) {
-    //   toast.error("Only Lead Buyer, Sales Manager, or Logistics Manager can subscribe.", {
-    //     icon: <AlertCircle className="w-5 h-5" />,
-    //   });
-    //   return;
-    // }
 
     if ((activeTab === "buyer" || activeTab === "supplier") && !companyId) {
       toast.error("Please complete company onboarding to subscribe.", {
@@ -342,34 +125,24 @@ export function PricingPage() {
     setIsLoading(true);
     try {
       const planInterval = selectedPlans[selectedPlan.name];
-      const backendPlanInterval = planInterval === "biannually" ? "biannually" : planInterval === "annually" ? "annually" : "monthly";
-      const amountKey = planInterval === "biannually" ? "sixMonthRate" : planInterval === "annually" ? "twelveMonthRate" : "monthlyRate";
-      const startDate = isTrial ? new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] : null;
+      const backendPlanInterval =
+        planInterval === "biannually"
+          ? "biannually"
+          : planInterval === "annually"
+            ? "annually"
+            : "monthly";
+      const startDate = isTrial
+        ? new Date(Date.now() + 28 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0]
+        : null;
 
-      const planName = selectedPlan.name.toUpperCase(); // e.g., BRONZE
-      const planType = activeTab; // e.g., buyer, supplier, transporter
+      const planName = selectedPlan.name.toUpperCase();
+      const planType = activeTab;
 
-      const csrfToken = getCookie("csrftoken");
-      // if (!csrfToken) {
-      //   console.error("CSRF token is missing");
-      //   toast.error("CSRF token is missing. Please refresh the page and try again.", {
-      //     icon: <AlertCircle className="w-5 h-5" />,
-      //   });
-      //   setIsLoading(false);
-      //   return;
-      // }
-
-      console.log("cookie", csrfToken);
-      console.log("User context:", { user, jobTitle, companyId, transporterId, token, userProfileId });
-      console.log("Sending params:", {
-        plan_name: planName,
-        plan_type: planType,
-        plan_interval: backendPlanInterval,
-        ...(isTrial && { is_trial: true, start_date: startDate }),
-      });
-
+      // CSRF is injected automatically by the shared HTTP client.
       const response = await authAxios.post(
-        "/subscriptions/subscribe/",
+        "subscriptions/subscribe/",
         {},
         {
           params: {
@@ -378,26 +151,24 @@ export function PricingPage() {
             plan_interval: backendPlanInterval,
             ...(isTrial && { is_trial: true, start_date: startDate }),
           },
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-          }
-        }
+        },
       );
 
-      console.log("Backend response:", response.data); // NEW: Log full response
-
-      // Check if transaction_data exists and has paystack_transaction_data
       if (!response.data?.data?.paystack_transaction_data) {
-        throw new Error("Invalid response structure: paystack_transaction_data is missing");
+        throw new Error(
+          "Invalid response structure: paystack_transaction_data is missing",
+        );
       }
 
-      const { authorization_url, reference } = response.data.data.paystack_transaction_data.data;
+      const { authorization_url, reference } =
+        response.data.data.paystack_transaction_data.data;
 
       localStorage.setItem(
         "subscriptionData",
         JSON.stringify({
-          plan_code: response.data.data.plan_code || `${activeTab.toUpperCase()}_${planName}_${backendPlanInterval.toUpperCase()}`, // Use backend plan_code if available
+          plan_code:
+            response.data.data.plan_code ||
+            `${activeTab.toUpperCase()}_${planName}_${backendPlanInterval.toUpperCase()}`,
           plan_name: planName,
           plan_type: planType,
           plan_interval: backendPlanInterval,
@@ -405,19 +176,12 @@ export function PricingPage() {
           start_date: startDate,
           reference,
           authorization_url,
-        })
+        }),
       );
 
       window.open(authorization_url, "_blank");
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Subscription initiation error:", error);
-      console.error("Error details:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        headers: error.response?.headers,
-      });
-
       if (error.response?.status === 404) {
         toast.error("User not authenticated or company details missing.", {
           icon: <AlertCircle className="w-5 h-5" />,
@@ -428,24 +192,22 @@ export function PricingPage() {
           icon: <AlertCircle className="w-5 h-5" />,
           action: {
             label: "Continue Transaction",
-            onClick: () => window.open(error.response.data.authorization_url, "_blank"),
+            onClick: () =>
+              window.open(error.response.data.authorization_url, "_blank"),
           },
         });
       } else if (error.response?.status === 403) {
         toast.error(
-          error.response?.data?.detail || "You do not have permission to perform this action. Please check your account or contact support.",
-          {
-            icon: <AlertCircle className="w-5 h-5" />,
-          }
+          error.response?.data?.detail ||
+            "You do not have permission to perform this action. Please check your account or contact support.",
+          { icon: <AlertCircle className="w-5 h-5" /> },
         );
       } else {
         toast.error(
           error.response?.data?.detail ||
             error.message ||
             "Failed to initiate subscription. Please try again or contact support.",
-          {
-            icon: <AlertCircle className="w-5 h-5" />,
-          }
+          { icon: <AlertCircle className="w-5 h-5" /> },
         );
       }
     } finally {
@@ -453,335 +215,230 @@ export function PricingPage() {
     }
   };
 
+  const discountLabel = (months) =>
+    activeTab === "transporter"
+      ? months === 6
+        ? "15% off"
+        : "25% off"
+      : months === 6
+        ? "20% off"
+        : "30% off";
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="font-montserrat">
       <ScrollToTop />
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <div className="mb-4">
-            <Link to="/" className="text-sm text-gray-600 hover:underline">
-              &larr; Back to Home
-            </Link>
-          </div>
-          <h1 className="text-4xl font-bold mb-4">iSourcePlus Pricing</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Choose the perfect plan for your business needs. All prices exclude VAT.
+      <LandingNav />
+
+      {/* Header */}
+      <section className="relative overflow-hidden bg-grid-faint">
+        <div className="pointer-events-none absolute -right-40 top-0 h-96 w-96 rounded-full bg-brand-2/20 blur-3xl" />
+        <div className="container relative py-16 text-center lg:py-20">
+          <span className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand/5 px-3 py-1 text-xs font-medium text-brand">
+            Pricing
+          </span>
+          <h1 className="mt-6 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
+            Choose the plan that fits{" "}
+            <span className="text-brand-gradient">your business</span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+            Flexible monthly plans in Ghana Cedis for buyers, suppliers, and
+            transporters. All prices exclude VAT.
           </p>
-          <div className="flex justify-center space-x-4 mt-4">
-            <button
-              className={`px-6 py-2 rounded-md font-medium ${activeTab === "buyer" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-              onClick={() => {
-                setActiveTab("buyer");
-                setSelectedPlans(buyerPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "biannually" }), {}));
-              }}
-            >
-              Buyer Plans
-            </button>
-            <button
-              className={`px-6 py-2 rounded-md font-medium ${activeTab === "supplier" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-              onClick={() => {
-                setActiveTab("supplier");
-                setSelectedPlans(supplierPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "biannually" }), {}));
-              }}
-            >
-              Supplier Plans
-            </button>
-            <button
-              className={`px-6 py-2 rounded-md font-medium ${activeTab === "transporter" ? "bg-black text-white" : "bg-gray-200 text-gray-700"}`}
-              onClick={() => {
-                setActiveTab("transporter");
-                setSelectedPlans(transporterPlans.reduce((acc, plan) => ({ ...acc, [plan.name]: "biannually" }), {}));
-              }}
-            >
-              Transporter Plans
-            </button>
+
+          {/* Role tabs */}
+          <div className="mt-8 inline-flex flex-wrap justify-center gap-2 rounded-full border border-border/70 bg-card p-1.5">
+            {planTabs.map((tab) => {
+              const source =
+                tab.id === "buyer"
+                  ? buyerPlans
+                  : tab.id === "supplier"
+                    ? supplierPlans
+                    : transporterPlans;
+              return (
+                <button
+                  key={tab.id}
+                  className={cn(
+                    "rounded-full px-5 py-2 text-sm font-medium transition-colors",
+                    activeTab === tab.id
+                      ? "bg-brand-gradient text-brand-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                  onClick={() => selectTab(tab.id, source)}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
+      </section>
 
-        <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-6 mb-12">
+      {/* Plan cards */}
+      <section className="pb-16">
+        <div className="container grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:border-black transition-all duration-300"
+              className={cn(
+                "flex flex-col rounded-2xl border bg-card p-6 transition-all",
+                plan.isPopular
+                  ? "border-brand/50 shadow-xl shadow-brand/10 ring-1 ring-brand/30"
+                  : "border-border/70 hover:border-brand/40 hover:shadow-lg",
+              )}
             >
-              <h2 className="text-2xl font-bold text-center mb-4">{plan.name}</h2>
-              <div className="text-center mb-4">
-                <p className="text-3xl font-semibold">Ghc {plan.monthlyRate}/mo</p>
-                <div className="mt-2">
-                  <label className="inline-flex items-center mr-4">
-                    <input
-                      type="radio"
-                      name={`${plan.name}-duration`}
-                      value="biannually"
-                      checked={selectedPlans[plan.name] === "biannually"}
-                      onChange={() => handlePlanSelection(plan.name, "biannually")}
-                      className="form-radio text-black focus:ring-black"
-                    />
-                    <span className="ml-2 text-sm text-gray-600">
-                      6-Month (Biannually): Ghc {plan.sixMonthRate} ({activeTab === "transporter" ? "15% off" : "20% off"})
-                    </span>
-                  </label>
-                  <label className="inline-flex items-center">
-                    <input
-                      type="radio"
-                      name={`${plan.name}-duration`}
-                      value="annually"
-                      checked={selectedPlans[plan.name] === "annually"}
-                      onChange={() => handlePlanSelection(plan.name, "annually")}
-                      className="form-radio text-black focus:ring-black"
-                    />
-                    <span className="ml-2 text-sm text-gray-600">
-                      12-Month (Annually): Ghc {plan.twelveMonthRate} ({activeTab === "transporter" ? "25% off" : "30% off"})
-                    </span>
-                  </label>
-                </div>
-                <p className="text-sm text-gray-500">VAT Excluded</p>
+              {plan.isPopular && (
+                <span className="mb-3 inline-flex w-fit rounded-full bg-brand-gradient px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-foreground">
+                  Most popular
+                </span>
+              )}
+              <h2 className="font-display text-xl font-bold">{plan.name}</h2>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="font-display text-4xl font-bold text-brand-gradient">
+                  GHC {plan.monthlyRate}
+                </span>
+                <span className="text-sm text-muted-foreground">/mo</span>
               </div>
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-2" />
-                  <span>{plan.defaultUsers} Default User{plan.defaultUsers > 1 ? "s" : ""}</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-2" />
-                  <span>Ghc {plan.addOnFee}/user/mo Add-On</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-2" />
-                  <span>Ghc {plan.branchAddOn}/branch/mo Add-On</span>
-                </li>
-                <li className="flex items-center">
-                  <MessageSquare className="w-5 h-5 text-green-500 mr-2" />
-                  <span>{plan.transactionalSMS} Transactional SMS</span>
-                </li>
-                <li className="flex items-center">
-                  <MessageSquare className="w-5 h-5 text-green-500 mr-2" />
-                  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm">
-                    {plan.promoSMS} Promo SMS (Oct-Dec 2025) to invite your suppliers
-                  </span>
-                </li>
-                <li className="flex items-center">
-                  <Building className="w-5 h-5 text-green-500 mr-2" />
-                  <span>
-                    {activeTab === "buyer" ? plan.competitiveOffers : plan.businessOpportunities} {opportunityLabel}
-                  </span>
-                </li>
-                <li className="flex items-center">
-                  <Users className="w-5 h-5 text-green-500 mr-2" />
-                  <span>{plan[marketAccessKey]} {marketAccessLabel}</span>
-                </li>
-                <li className="flex items-center">
-                  {activeTab === "transporter" ? (
-                    <Truck className="w-5 h-5 text-green-500 mr-2" />
-                  ) : (
-                    <Users className="w-5 h-5 text-green-500 mr-2" />
-                  )}
-                  <span>
-                    {activeTab === "buyer" ? plan.registeredBuyers : activeTab === "supplier" ? plan.registeredSuppliers : plan.registeredTransporters} {registeredLabel}
-                  </span>
-                </li>
-                {activeTab === "buyer" && (
-                  <li className="flex items-center">
-                    <Truck className="w-5 h-5 text-green-500 mr-2" />
-                    <span>{plan.registeredTransporters} Registered Transporters</span>
-                  </li>
-                )}
-                {activeTab === "supplier" && (
-                  <li className="flex items-center">
-                    <Truck className="w-5 h-5 text-green-500 mr-2" />
-                    <span>{plan.registeredTransporters} Registered Transporters</span>
-                  </li>
-                )}
-                {activeTab === "transporter" && (
-                  <li className="flex items-center">
-                    <Users className="w-5 h-5 text-green-500 mr-2" />
-                    <span>{plan.registeredSuppliers} Registered Suppliers</span>
-                  </li>
-                )}
+              <p className="mt-1 text-xs text-muted-foreground">VAT excluded</p>
+
+              {/* Duration selector */}
+              <div className="mt-4 space-y-2">
+                {[
+                  {
+                    value: "biannually",
+                    months: 6,
+                    label: "6-Month",
+                    amount: plan.sixMonthRate,
+                  },
+                  {
+                    value: "annually",
+                    months: 12,
+                    label: "12-Month",
+                    amount: plan.twelveMonthRate,
+                  },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 text-xs transition-colors",
+                      selectedPlans[plan.name] === opt.value
+                        ? "border-brand/50 bg-brand/5"
+                        : "border-border/60",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name={`${plan.name}-duration`}
+                      value={opt.value}
+                      checked={selectedPlans[plan.name] === opt.value}
+                      onChange={() => handlePlanSelection(plan.name, opt.value)}
+                      className="accent-[hsl(var(--brand))]"
+                    />
+                    <span className="text-muted-foreground">
+                      {opt.label}: GHC {opt.amount}{" "}
+                      <span className="font-medium text-brand">
+                        ({discountLabel(opt.months)})
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <ul className="mt-5 flex-1 space-y-2 text-sm">
+                <Feature icon={Check}>
+                  {plan.defaultUsers} Default User
+                  {plan.defaultUsers > 1 ? "s" : ""}
+                </Feature>
+                <Feature icon={Check}>GHC {plan.addOnFee}/user/mo Add-On</Feature>
+                <Feature icon={Check}>
+                  GHC {plan.branchAddOn}/branch/mo Add-On
+                </Feature>
+                <Feature icon={MessageSquare}>
+                  {plan.transactionalSMS} Transactional SMS
+                </Feature>
+                <Feature icon={Building}>
+                  {activeTab === "buyer"
+                    ? plan.competitiveOffers
+                    : plan.businessOpportunities}{" "}
+                  {opportunityLabel}
+                </Feature>
+                <Feature icon={Users}>
+                  {plan[marketAccessKey]} {marketAccessLabel}
+                </Feature>
+                <Feature icon={activeTab === "transporter" ? Truck : Users}>
+                  {activeTab === "buyer"
+                    ? plan.registeredBuyers
+                    : activeTab === "supplier"
+                      ? plan.registeredSuppliers
+                      : plan.registeredTransporters}{" "}
+                  {registeredLabel}
+                </Feature>
                 {commonFeatures.map((feature) => (
-                  <li key={feature.name} className="flex items-center">
-                    <Check className="w-5 h-5 text-green-500 mr-2" />
-                    <span>{feature.name}</span>
-                  </li>
+                  <Feature key={feature.name} icon={Check}>
+                    {feature.name}
+                  </Feature>
                 ))}
               </ul>
-              <div className="flex space-x-4">
-                {user ? (
-                  <>
-                    <button
-                      onClick={() => initiateSubscription(plan, true)}
-                      className="flex-1 text-center bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Processing..." : "Start Trial"}
-                    </button>
-                    <button
-                      onClick={() => initiateSubscription(plan, false)}
-                      className="flex-1 text-center bg-black text-white py-2 rounded-md hover:bg-gray-800"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Processing..." : "Subscribe"}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      to={`/signup?trial=true&plan=${plan.name.toUpperCase()}&duration=${selectedPlans[plan.name]}&type=${activeTab}`}
-                      className="flex-1 text-center bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300"
-                    >
-                      Start Trial
-                    </Link>
-                    <Link
-                      to={`/signup?plan=${plan.name.toUpperCase()}&duration=${selectedPlans[plan.name]}&type=${activeTab}`}
-                      className="flex-1 text-center bg-black text-white py-2 rounded-md hover:bg-gray-800"
-                    >
-                      Subscribe
-                    </Link>
-                  </>
-                )}
+
+              <div className="mt-6 flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => initiateSubscription(plan, true)}
+                  disabled={isLoading}
+                >
+                  Start Trial
+                </Button>
+                <Button
+                  className="flex-1 bg-brand-gradient text-brand-foreground hover:opacity-90"
+                  onClick={() => initiateSubscription(plan, false)}
+                  disabled={isLoading}
+                >
+                  Subscribe
+                </Button>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="text-center mb-12">
-          <button
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-            onClick={() => {
-              setShowComparison(!showComparison);
-              if (!showComparison) {
-                window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-              }
-            }}
+        {/* Comparison toggle */}
+        <div className="container mt-12 text-center">
+          <Button
+            variant="outline"
+            onClick={() => setShowComparison((v) => !v)}
           >
-            {showComparison ? "Hide Comparison" : "Compare Plans"}
-          </button>
+            {showComparison ? "Hide comparison" : "Compare plans"}
+          </Button>
         </div>
 
         {showComparison && (
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-12">
-            <h2 className="text-2xl font-bold text-center mb-6">
-              {activeTab === "buyer" ? "Buyer Plans Comparison" : activeTab === "supplier" ? "Supplier Plans Comparison" : "Transporter Plans Comparison"}
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+          <div className="container mt-8">
+            <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card">
+              <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="bg-gray-100">
-                    <th className="p-3 border-b">Feature</th>
+                  <tr className="bg-muted/50">
+                    <th className="p-3 font-semibold">Feature</th>
                     {plans.map((plan) => (
-                      <th key={plan.name} className="p-3 border-b text-center">{plan.name}</th>
+                      <th key={plan.name} className="p-3 text-center font-semibold">
+                        {plan.name}
+                      </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td className="p-3 border-b">Monthly Rate (GHC)</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan.monthlyRate}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">6-Month Rate (GHC, {activeTab === "transporter" ? "15% off" : "20% off"})</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan.sixMonthRate}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">12-Month Rate (GHC, {activeTab === "transporter" ? "25% off" : "30% off"})</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan.twelveMonthRate}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">Default Users</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan.defaultUsers}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">Add-On Fee (GHC/user/mo)</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan.addOnFee}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">Branch Add-On (GHC/branch/mo)</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan.branchAddOn}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">Purchase SMS Bonus (GHC)</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan.smsBonus || "0"}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">{opportunityLabel}</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">
-                        {activeTab === "buyer" ? plan.competitiveOffers : plan.businessOpportunities}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">{marketAccessLabel}</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan[marketAccessKey]}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">{registeredLabel}</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">
-                        {activeTab === "buyer" ? plan.registeredBuyers : activeTab === "supplier" ? plan.registeredSuppliers : plan.registeredTransporters}
-                      </td>
-                    ))}
-                  </tr>
-                  {activeTab === "buyer" && (
-                    <tr>
-                      <td className="p-3 border-b">Registered Transporters</td>
-                      {plans.map((plan) => (
-                        <td key={plan.name} className="p-3 border-b text-center">{plan.registeredTransporters}</td>
-                      ))}
-                    </tr>
-                  )}
-                  {activeTab === "supplier" && (
-                    <tr>
-                      <td className="p-3 border-b">Registered Transporters</td>
-                      {plans.map((plan) => (
-                        <td key={plan.name} className="p-3 border-b text-center">{plan.registeredTransporters}</td>
-                      ))}
-                    </tr>
-                  )}
-                  {activeTab === "transporter" && (
-                    <tr>
-                      <td className="p-3 border-b">Registered Suppliers</td>
-                      {plans.map((plan) => (
-                        <td key={plan.name} className="p-3 border-b text-center">{plan.registeredSuppliers}</td>
-                      ))}
-                    </tr>
-                  )}
-                  <tr>
-                    <td className="p-3 border-b">Transactional SMS</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">{plan.transactionalSMS}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-3 border-b">Promo SMS (Oct-Dec 2025)</td>
-                    {plans.map((plan) => (
-                      <td key={plan.name} className="p-3 border-b text-center">
-                        {plan.promoSMS} (to invite your suppliers)
-                      </td>
-                    ))}
-                  </tr>
+                <tbody className="[&>tr]:border-t [&>tr]:border-border/60">
+                  <ComparisonRow label="Monthly Rate (GHC)" plans={plans} render={(p) => p.monthlyRate} />
+                  <ComparisonRow label={`6-Month (GHC)`} plans={plans} render={(p) => p.sixMonthRate} />
+                  <ComparisonRow label={`12-Month (GHC)`} plans={plans} render={(p) => p.twelveMonthRate} />
+                  <ComparisonRow label="Default Users" plans={plans} render={(p) => p.defaultUsers} />
+                  <ComparisonRow label="Add-On (GHC/user/mo)" plans={plans} render={(p) => p.addOnFee} />
+                  <ComparisonRow label={opportunityLabel} plans={plans} render={(p) => (activeTab === "buyer" ? p.competitiveOffers : p.businessOpportunities)} />
+                  <ComparisonRow label={marketAccessLabel} plans={plans} render={(p) => p[marketAccessKey]} />
+                  <ComparisonRow label="Transactional SMS" plans={plans} render={(p) => p.transactionalSMS} />
                   {commonFeatures.map((feature) => (
                     <tr key={feature.name}>
-                      <td className="p-3 border-b">{feature.name}</td>
+                      <td className="p-3">{feature.name}</td>
                       {plans.map((plan) => (
-                        <td key={plan.name} className="p-3 border-b text-center">
-                          <Check className="w-5 h-5 text-green-500 mx-auto" />
+                        <td key={plan.name} className="p-3 text-center">
+                          <Check className="mx-auto h-4 w-4 text-brand" />
                         </td>
                       ))}
                     </tr>
@@ -791,65 +448,95 @@ export function PricingPage() {
             </div>
           </div>
         )}
+      </section>
 
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm {isTrial ? "Trial" : "Subscription"}</DialogTitle>
-              <DialogDescription>
-                Please confirm your subscription details below.
-              </DialogDescription>
-            </DialogHeader>
-            {selectedPlan && (
-              <div className="space-y-4">
-                <p>
-                  <strong>Plan:</strong> {selectedPlan.name} ({activeTab})
-                </p>
-                <p>
-                  <strong>Duration:</strong>{" "}
-                  {selectedPlans[selectedPlan.name] === "biannually"
-                    ? "6 Months (Biannually)"
-                    : selectedPlans[selectedPlan.name] === "annually"
+      <LandingFooter />
+
+      {/* Confirmation dialog */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Confirm {isTrial ? "Trial" : "Subscription"}
+            </DialogTitle>
+            <DialogDescription>
+              Please confirm your subscription details below.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPlan && (
+            <div className="space-y-3 text-sm">
+              <p>
+                <strong>Plan:</strong> {selectedPlan.name} ({activeTab})
+              </p>
+              <p>
+                <strong>Duration:</strong>{" "}
+                {selectedPlans[selectedPlan.name] === "biannually"
+                  ? "6 Months (Biannually)"
+                  : selectedPlans[selectedPlan.name] === "annually"
                     ? "12 Months (Annually)"
                     : "Monthly"}
-                </p>
+              </p>
+              <p>
+                <strong>Cost:</strong> GHC{" "}
+                {selectedPlans[selectedPlan.name] === "biannually"
+                  ? selectedPlan.sixMonthRate
+                  : selectedPlan.twelveMonthRate}
+              </p>
+              {isTrial && (
                 <p>
-                  <strong>Cost:</strong> Ghc{" "}
-                  {selectedPlans[selectedPlan.name] === "biannually"
-                    ? selectedPlan.sixMonthRate
-                    : selectedPlans[selectedPlan.name] === "annually"
-                    ? selectedPlan.twelveMonthRate
-                    : selectedPlan.monthlyRate}
-                  {selectedPlans[selectedPlan.name] === "monthly" ? "/mo" : ""}
+                  <strong>Trial Period:</strong> 28 days (ends on{" "}
+                  {new Date(
+                    Date.now() + 28 * 24 * 60 * 60 * 1000,
+                  ).toLocaleDateString()}
+                  )
                 </p>
-                {isTrial && (
-                  <p>
-                    <strong>Trial Period:</strong> 28 days (ends on{" "}
-                    {new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toLocaleDateString()})
-                  </p>
-                )}
-                <p>You will be redirected to Paystack to complete the {isTrial ? "trial" : "subscription"}.</p>
-              </div>
-            )}
-            <DialogFooter>
-              <button
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                onClick={() => setIsModalOpen(false)}
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800"
-                onClick={confirmSubscription}
-                disabled={isLoading}
-              >
-                {isLoading ? "Processing..." : "Confirm"}
-              </button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+              )}
+              <p className="text-muted-foreground">
+                You will be redirected to Paystack to complete the{" "}
+                {isTrial ? "trial" : "subscription"}.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              onClick={confirmSubscription}
+              disabled={isLoading}
+            >
+              {isLoading ? "Processing..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function Feature({ icon: Icon, children }) {
+  return (
+    <li className="flex items-start gap-2 text-muted-foreground">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+      <span>{children}</span>
+    </li>
+  );
+}
+
+function ComparisonRow({ label, plans, render }) {
+  return (
+    <tr>
+      <td className="p-3 font-medium">{label}</td>
+      {plans.map((plan) => (
+        <td key={plan.name} className="p-3 text-center">
+          {render(plan)}
+        </td>
+      ))}
+    </tr>
   );
 }

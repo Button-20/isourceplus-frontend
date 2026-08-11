@@ -178,7 +178,7 @@ const EditBranch = () => {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+        <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-xs border border-gray-200 p-6 animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
           <div className="space-y-4">
             <div className="h-6 bg-gray-200 rounded w-3/4"></div>
@@ -204,7 +204,7 @@ const EditBranch = () => {
         <h1 className="text-2xl font-bold text-gray-800">Edit Branch</h1>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Branch Information Section */}
           <div className="space-y-4">
@@ -472,7 +472,7 @@ const EditBranch = () => {
             <button
               type="submit"
               disabled={submitting}
-              className={`px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 ${
+              className={`px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 ${
                 submitting ? "opacity-70 cursor-not-allowed" : ""
               }`}
             >

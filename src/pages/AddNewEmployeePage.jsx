@@ -202,7 +202,7 @@ export default function AddNewEmployeePage() {
   // No changes to commented-out loading state
   // if (profileLoading) {
   //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+  //     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-900 to-gray-800">
   //       <div className="flex flex-col items-center">
   //         <Loader2 className="animate-spin h-10 w-10 text-white mb-4" />
   //         <span className="text-white font-medium">
@@ -222,7 +222,7 @@ export default function AddNewEmployeePage() {
 
   // Modified: Updated JSX to include show/hide password toggle with eye icons
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border border-gray-100 relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-gray-100 rounded-full opacity-20"></div>
@@ -269,7 +269,7 @@ export default function AddNewEmployeePage() {
                 onChange={handleEmailChange}
                 required
                 placeholder="employee@company.com"
-                className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gray-200 focus:border-gray-600 transition-all duration-200 shadow-sm"
+                className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-gray-200 focus:border-gray-600 transition-all duration-200 shadow-xs"
               />
             </div>
 
@@ -292,7 +292,7 @@ export default function AddNewEmployeePage() {
                   onChange={handlePasswordChange}
                   required
                   placeholder="Minimum 8 characters"
-                  className="w-full border border-gray-200 rounded-lg p-3 pr-10 focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all duration-200 shadow-sm"
+                  className="w-full border border-gray-200 rounded-lg p-3 pr-10 focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all duration-200 shadow-xs"
                 />
                 <button
                   type="button"
@@ -328,7 +328,7 @@ export default function AddNewEmployeePage() {
                   onChange={handleConfirmChange}
                   required
                   placeholder="Re-enter your password"
-                  className="w-full border border-gray-200 rounded-lg p-3 pr-10 focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all duration-200 shadow-sm"
+                  className="w-full border border-gray-200 rounded-lg p-3 pr-10 focus:ring-2 focus:ring-gray-200 focus:border-gray-500 transition-all duration-200 shadow-xs"
                 />
                 <button
                   type="button"

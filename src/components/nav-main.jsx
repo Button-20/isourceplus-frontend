@@ -16,48 +16,55 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
-// Modified: Added pathname prop for active link detection
 export function NavMain({ items, pathname }) {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
         {items?.map((item) => {
-          // Added: Determine if top-level link is active
-          const isTopLevelActive = item.url === pathname || 
-            (item.submenu && item.submenu.some(sub => pathname.startsWith(sub.url)));
-          // Added: Determine if Collapsible should be open
-          const isSubmenuActive = item.submenu && item.submenu.some(sub => sub.url === pathname);
+          const isTopLevelActive =
+            item.url === pathname ||
+            (item.submenu &&
+              item.submenu.some((sub) => pathname.startsWith(sub.url)));
+          const isSubmenuActive =
+            item.submenu && item.submenu.some((sub) => sub.url === pathname);
 
           return (
-            <Collapsible 
-              key={item.title} 
-              asChild 
+            <Collapsible
+              key={item.title}
+              asChild
               defaultOpen={isSubmenuActive || isTopLevelActive}
             >
               <SidebarMenuItem>
-                {/* Modified: Added active styles and aria-current for top-level link */}
-                <SidebarMenuButton 
-                  asChild 
+                <SidebarMenuButton
+                  asChild
                   tooltip={item.title}
-                  className={`transition-colors duration-200 ${
-                    isTopLevelActive 
-                      ? "bg-gray-100 text-gray-900 font-semibold border-l-4 border-gray-900" 
-                      : "hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  }`}
+                  isActive={isTopLevelActive}
+                  className={cn(
+                    "transition-colors duration-200",
+                    isTopLevelActive &&
+                      "border-l-2 border-brand font-semibold",
+                  )}
                 >
-                  <a 
-                    href={item.url ?? "#"}
-                    aria-current={isTopLevelActive ? "page" : undefined}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </a>
+                  {item.url ? (
+                    <Link
+                      to={item.url}
+                      aria-current={isTopLevelActive ? "page" : undefined}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  ) : (
+                    <a href="#" aria-current={isTopLevelActive ? "page" : undefined}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  )}
                 </SidebarMenuButton>
                 {item.submenu && (
                   <>
-                    {/* No changes to CollapsibleTrigger */}
                     <CollapsibleTrigger asChild>
                       <SidebarMenuAction className="data-[state=open]:rotate-90">
                         <ChevronRight />
@@ -65,23 +72,19 @@ export function NavMain({ items, pathname }) {
                       </SidebarMenuAction>
                     </CollapsibleTrigger>
 
-                    {/* No changes to CollapsibleContent structure */}
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        {item.submenu.map(sub => (
+                        {item.submenu.map((sub) => (
                           <SidebarMenuSubItem key={sub.title}>
-                            {/* Modified: Added active styles and aria-current for submenu link */}
-                            <SidebarMenuSubButton 
+                            <SidebarMenuSubButton
                               asChild
-                              className={`transition-colors duration-200 pl-8 ${
-                                sub.url === pathname
-                                  ? "bg-gray-200 text-gray-900 font-medium border-l-4 border-gray-900 pl-10"
-                                  : "hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                              }`}
+                              isActive={sub.url === pathname}
                             >
-                              <Link 
+                              <Link
                                 to={sub.url}
-                                aria-current={sub.url === pathname ? "page" : undefined}
+                                aria-current={
+                                  sub.url === pathname ? "page" : undefined
+                                }
                               >
                                 {sub.title}
                               </Link>

@@ -8,7 +8,8 @@ import {
   ProtectedAuthRoute,
   ProtectedOnBoardingRoute,
 } from "./components/protected-routes";
-import { BaseDashBoard } from "./pages/base-dashboard";
+import { DashboardLayout } from "./layouts/DashboardLayout";
+import { AuthLayout } from "./layouts/AuthLayout";
 import { DashBoardHome } from "./pages/dashboard-home";
 import WatchNow from "./pages/watch_now_page.pages";
 import Store from "./pages/store";
@@ -18,7 +19,6 @@ import ProfilePage from "./pages/ProfilePage";
 import TransporterPage from "./pages/TransporterPage";
 import CompanyPage from "./pages/CompanyPage";
 import CompanyChoices from "./pages/CompanyChoices";
-import LastPathTracker from "./components/util/LastPathTracker";
 import MobileVerificationPage from "./pages/MobileVerificationPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
 import EmailVerifyKeyPage from "./components/EmailVerifyKeyPage";
@@ -76,19 +76,19 @@ export const appRoutes = createBrowserRouter([
   { path: "/subscription/callback", element: <SubscriptionCallbackPage /> },
 
   {
-    element: (
-      <>
-        <LastPathTracker />
-        <ProtectedAuthRoute />
-      </>
-    ),
+    element: <ProtectedAuthRoute />,
     children: [
-      { path: "/login", element: <LoginPage /> },
-      { path: "/signup", element: <SignUpPage /> },
-      { path: "/forgot-password", element: <ForgotPasswordPage /> },
       {
-        path: "/password/reset/confirm/:uid/:token",
-        element: <ResetPasswordConfirmPage />,
+        element: <AuthLayout />,
+        children: [
+          { path: "/login", element: <LoginPage /> },
+          { path: "/signup", element: <SignUpPage /> },
+          { path: "/forgot-password", element: <ForgotPasswordPage /> },
+          {
+            path: "/password/reset/confirm/:uid/:token",
+            element: <ResetPasswordConfirmPage />,
+          },
+        ],
       },
     ],
   },
@@ -105,7 +105,7 @@ export const appRoutes = createBrowserRouter([
   },
   {
     path: "/dashboard",
-    element: <BaseDashBoard />,
+    element: <DashboardLayout />,
     children: [
       { index: true, element: <DashBoardHome /> },
       { path: "transporter", element: <TransporterPage /> },

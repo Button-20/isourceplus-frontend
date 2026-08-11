@@ -12,7 +12,7 @@ const Hero = () => {
   const primaryText = "text-indigo-600";
 
   const primaryBtn =
-    "bg-black text-white font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-[1rem] md:px-[2rem] rounded-md hover:!scale-110 duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[0.9rem]";
+    "bg-black text-white font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-4 md:px-8 rounded-md hover:scale-110! duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[0.9rem]";
 
   const navigate = useNavigate();
 
@@ -46,7 +46,7 @@ const Hero = () => {
                 variants={SlideRight(1.5)}
                 initial="hidden"
                 animate="visible"
-                className="flex flex-wrap justify-center items-center gap-4 lg:justify-start !mt-4 !mb-4"
+                className="flex flex-wrap justify-center items-center gap-4 lg:justify-start mt-4! mb-4!"
                 >
                 <button
                   onClick={() => {
@@ -75,7 +75,7 @@ const Hero = () => {
               animate="visible"
               src={assets.heroImgRmvBg}
               alt=""
-              className="w-[550px]  md:[700px] xl:w-[1400px] drop-shadow"
+              className="w-[550px]  md:[700px] xl:w-[1400px] drop-shadow-sm"
             /> */}
             <motion.div
               variants={SlideLeft(0.6)}

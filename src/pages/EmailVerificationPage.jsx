@@ -44,7 +44,7 @@ const EmailVerificationPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white p-8 rounded-lg shadow-sm w-full max-w-md">
+      <div className="bg-white p-8 rounded-lg shadow-xs w-full max-w-md">
         <h1 className="text-2xl font-bold mb-4">Verify Your Email</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">

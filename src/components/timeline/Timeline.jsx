@@ -100,8 +100,8 @@ const Timeline = () => {
               <span
                 className={`hidden lg:block ${
                   index % 2 === 0
-                    ? "absolute top-[28px] z-[10] border-t-[15px] border-t-transparent border-b-transparent border-b-[15px] border-l-[20px] border-l-white right-[-15px]"
-                    : "absolute top-[28px] z-[10] border-t-[15px] border-t-transparent border-b-transparent border-b-[15px] border-r-[20px] border-r-white left-[-15px]"
+                    ? "absolute top-[28px] z-10 border-t-15 border-t-transparent border-b-transparent border-b-15 border-l-20 border-l-white right-[-15px]"
+                    : "absolute top-[28px] z-10 border-t-15 border-t-transparent border-b-transparent border-b-15 border-r-20 border-r-white left-[-15px]"
                 }`}
               ></span>
             </div>

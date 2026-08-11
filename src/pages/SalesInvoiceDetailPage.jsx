@@ -167,7 +167,7 @@ const SalesInvoiceDetailPage = () => {
           <p className="mt-4 text-xl font-semibold text-gray-900">Sales Invoice Not Found</p>
           <button
             onClick={() => navigate("/dashboard/sales-invoices")}
-            className="mt-6 flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-sm"
+            className="mt-6 flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-xs"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Sales Invoices
@@ -189,7 +189,7 @@ const SalesInvoiceDetailPage = () => {
           </div>
           <button
             onClick={() => navigate("/dashboard/sales-invoices")}
-            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-sm"
+            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-xs"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Sales Invoices
@@ -200,7 +200,7 @@ const SalesInvoiceDetailPage = () => {
       <div className="space-y-6">
         {/* Invoice Details Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               onClick={() => setDetailsOpen(!detailsOpen)}
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
@@ -319,7 +319,7 @@ const SalesInvoiceDetailPage = () => {
 
         {/* Attachments Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               onClick={() => setAttachmentsOpen(!attachmentsOpen)}
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
@@ -376,7 +376,7 @@ const SalesInvoiceDetailPage = () => {
 
         {/* Items Section */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
             <button
               onClick={() => setItemsOpen(!itemsOpen)}
               className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"

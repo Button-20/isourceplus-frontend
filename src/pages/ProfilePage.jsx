@@ -40,7 +40,7 @@ const ProfilePage = () => {
   );
 
   if (!userProfileId) return (
-    <div className="max-w-lg mx-auto p-6 text-center bg-white rounded-lg shadow-sm mt-10">
+    <div className="max-w-lg mx-auto p-6 text-center bg-white rounded-lg shadow-xs mt-10">
       <ShieldAlert className="w-10 h-10 text-red-500 mx-auto mb-3" />
       <h2 className="text-xl font-medium">Profile Not Found</h2>
       <p className="text-gray-600 mt-2 mb-4">You need to create your professional profile</p>
@@ -53,7 +53,7 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           {/* Header Section */}
           <div className="bg-black text-white px-6 py-4 flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -67,7 +67,7 @@ const ProfilePage = () => {
 
           {/* Notice Banner */}
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start">
-            <Info className="w-5 h-5 text-yellow-600 mr-3 mt-0.5 flex-shrink-0" />
+            <Info className="w-5 h-5 text-yellow-600 mr-3 mt-0.5 shrink-0" />
             <div>
               <p className="font-medium text-yellow-800">Important Notice</p>
               <p className="text-yellow-700 text-sm mt-1">

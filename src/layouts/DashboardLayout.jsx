@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
@@ -6,7 +6,6 @@ import { NavUser } from "@/components/nav-user";
 import { Link } from "react-router-dom";
 import {
   Home,
-  Truck,
   ShoppingCart,
   Loader2,
   TruckIcon,
@@ -25,25 +24,21 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/contexts/app.context";
+import { useAuth } from "@/services/context/app.context";
 import { FaSalesforce } from "react-icons/fa";
 import {
-  MdAdd,
   MdAdminPanelSettings,
-  MdEditDocument,
   MdOutlineDocumentScanner,
   MdOutlinePeopleAlt,
 } from "react-icons/md";
 
-export function BaseDashBoard() {
+export function DashboardLayout() {
   const {
     user,
     token,
     loading,
     jobTitle,
     sidebarLoading,
-    setSidebarLoading,
-    profileLoading,
     authAxios,
     fetchProfileInfo,
     userProfileId,
@@ -54,61 +49,64 @@ export function BaseDashBoard() {
   const navigate = useNavigate();
   const [profileVerified, setProfileVerified] = useState(null);
 
+  // Kick unauthenticated users back to login.
+  useEffect(() => {
+    if (!user || !token) {
+      navigate("/login", { state: { from: location }, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, token]);
+
+  // Populate the sidebar's job title (non-blocking — never gates the page).
   useEffect(() => {
     if (user && token && userProfileId) {
       fetchProfileInfo();
     }
-  }, [authAxios, userProfileId, user, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfileId, user, token]);
 
+  // Verify the user has completed onboarding. Fail OPEN on anything other than
+  // a genuine "profile not found" (404), and time the request out, so a slow or
+  // flaky request can never trap the user on an infinite loading spinner.
   useEffect(() => {
-    const verifyProfile = async () => {
-      if (!user || !token || !userProfileId) {
-        setProfileVerified(false);
+    let cancelled = false;
+    const verify = async () => {
+      if (!user || !token) return;
+      if (!userProfileId) {
+        if (!cancelled) setProfileVerified(false);
         return;
       }
       try {
-        await authAxios.get(`user-profiles/${userProfileId}/`);
-        setProfileVerified(true);
-      } catch (error) {
-        console.error("Profile does not exist:", error);
-        setProfileVerified(false);
+        await authAxios.get(`user-profiles/${userProfileId}/`, {
+          timeout: 15000,
+        });
+        if (!cancelled) setProfileVerified(true);
+      } catch (err) {
+        if (!cancelled) {
+          setProfileVerified(err.response?.status === 404 ? false : true);
+        }
       }
     };
-    verifyProfile();
-  }, [userProfileId, authAxios, user, token]);
+    verify();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfileId, user, token]);
 
+  // Send users without a profile to onboarding.
   useEffect(() => {
-    if (!loading && !sidebarLoading) {
-      if (!user || !token) {
-        navigate("/login", { state: { from: location }, replace: true });
-      } else if (profileVerified === false) {
-        navigate("/onboarding/user", {
-          state: { from: location },
-          replace: true,
-        });
-      }
+    if (user && token && profileVerified === false) {
+      navigate("/onboarding/user", { state: { from: location }, replace: true });
     }
-  }, [
-    loading,
-    sidebarLoading,
-    user,
-    token,
-    profileVerified,
-    navigate,
-    location,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileVerified, user, token]);
 
-  let companiesSubmenu = [
-    // { title: "Account Type", url: "/dashboard/companies" },
-  ];
+  let companiesSubmenu = [];
 
-  if ( !companyId && !transporterId) {
-    companiesSubmenu.push(
-      { title: "Account Type", url: "/dashboard/companies" }
-    )
+  if (!companyId && !transporterId) {
+    companiesSubmenu.push({ title: "Account Type", url: "/dashboard/companies" });
   }
-
- 
 
   if (jobTitle === "logistics manager") {
     companiesSubmenu.push({
@@ -146,7 +144,7 @@ export function BaseDashBoard() {
   if (["logistics manager", "lead buyer", "sales manager"].includes(jobTitle)) {
     navLinks = [
       { title: "Home", url: "/dashboard/", icon: Home },
-       {
+      {
         title: "Subscriptions",
         icon: ShoppingCart,
         url: "/pricing",
@@ -164,11 +162,7 @@ export function BaseDashBoard() {
       {
         title: "Branches",
         icon: TruckIcon,
-        url: "/dashboard/branches"
-        // submenu: [
-        //   { title: "Add a Branch", url: "/dashboard/branches/new" },
-        //   { title: "View all Branches", url: "/dashboard/branches" },
-        // ],
+        url: "/dashboard/branches",
       },
       {
         title: "Add ID Documents",
@@ -220,9 +214,10 @@ export function BaseDashBoard() {
       submenu: [
         { title: "View All RFxs", url: "/dashboard/rfxs" },
         ...(jobTitle === "lead buyer"
-          ? [{ title: "Create RFx", url: "/dashboard/rfxs/new" },
-            { title: "View Issued RFxs", url: "/dashboard/rfxs/issued" }
-          ]
+          ? [
+              { title: "Create RFx", url: "/dashboard/rfxs/new" },
+              { title: "View Issued RFxs", url: "/dashboard/rfxs/issued" },
+            ]
           : []),
       ],
     });
@@ -270,15 +265,14 @@ export function BaseDashBoard() {
     });
   }
 
-  // if (jobTitle === "lead buyer") {
-  //   navLinks.push({
-  //     title: "Issued Sales Invoices",
-  //     icon: FileText,
-  //     url: "/dashboard/sales-invoices/issued",
-  //   });
-  // }
+  // Redirecting to /login (see effect above).
+  if (!user || !token) {
+    return null;
+  }
 
-  if (loading || sidebarLoading || profileVerified === null) {
+  // Only the onboarding check gates the full page, and it always resolves
+  // (success, 404, or a timed-out/failed request that fails open).
+  if (profileVerified === null) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
@@ -286,7 +280,8 @@ export function BaseDashBoard() {
     );
   }
 
-  if (!user || !token || !profileVerified) {
+  // Redirecting to onboarding (see effect above).
+  if (profileVerified === false) {
     return null;
   }
 
@@ -327,7 +322,7 @@ export function BaseDashBoard() {
               </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-              <NavMain items={navLinks} pathname={location.pathname}/>
+              <NavMain items={navLinks} pathname={location.pathname} />
               <NavSecondary className="mt-auto" />
             </SidebarContent>
             <SidebarFooter>

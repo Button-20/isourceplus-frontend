@@ -93,7 +93,7 @@ const CompanyChoices = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12 flex-grow">
+      <main className="container mx-auto px-4 py-12 grow">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Choose Your Account Type</h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">

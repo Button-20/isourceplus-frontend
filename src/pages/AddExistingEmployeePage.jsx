@@ -57,7 +57,7 @@ export default function AddExistingEmployeePage() {
 
    if (profileLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-900 to-gray-800">
         <div className="flex flex-col items-center">
           <Loader2 className="animate-spin h-10 w-10 text-white mb-4" />
           <span className="text-white font-medium">Loading dashboard...</span>
@@ -71,7 +71,7 @@ export default function AddExistingEmployeePage() {
   }
 
    return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border border-gray-100 relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-100 rounded-full opacity-20"></div>
@@ -111,7 +111,7 @@ export default function AddExistingEmployeePage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="team.member@company.com"
-                className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 shadow-sm"
+                className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 shadow-xs"
               />
               <p className="text-xs text-gray-500 mt-1">
                 User must already have an account in the system
@@ -122,7 +122,7 @@ export default function AddExistingEmployeePage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-gray-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              className="w-full bg-linear-to-r from-blue-600 to-gray-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             >
               {loading ? (
                 <>

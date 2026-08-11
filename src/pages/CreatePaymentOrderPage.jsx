@@ -125,7 +125,7 @@ const CreatePaymentOrderPage = () => {
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-xs focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
                 required
               />
             </div>
@@ -136,7 +136,7 @@ const CreatePaymentOrderPage = () => {
                 name="spend_category"
                 value={formData.spend_category}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-xs focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
                 readOnly
               />
             </div>
@@ -146,7 +146,7 @@ const CreatePaymentOrderPage = () => {
                 name="priority"
                 value={formData.priority}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-xs focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
               >
                 <option value="urgent">Urgent</option>
                 <option value="low">Low</option>
@@ -159,7 +159,7 @@ const CreatePaymentOrderPage = () => {
                 name="payment_method"
                 value={formData.payment_method}
                 onChange={handleInputChange}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-xs focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
                 required
               />
             </div>
