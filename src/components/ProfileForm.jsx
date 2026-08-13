@@ -1,6 +1,6 @@
 // components/ProfileForm.jsx
-import React, { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/app.context";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -9,13 +9,32 @@ import {
   CheckCircle,
   XCircle,
   Shield,
+  Info,
 } from "lucide-react";
-import { useNavigate } from "react-router";
-import { getCookie } from "@/utility/getCookie";
+
+import { useAuth } from "@/services/context/app.context";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import ScrollToTop from "./ScrollToTop";
 
+const JOB_TITLES = [
+  "logistics manager",
+  "lead buyer",
+  "sales manager",
+  "sourcing_officer",
+  "sales officer",
+  "chief buyer",
+  "stores officer",
+  "finance officer",
+];
+
+const labelClass = "mb-1 block text-sm font-medium text-foreground";
+const fieldClass =
+  "block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none transition-colors focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30";
+
 const ProfileForm = ({ profileId }) => {
-  const { authAxios, BASE_URL, refreshToken, userProfileId } = useAuth();
+  const { authAxios, userProfileId } = useAuth();
   const [formValues, setFormValues] = useState({
     job_title: "",
     job_position: "",
@@ -32,48 +51,37 @@ const ProfileForm = ({ profileId }) => {
 
   const navigate = useNavigate();
 
-  // refreshToken()
-
-  // const refresh = getCookie('isource-plus-refresh-token')
-  // console.log('isource-plus-refresh-token',refresh)
-
   const canCreateCompany = ["lead buyer", "sales manager"].includes(
-    formValues.job_title?.toLowerCase()
+    formValues.job_title?.toLowerCase(),
   );
-
   const isAdmin = formValues.job_title?.toLowerCase() === "logistics manager";
 
   const handleVerifyNumber = async (numberType) => {
     const number = formValues[numberType];
-
     if (!number) {
-      toast.error("Please enter a phone number fist");
+      toast.error("Please enter a phone number first");
       return;
     }
-
     try {
       await authAxios.get(
-        `send-verification-code/?phone=${encodeURIComponent(number)}`
+        `send-verification-code/?phone=${encodeURIComponent(number)}`,
       );
       navigate(
         `/onboarding/mobile-verification/?phone=${encodeURIComponent(
-          number
-        )}&number_type=${numberType}`
+          number,
+        )}&number_type=${numberType}`,
       );
     } catch (error) {
-      console.log(error);
-      toast.error(error);
+      toast.error(error.response?.data?.detail || "Could not send code.");
     }
   };
 
   useEffect(() => {
     if (!profileId) return;
-
     const fetchProfile = async () => {
       try {
         const res = await authAxios.get(`user-profiles/${profileId}/`);
         const data = res.data;
-        console.log("job_title raw:", data.job_title);
         setFormValues({
           job_title: data.job_title || "",
           job_position: data.job_position || "",
@@ -83,22 +91,15 @@ const ProfileForm = ({ profileId }) => {
           cell_1_is_verified: data.cell_1_is_verified || false,
           cell_2_is_verified: data.cell_2_is_verified || false,
         });
-        if (data.profile_photo) {
-          setPhotoPreview(data.profile_photo);
-        }
+        if (data.profile_photo) setPhotoPreview(data.profile_photo);
       } catch (error) {
-        console.error("Failed to load profile:", error);
-        toast.error("Failed to load profile. Log in again.");
+        toast.error("Failed to load profile. Please log in again.");
       } finally {
         setFetching(false);
       }
     };
     fetchProfile();
   }, [authAxios, profileId]);
-
-  useEffect(() => {
-    console.log("job_title changed:", formValues.job_title);
-  }, [formValues.job_title]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -116,36 +117,19 @@ const ProfileForm = ({ profileId }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Get CSRF token from cookies (may exist from page load)
-      let csrfToken = getCookie("csrftoken");
-
-      // If no token, proceed anyway - the signup request will set it
-      if (!csrfToken) {
-        console.warn("CSRF token not found in cookies - proceeding anyway");
-      }
-
       const data = new FormData();
       Object.entries(formValues).forEach(([key, val]) => {
-        if (val !== "" && !key.endsWith("_is_verified")) {
-          data.append(key, val);
-        }
+        if (val !== "" && !key.endsWith("_is_verified")) data.append(key, val);
       });
       if (photoFile) data.append("profile_photo", photoFile);
 
+      // CSRF + multipart boundary are handled by the shared client / axios.
       const response = await authAxios.patch(
         `user-profiles/${profileId}/`,
         data,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            "X-CSRFToken": csrfToken,
-          },
-        }
       );
 
-      // Check if we have unverified numbers that were just added/updated
       const updatedCell1 = data.get("cell_1");
       const updatedCell2 = data.get("cell_2");
       const needsVerification =
@@ -153,7 +137,6 @@ const ProfileForm = ({ profileId }) => {
         (updatedCell2 && !response.data.cell_2_is_verified);
 
       if (needsVerification) {
-        // Redirect to verification for the first unverified number
         const numberToVerify =
           updatedCell1 && !response.data.cell_1_is_verified
             ? updatedCell1
@@ -162,18 +145,16 @@ const ProfileForm = ({ profileId }) => {
           updatedCell1 && !response.data.cell_1_is_verified
             ? "cell_1"
             : "cell_2";
-
         navigate(
           `/onboarding/mobile-verification/?phone=${encodeURIComponent(
-            numberToVerify
-          )}&number_type=${numberType}`
+            numberToVerify,
+          )}&number_type=${numberType}`,
         );
       } else {
         toast.success("Profile updated successfully!");
         navigate("/dashboard");
       }
     } catch (error) {
-      console.error("Update failed:", error);
       toast.error(error.response?.data?.detail || "Failed to update profile.");
     } finally {
       setLoading(false);
@@ -183,37 +164,45 @@ const ProfileForm = ({ profileId }) => {
   if (fetching) {
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="animate-spin w-6 h-6 text-black" />
+        <Loader2 className="h-6 w-6 animate-spin text-brand" />
       </div>
     );
   }
 
+  const linkedinValue = formValues.social_links.includes("linkedin.com")
+    ? formValues.social_links.split("linkedin.com/in/")[1] || ""
+    : "";
+  const twitterValue = formValues.social_links.includes("twitter.com")
+    ? formValues.social_links.split("twitter.com/")[1] || ""
+    : "";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <ScrollToTop/>
-      {/* Profile Picture Section */}
-      <div className="border-b border-gray-200 pb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Profile Image
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <ScrollToTop />
+
+      {/* Profile photo */}
+      <section className="border-b border-border pb-6">
+        <h2 className="mb-4 font-display text-base font-semibold">
+          Profile image
         </h2>
-        <div className="flex items-center space-x-6">
-          <div className="relative group">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+        <div className="flex items-center gap-6">
+          <div className="relative">
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-muted ring-2 ring-brand/10">
               {photoPreview ? (
                 <img
                   src={photoPreview}
                   alt="Profile"
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                 />
               ) : (
-                <User className="w-10 h-10 text-gray-400" />
+                <User className="h-9 w-9 text-muted-foreground" />
               )}
             </div>
             <label
               htmlFor="profile-photo"
-              className="absolute bottom-0 right-0 bg-black text-white p-1.5 rounded-full cursor-pointer hover:bg-gray-800 transition-colors"
+              className="absolute bottom-0 right-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-brand-gradient text-brand-foreground shadow hover:opacity-90"
             >
-              <Upload className="w-3 h-3" />
+              <Upload className="h-3.5 w-3.5" />
               <input
                 id="profile-photo"
                 type="file"
@@ -224,313 +213,247 @@ const ProfileForm = ({ profileId }) => {
             </label>
           </div>
           <div>
-            <p className="text-sm text-gray-600">
-              JPG, GIF or PNG. Max size 2MB
+            <p className="text-sm text-muted-foreground">
+              JPG, GIF or PNG. Max size 2MB.
             </p>
-            <button
-              type="button"
-              className="text-sm text-red-600 hover:text-red-800 mt-2"
-              onClick={() => setPhotoPreview(null)}
-            >
-              Remove photo
-            </button>
+            {photoPreview && (
+              <button
+                type="button"
+                className="mt-2 text-sm font-medium text-destructive hover:underline"
+                onClick={() => {
+                  setPhotoPreview(null);
+                  setPhotoFile(null);
+                }}
+              >
+                Remove photo
+              </button>
+            )}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* exceptions */}
-      <div className="border-b border-gray-200 pb-6">
-        <div className="flex justify-between items-start mb-4">
-          <h2 className="text-lg font-medium text-gray-900">
-            Professional Information
+      {/* Professional info */}
+      <section className="border-b border-border pb-6">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <h2 className="font-display text-base font-semibold">
+            Professional information
           </h2>
-          <div className="flex flex-col items-end space-y-2">
-            <div
-              className={`flex items-center text-sm ${
-                canCreateCompany ? "text-green-600" : "text-red-600"
-              }`}
+          <div className="flex flex-col items-end gap-1.5">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-xs font-medium",
+                canCreateCompany ? "text-emerald-600" : "text-muted-foreground",
+              )}
             >
               {canCreateCompany ? (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  <span>Can create company</span>
-                </>
+                <CheckCircle className="h-3.5 w-3.5" />
               ) : (
-                <>
-                  <XCircle className="w-4 h-4 mr-1" />
-                  <span>Cannot create company</span>
-                </>
+                <XCircle className="h-3.5 w-3.5" />
               )}
-            </div>
-            <div
-              className={`flex items-center text-sm ${
-                isAdmin ? "text-green-600" : "text-red-600"
-              }`}
+              Can create company
+            </span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-xs font-medium",
+                isAdmin ? "text-emerald-600" : "text-muted-foreground",
+              )}
             >
               {isAdmin ? (
-                <>
-                  <Shield className="w-4 h-4 mr-1" />
-                  <span>Can create transporter</span>
-                </>
+                <Shield className="h-3.5 w-3.5" />
               ) : (
-                <>
-                  <XCircle className="w-4 h-4 mr-1" />
-                  <span>Cannot create transporter</span>
-                </>
+                <XCircle className="h-3.5 w-3.5" />
               )}
-            </div>
+              Can create transporter
+            </span>
           </div>
         </div>
 
-        <div className="space-y-4 mb-4">
-          <div className="bg-blue-50 p-4 rounded-md">
-            <p className="text-sm text-blue-800">
-              <span className="font-semibold">Note:</span> Only{" "}
-              <span className="font-semibold">"Lead Buyer"</span> or{" "}
-              <span className="font-semibold">"Sales Manager"</span> roles can
-              create company profiles.
-            </p>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-md">
-            <p className="text-sm text-purple-800">
-              <span className="font-semibold">Important:</span> Only users with{" "}
-              <span className="font-semibold">"logistics manager"</span> role can create
-              transporter profiles.
-            </p>
-          </div>
+        <div className="mb-5 flex items-start gap-2 rounded-lg border border-brand/20 bg-brand/5 p-3 text-sm text-brand">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Your job title determines your permissions.{" "}
+            <span className="font-medium">Lead Buyer</span> /{" "}
+            <span className="font-medium">Sales Manager</span> can create a
+            company; <span className="font-medium">Logistics Manager</span> can
+            create a transporter.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Job Title
-            </label>
+            <label className={labelClass}>Job title</label>
             <select
               name="job_title"
               value={formValues.job_title}
               onChange={handleChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
+              className={cn(fieldClass, "capitalize")}
             >
               <option value="">Select your job title</option>
-              {/* <option value="admin">Admin</option> */}
-              <option value="logistics manager">Logistics manager</option>
-              <option value="lead buyer">Lead buyer</option>
-              <option value="sales manager">Sales manager</option>
-              <option value="sourcing_officer">Sourcing officer</option>
-              <option value="sales officer">Sales officer</option>
-              <option value="chief buyer">Chief buyer</option>
-              <option value="stores officer">Stores officer</option>
-              <option value="finance officer">Finance officer</option>
+              {JOB_TITLES.map((t) => (
+                <option key={t} value={t} className="capitalize">
+                  {t.replace(/_/g, " ")}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Job Description
-            </label>
+            <label className={labelClass}>Job description</label>
             <textarea
               name="job_position"
               value={formValues.job_position}
               onChange={handleChange}
               rows={3}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
+              className={fieldClass}
               placeholder="Describe your role and responsibilities"
             />
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Contact Information */}
-      <div className="border-b border-gray-200 pb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Contact Information
+      {/* Contact */}
+      <section className="border-b border-border pb-6">
+        <h2 className="mb-4 font-display text-base font-semibold">
+          Contact information
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Primary Phone
-                {/* <span className="text-red-500">*</span> */}
-              </label>
-              {formValues.cell_1 && !formValues.cell_1_is_verified && (
-                <button
-                  type="button"
-                  onClick={() => handleVerifyNumber("cell_1")}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800"
-                >
-                  Verify
-                </button>
-              )}
-              {formValues.cell_1_is_verified && (
-                <span className="inline-flex items-center text-xs text-green-600">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Verified
-                </span>
-              )}
-            </div>
-
-            <input
-              type="tel"
-              name="cell_1"
-              maxLength={15}
-              value={formValues.cell_1}
-              onChange={handleChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
-              placeholder="+1234567890"
-              // required
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Secondary Phone
-              </label>
-              {formValues.cell_2 && !formValues.cell_2_is_verified && (
-                <button
-                  type="button"
-                  onClick={() => handleVerifyNumber("cell_2")}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800"
-                >
-                  Verify
-                </button>
-              )}
-              {formValues.cell_2_is_verified && (
-                <span className="inline-flex items-center text-xs text-green-600">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Verified
-                </span>
-              )}
-            </div>
-            <input
-              type="tel"
-              name="cell_2"
-              maxLength={15}
-              value={formValues.cell_2}
-              onChange={handleChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
-              placeholder="+1234567890"
-            />
-          </div>
+          {[
+            { name: "cell_1", label: "Primary phone" },
+            { name: "cell_2", label: "Secondary phone" },
+          ].map(({ name, label }) => {
+            const verified = formValues[`${name}_is_verified`];
+            return (
+              <div key={name}>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="text-sm font-medium text-foreground">
+                    {label}
+                  </label>
+                  {formValues[name] && !verified && (
+                    <button
+                      type="button"
+                      onClick={() => handleVerifyNumber(name)}
+                      className="text-xs font-medium text-brand hover:underline"
+                    >
+                      Verify
+                    </button>
+                  )}
+                  {verified && (
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                      <CheckCircle className="h-3 w-3" /> Verified
+                    </span>
+                  )}
+                </div>
+                <Input
+                  type="tel"
+                  name={name}
+                  maxLength={15}
+                  value={formValues[name]}
+                  onChange={handleChange}
+                  placeholder="+233 …"
+                />
+              </div>
+            );
+          })}
         </div>
-      </div>
+      </section>
 
-      {/* Social Links */}
-      <div className="pb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Social Profiles
+      {/* Social */}
+      <section>
+        <h2 className="mb-4 font-display text-base font-semibold">
+          Social profiles
         </h2>
         <div className="space-y-4">
-          {/* LinkedIn */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              LinkedIn
-            </label>
-            <div className="flex rounded-md shadow-xs">
-              <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+            <label className={labelClass}>LinkedIn</label>
+            <div className="flex">
+              <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
                 linkedin.com/in/
               </span>
-              <input
+              <Input
                 type="text"
-                name="linkedin"
-                value={
-                  formValues.social_links.includes("linkedin.com")
-                    ? formValues.social_links.split("linkedin.com/in/")[1] || ""
-                    : ""
-                }
-                onChange={(e) => {
-                  const linkedinValue = e.target.value
-                    ? `linkedin.com/in/${e.target.value}`
-                    : "";
+                value={linkedinValue}
+                onChange={(e) =>
                   setFormValues((prev) => ({
                     ...prev,
-                    social_links: linkedinValue,
-                  }));
-                }}
-                className="flex-1 block w-full rounded-none rounded-r-md border border-gray-300 p-2 focus:ring-black focus:border-black"
+                    social_links: e.target.value
+                      ? `linkedin.com/in/${e.target.value}`
+                      : "",
+                  }))
+                }
+                className="rounded-l-none"
                 placeholder="username"
               />
             </div>
           </div>
 
-          {/* Twitter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Twitter
-            </label>
-            <div className="flex rounded-md shadow-xs">
-              <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+            <label className={labelClass}>Twitter</label>
+            <div className="flex">
+              <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
                 twitter.com/
               </span>
-              <input
+              <Input
                 type="text"
-                name="twitter"
-                value={
-                  formValues.social_links.includes("twitter.com")
-                    ? formValues.social_links.split("twitter.com/")[1] || ""
-                    : ""
-                }
-                onChange={(e) => {
-                  const twitterValue = e.target.value
-                    ? `twitter.com/${e.target.value}`
-                    : "";
+                value={twitterValue}
+                onChange={(e) =>
                   setFormValues((prev) => ({
                     ...prev,
-                    social_links: twitterValue,
-                  }));
-                }}
-                className="flex-1 block w-full rounded-none rounded-r-md border border-gray-300 p-2 focus:ring-black focus:border-black"
+                    social_links: e.target.value
+                      ? `twitter.com/${e.target.value}`
+                      : "",
+                  }))
+                }
+                className="rounded-l-none"
                 placeholder="username"
               />
             </div>
           </div>
 
-          {/* Other Social Links */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Other Social Links
-            </label>
-            <input
+            <label className={labelClass}>Other social link</label>
+            <Input
               type="text"
-              name="other_social"
+              name="social_links"
               value={formValues.social_links}
               onChange={handleChange}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
               placeholder="https://example.com/profile"
             />
-            <p className="mt-1 text-xs text-gray-500">
-              Enter full URL for any other social profiles
+            <p className="mt-1 text-xs text-muted-foreground">
+              Enter the full URL for any other social profile.
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Submit Section */}
-      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-        <div className="text-sm text-gray-500">
+      {/* Submit */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+        <p className="text-sm text-muted-foreground">
           Last updated: {new Date().toLocaleDateString()}
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-black text-white py-2.5 px-6 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="animate-spin mr-2 h-4 w-4" />
-              Saving...
-            </>
-          ) : (
-            "Save Profile"
+        </p>
+        <div className="flex items-center gap-3">
+          {userProfileId && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigate("/dashboard")}
+            >
+              Go to dashboard
+            </Button>
           )}
-        </button>
-       {userProfileId && <button
-          type="button"
-          className="text-sm text-gray-500 hover:underline"
-          onClick={() => navigate("/dashboard")}
-        >
-          Go to Dashboard
-        </button>}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
+              </>
+            ) : (
+              "Save profile"
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );

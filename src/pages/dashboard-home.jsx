@@ -16,6 +16,7 @@ import {
 
 import { useAuth } from "@/services/context/app.context";
 import { getResourceCount } from "@/services/api/dashboard.service";
+import BuyerOverview from "@/components/dashboard/BuyerOverview";
 import {
   Card,
   CardContent,
@@ -140,7 +141,18 @@ export function DashBoardHome() {
   const config = ROLE_CONFIG[jobTitle] || DEFAULT_CONFIG;
   const statKeys = config.stats;
 
+  // Buyers (and users who haven't picked a role yet) get the dedicated
+  // buyer-dashboard overview; sales/logistics roles keep the generic one.
+  const showBuyerOverview = !["sales manager", "logistics manager"].includes(
+    jobTitle,
+  );
+
   useEffect(() => {
+    // The buyer overview fetches its own data.
+    if (showBuyerOverview) {
+      setLoadingCounts(false);
+      return;
+    }
     let cancelled = false;
     setLoadingCounts(true);
     const keys = config.stats;
@@ -212,20 +224,24 @@ export function DashBoardHome() {
         </Card>
       )}
 
-      {/* Stats */}
-      <div>
-        <h2 className="mb-3 font-display text-lg font-semibold">Overview</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {statKeys.map((key) => (
-            <StatCard
-              key={key}
-              resource={RESOURCES[key]}
-              count={counts[key]}
-              loading={loadingCounts}
-            />
-          ))}
+      {/* Stats — buyers get the dedicated buyer-dashboard overview. */}
+      {showBuyerOverview ? (
+        <BuyerOverview />
+      ) : (
+        <div>
+          <h2 className="mb-3 font-display text-lg font-semibold">Overview</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {statKeys.map((key) => (
+              <StatCard
+                key={key}
+                resource={RESOURCES[key]}
+                count={counts[key]}
+                loading={loadingCounts}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Quick actions */}
       <div>

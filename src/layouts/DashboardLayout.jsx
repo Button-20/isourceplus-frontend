@@ -12,7 +12,11 @@ import {
   Building2,
   FileText,
   FilePlus,
+  Gavel,
+  ReceiptText,
+  Wallet,
 } from "lucide-react";
+import { assets } from "@/assets/assets";
 import { useEffect, useState } from "react";
 import {
   Sidebar,
@@ -25,9 +29,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/services/context/app.context";
-import { FaSalesforce } from "react-icons/fa";
 import {
-  MdAdminPanelSettings,
   MdOutlineDocumentScanner,
   MdOutlinePeopleAlt,
 } from "react-icons/md";
@@ -102,168 +104,103 @@ export function DashboardLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileVerified, user, token]);
 
-  let companiesSubmenu = [];
-
-  if (!companyId && !transporterId) {
-    companiesSubmenu.push({ title: "Account Type", url: "/dashboard/companies" });
-  }
-
-  if (jobTitle === "logistics manager") {
-    companiesSubmenu.push({
-      title: "Edit Transporter",
-      url: "/dashboard/transporter/edit",
-    });
-  }
-
-  if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
-    companiesSubmenu.push({
-      title: "Edit Company",
-      url: "/dashboard/company/edit",
-    });
-  }
-
-  let employeesSubmenu = [
-    { title: "Add Employee", url: "/dashboard/employee/new/" },
+  // Sidebar navigation — always fully populated. Backend permissions still
+  // guard the actual routes, so showing the full workspace is safe and gives
+  // every role a complete sidebar.
+  const companiesSubmenu = [
+    ...(!companyId && !transporterId
+      ? [{ title: "Account Type", url: "/dashboard/companies" }]
+      : []),
+    { title: "Edit Company", url: "/dashboard/company/edit" },
+    { title: "Edit Transporter", url: "/dashboard/transporter/edit" },
   ];
 
-  if (jobTitle === "logistics manager") {
-    employeesSubmenu.push({
-      title: "Transport employees",
-      url: "transporter/employees",
-    });
-  }
+  const employeesSubmenu = [
+    { title: "Add Employee", url: "/dashboard/employee/new/" },
+    { title: "Company Employees", url: "/dashboard/company/employees" },
+    { title: "Transport Employees", url: "/dashboard/transporter/employees" },
+  ];
 
-  if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
-    employeesSubmenu.push({
-      title: "Company employees",
-      url: "company/employees",
-    });
-  }
-
-  let navLinks = [];
-  if (["logistics manager", "lead buyer", "sales manager"].includes(jobTitle)) {
-    navLinks = [
-      { title: "Home", url: "/dashboard/", icon: Home },
-      {
-        title: "Subscriptions",
-        icon: ShoppingCart,
-        url: "/pricing",
-      },
-      {
-        title: "Companies & Transporters",
-        icon: Building2,
-        submenu: companiesSubmenu,
-      },
-      {
-        title: "Employees",
-        icon: MdOutlinePeopleAlt,
-        submenu: employeesSubmenu,
-      },
-      {
-        title: "Branches",
-        icon: TruckIcon,
-        url: "/dashboard/branches",
-      },
-      {
-        title: "Add ID Documents",
-        icon: MdOutlineDocumentScanner,
-        url: "/dashboard/user/verification-docs",
-      },
-    ];
-  } else {
-    navLinks = [{ title: "Home", url: "/dashboard/", icon: Home }];
-  }
-
-  if (jobTitle === "logistics manager") {
-    navLinks.push({
-      title: "All Waybills",
-      icon: FilePlus,
-      url: "/dashboard/waybills",
-    });
-    navLinks.push({
-      title: "Issued Proforma Invoices",
-      icon: FileText,
-      url: "/dashboard/proforma-invoices/issued",
-    });
-    navLinks.push({
-      title: "Purchase Orders",
-      icon: FilePlus,
-      url: "/dashboard/purchase-orders",
-    });
-    navLinks.push({
-      title: "Sales Invoices",
-      icon: FileText,
-      url: "/dashboard/sales-invoices",
-    });
-    navLinks.push({
-      title: "Payment Orders",
-      icon: FileText,
-      url: "/dashboard/payment-orders/issued",
-    });
-  }
-
-  if (jobTitle === "lead buyer" || jobTitle === "sales manager") {
-    navLinks.push({
-      title: "Issued Waybills",
-      icon: FilePlus,
-      url: "/dashboard/waybills/issued",
-    });
-    navLinks.push({
+  const navLinks = [
+    { title: "Home", url: "/dashboard/", icon: Home },
+    { title: "Subscriptions", icon: ShoppingCart, url: "/pricing" },
+    {
+      title: "Companies & Transporters",
+      icon: Building2,
+      submenu: companiesSubmenu,
+    },
+    { title: "Employees", icon: MdOutlinePeopleAlt, submenu: employeesSubmenu },
+    { title: "Branches", icon: TruckIcon, url: "/dashboard/branches" },
+    {
       title: "RFx Management",
       icon: FileText,
       submenu: [
         { title: "View All RFxs", url: "/dashboard/rfxs" },
-        ...(jobTitle === "lead buyer"
-          ? [
-              { title: "Create RFx", url: "/dashboard/rfxs/new" },
-              { title: "View Issued RFxs", url: "/dashboard/rfxs/issued" },
-            ]
-          : []),
+        { title: "Create RFx", url: "/dashboard/rfxs/new" },
+        { title: "Issued RFxs", url: "/dashboard/rfxs/issued" },
       ],
-    });
-    navLinks.push({
+    },
+    {
       title: "Tender Management",
-      icon: FileText,
+      icon: Gavel,
       submenu: [
         { title: "View All Tenders", url: "/dashboard/tenders" },
-        ...(jobTitle === "lead buyer"
-          ? [
-              {
-                title: "View Issued Tenders",
-                url: "/dashboard/tenders/issued",
-              },
-              { title: "Create Tender", url: "/dashboard/tenders/new" },
-            ]
-          : []),
+        { title: "Create Tender", url: "/dashboard/tenders/new" },
+        { title: "Issued Tenders", url: "/dashboard/tenders/issued" },
       ],
-    });
-    navLinks.push({
+    },
+    {
       title: "Proforma Invoices",
-      icon: FileText,
-      url: "/dashboard/proforma-invoices",
-    });
-    navLinks.push({
+      icon: ReceiptText,
+      submenu: [
+        { title: "All Proforma Invoices", url: "/dashboard/proforma-invoices" },
+        {
+          title: "Issued Proforma Invoices",
+          url: "/dashboard/proforma-invoices/issued",
+        },
+      ],
+    },
+    {
       title: "Purchase Orders",
       icon: FilePlus,
-      url:
-        jobTitle === "lead buyer"
-          ? "/dashboard/purchase-orders/issued"
-          : "/dashboard/purchase-orders",
-    });
-  }
-
-  if (jobTitle === "sales manager") {
-    navLinks.push({
+      submenu: [
+        { title: "All Purchase Orders", url: "/dashboard/purchase-orders" },
+        {
+          title: "Issued Purchase Orders",
+          url: "/dashboard/purchase-orders/issued",
+        },
+      ],
+    },
+    {
       title: "Sales Invoices",
-      icon: FileText,
-      url: "/dashboard/sales-invoices",
-    });
-    navLinks.push({
+      icon: Wallet,
+      submenu: [
+        { title: "All Sales Invoices", url: "/dashboard/sales-invoices" },
+        {
+          title: "Issued Sales Invoices",
+          url: "/dashboard/sales-invoices/issued",
+        },
+      ],
+    },
+    {
+      title: "Waybills",
+      icon: TruckIcon,
+      submenu: [
+        { title: "All Waybills", url: "/dashboard/waybills" },
+        { title: "Issued Waybills", url: "/dashboard/waybills/issued" },
+      ],
+    },
+    {
       title: "Payment Orders",
-      icon: FileText,
+      icon: Wallet,
       url: "/dashboard/payment-orders/issued",
-    });
-  }
+    },
+    {
+      title: "Add ID Documents",
+      icon: MdOutlineDocumentScanner,
+      url: "/dashboard/user/verification-docs",
+    },
+  ];
 
   // Redirecting to /login (see effect above).
   if (!user || !token) {
@@ -298,24 +235,15 @@ export function DashboardLayout() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton size="lg" asChild>
-                    <Link to={"/dashboard"}>
-                      <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                        {jobTitle === "lead buyer" && (
-                          <ShoppingCart className="size-4" />
-                        )}
-                        {jobTitle === "sales manager" && (
-                          <FaSalesforce className="size-4" />
-                        )}
-                        {jobTitle === "logistics manager" && (
-                          <MdAdminPanelSettings className="size-4" />
-                        )}
+                    <Link to={"/dashboard"} className="gap-2">
+                      <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
+                        iS
                       </div>
-                      <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-semibold">
-                          Source-Plus
-                        </span>
-                        <span className="truncate text-xs">{jobTitle}</span>
-                      </div>
+                      <img
+                        src={assets.ISlogo}
+                        alt="iSource+"
+                        className="h-6 w-auto group-data-[collapsible=icon]:hidden"
+                      />
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

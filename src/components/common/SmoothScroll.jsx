@@ -14,7 +14,15 @@ const easeInOutCubic = (t) =>
 // keep their native scrolling.
 export default function SmoothScroll({ children }) {
   useEffect(() => {
-    const lenis = new Lenis({ duration: 1.1, smoothWheel: true });
+    // Exact Lenis config from the recibia website.
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: "vertical",
+      gestureOrientation: "vertical",
+      smoothWheel: true,
+      touchMultiplier: 2,
+    });
 
     let rafId;
     const raf = (time) => {

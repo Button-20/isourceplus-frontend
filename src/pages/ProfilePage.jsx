@@ -1,133 +1,120 @@
-// pages/ProfilePage.jsx
-import React, { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/app.context";
+// pages/ProfilePage.jsx — user onboarding / profile setup.
+import { useAuth } from "@/services/context/app.context";
 import ProfileForm from "@/components/ProfileForm";
-import { Loader2, AlertCircle, Info, Bookmark, ShieldAlert } from "lucide-react";
+import Logo from "@/components/common/Logo";
+import { Button } from "@/components/ui/button";
+import { Loader2, Building2, Truck, ShieldCheck, UserPlus } from "lucide-react";
 
 const ProfilePage = () => {
-  const { authAxios,baseData,userProfileId,loading,logout } = useAuth();
-  // const [profileId, setProfileId] = useState(null);
+  const { userProfileId, loading, logout } = useAuth();
 
-  const logoutHandler = () => {
-    logout();
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-muted/30">
+        <div className="text-center">
+          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-brand" />
+          <p className="text-muted-foreground">Loading your profile…</p>
+        </div>
+      </div>
+    );
   }
 
-  console.log("baseData",baseData)
-
-  // useEffect(() => {
-  //   async function fetchProfileId() {
-  //     try {
-  //       const res = await authAxios.get("user-profiles/");
-  //       console.log(res.data.results);
-  //       const profile = res.data.results[0];
-  //       setProfileId(profile.id);
-  //     } catch (error) {
-  //       console.error("Could not fetch user profile", error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   }
-  //   fetchProfileId();
-  // }, [authAxios]);
-
-  if (loading) return (
-    <div className="flex items-center justify-center h-screen bg-gray-50">
-      <div className="text-center">
-        <Loader2 className="animate-spin w-8 h-8 text-black mx-auto mb-4" />
-        <p className="text-gray-600">Loading your profile...</p>
-      </div>
-    </div>
-  );
-
-  if (!userProfileId) return (
-    <div className="max-w-lg mx-auto p-6 text-center bg-white rounded-lg shadow-xs mt-10">
-      <ShieldAlert className="w-10 h-10 text-red-500 mx-auto mb-3" />
-      <h2 className="text-xl font-medium">Profile Not Found</h2>
-      <p className="text-gray-600 mt-2 mb-4">You need to create your professional profile</p>
-      <button className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors">
-        Create Profile
-      </button>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-          {/* Header Section */}
-          <div className="bg-black text-white px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Bookmark className="w-5 h-5" />
-              <h1 className="text-xl font-bold">Professional Profile</h1>
-            </div>
-            <div className="bg-white text-black px-3 py-1 rounded-full text-sm font-medium">
-              Edit Mode
-            </div>
-          </div>
+    <div className="min-h-screen bg-muted/30 font-montserrat">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
+        {/* Top bar */}
+        <div className="flex items-center justify-between">
+          <Logo imgClassName="h-8" />
+          <Button variant="ghost" size="sm" onClick={() => logout()}>
+            Log out
+          </Button>
+        </div>
 
-          {/* Notice Banner */}
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start">
-            <Info className="w-5 h-5 text-yellow-600 mr-3 mt-0.5 shrink-0" />
-            <div>
-              <p className="font-medium text-yellow-800">Important Notice</p>
-              <p className="text-yellow-700 text-sm mt-1">
-                Your job title must be <span className="font-semibold">"Lead Buyer"</span> or <span className="font-semibold">"Sales Manager"</span> to be able to create a company profile.
+        <div className="mt-8 grid gap-8 lg:grid-cols-3">
+          {/* Info column */}
+          <aside className="space-y-4 lg:col-span-1">
+            <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+              <span className="relative inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+                <UserPlus className="h-3.5 w-3.5" /> Getting started
+              </span>
+              <h1 className="relative mt-4 font-display text-2xl font-bold">
+                Complete your profile
+              </h1>
+              <p className="relative mt-2 text-sm text-white/85">
+                A few details to set up your workspace and unlock the full
+                iSource+ platform.
               </p>
             </div>
-          </div>
 
-          {/* Main Content */}
-          <div className="p-6 sm:p-8 grid md:grid-cols-3 gap-8">
-            {/* Left Sidebar */}
-            <div className="md:col-span-1">
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center">
-                  <AlertCircle className="w-4 h-4 mr-2 text-gray-500" />
-                  Lorem ipsum dolor sit amet.
-                </h3>
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
-                  <div className="bg-black h-2.5 rounded-full" style={{width: '100%'}}></div>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">Lorem ipsum dolor sit amet consectetur adipisicing elit. Adipisci, error.</p>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-black rounded-full mr-2"></div>
-                    <span className="text-sm">Lorem, ipsum.</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-gray-300 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-500">Lorem, ipsum dolor.</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-gray-300 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-500">Lorem.</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-medium text-gray-900 mb-3">Quick Actions</h3>
-                <button className="w-full text-left text-sm py-2 px-3 hover:bg-gray-100 rounded-md transition-colors">
-                  View Public Profile
-                </button>
-                <button className="w-full text-left text-sm py-2 px-3 hover:bg-gray-100 rounded-md transition-colors">
-                  Download Profile PDF
-                </button>
-                <button className="w-full text-left text-sm py-2 px-3 hover:bg-gray-100 rounded-md transition-colors">
-                  Share Profile
-                </button>
-              </div>
-              <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                {/* <h3 className="font-medium text-gray-900 mb-3">Log Out</h3> */}
-                <button onClick={logoutHandler} className="w-full text-left text-sm py-2 px-3 hover:bg-gray-100 rounded-md transition-colors">
-                  Log Out
-                </button>
-              </div>
+            <div className="rounded-2xl border border-border/70 bg-card p-5">
+              <h3 className="font-display text-sm font-semibold">
+                What your role unlocks
+              </h3>
+              <ul className="mt-4 space-y-4 text-sm">
+                <li className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                    <Building2 className="h-4 w-4" />
+                  </span>
+                  <span className="text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      Lead Buyer
+                    </span>{" "}
+                    or{" "}
+                    <span className="font-medium text-foreground">
+                      Sales Manager
+                    </span>{" "}
+                    can create a company profile.
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                    <Truck className="h-4 w-4" />
+                  </span>
+                  <span className="text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      Logistics Manager
+                    </span>{" "}
+                    can create a transporter profile.
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                    <ShieldCheck className="h-4 w-4" />
+                  </span>
+                  <span className="text-muted-foreground">
+                    Verify your phone number to secure your account.
+                  </span>
+                </li>
+              </ul>
             </div>
-            {/* Main Form */}
-            <div className="md:col-span-2">
-              <ProfileForm profileId={userProfileId} />
+          </aside>
+
+          {/* Form column */}
+          <div className="lg:col-span-2">
+            <div className="rounded-2xl border border-border/70 bg-card p-6 sm:p-8">
+              {!userProfileId ? (
+                <div className="py-10 text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand/10 text-brand">
+                    <UserPlus className="h-6 w-6" />
+                  </div>
+                  <h2 className="font-display text-lg font-semibold">
+                    Let&apos;s create your profile
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+                    We couldn&apos;t find a profile for your account yet. Please
+                    sign in again to continue setup.
+                  </p>
+                  <Button
+                    className="mt-5 bg-brand-gradient text-brand-foreground hover:opacity-90"
+                    onClick={() => logout()}
+                  >
+                    Sign in again
+                  </Button>
+                </div>
+              ) : (
+                <ProfileForm profileId={userProfileId} />
+              )}
             </div>
           </div>
         </div>

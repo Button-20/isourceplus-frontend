@@ -9,7 +9,7 @@ import LandingFooter, { CtaBanner } from "@/components/landing/LandingFooter";
 
 export function LandingPage() {
   return (
-    <div className="scroll-smooth font-montserrat">
+    <div className="font-montserrat">
       <LandingNav />
       <main>
         <HeroSection />
