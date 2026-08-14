@@ -20,12 +20,19 @@ export const ENV = {
   DEV: raw.DEV,
   PROD: raw.PROD,
   SERVER_URL,
-  // In dev, use a same-origin relative path so the Vite proxy forwards requests
-  // to the backend — this keeps the HttpOnly auth cookies first-party (they
-  // would be dropped on a cross-origin localhost → isourceplus.net request).
-  // In prod the app is served from the same origin as the API, so the absolute
-  // URL is same-origin too.
-  API_BASE_URL: raw.DEV ? "/api/v1/" : `${SERVER_URL}api/v1/`,
+  // ALWAYS use a same-origin relative path. The backend authenticates with
+  // HttpOnly cookies, which are only sent when the request is first-party
+  // (same origin as the page). Any cross-origin absolute URL turns those into
+  // third-party cookies, which modern browsers strip — so the `Cookie` header
+  // never reaches the API and `token/refresh/` returns 401.
+  //
+  //   - Dev:  Vite's server.proxy forwards `/api` → isourceplus.net.
+  //   - Prod: the static host (Render) rewrites `/api/*` → isourceplus.net via
+  //           render.yaml, so the browser only ever talks to our own origin.
+  //
+  // This is why login/refresh work locally: keep prod on the same relative
+  // path and it stays first-party there too.
+  API_BASE_URL: "/api/v1/",
 };
 
 export const getApiBaseUrl = () => ENV.API_BASE_URL;
