@@ -15,6 +15,13 @@ import {
 import { useAuth } from "@/services/context/app.context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import ScrollToTop from "./ScrollToTop";
 
@@ -108,14 +115,36 @@ const ProfileForm = ({ profileId }) => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
+    if (!file) return;
+    // Enforce the 2MB limit the UI promises, so an oversized image never
+    // reaches (and gets rejected by) the API.
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image is too large. Maximum size is 2MB.");
+      e.target.value = "";
+      return;
     }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // The backend stores social_links as a URL; validate before sending so a
+    // malformed value doesn't come back as a 400.
+    if (formValues.social_links) {
+      let valid = false;
+      try {
+        valid = /^https?:$/.test(new URL(formValues.social_links).protocol);
+      } catch {
+        valid = false;
+      }
+      if (!valid) {
+        toast.error("Enter a valid social link, including https://");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const data = new FormData();
@@ -168,13 +197,6 @@ const ProfileForm = ({ profileId }) => {
       </div>
     );
   }
-
-  const linkedinValue = formValues.social_links.includes("linkedin.com")
-    ? formValues.social_links.split("linkedin.com/in/")[1] || ""
-    : "";
-  const twitterValue = formValues.social_links.includes("twitter.com")
-    ? formValues.social_links.split("twitter.com/")[1] || ""
-    : "";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -282,19 +304,23 @@ const ProfileForm = ({ profileId }) => {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className={labelClass}>Job title</label>
-            <select
-              name="job_title"
-              value={formValues.job_title}
-              onChange={handleChange}
-              className={cn(fieldClass, "capitalize")}
+            <Select
+              value={formValues.job_title || undefined}
+              onValueChange={(value) =>
+                setFormValues((prev) => ({ ...prev, job_title: value }))
+              }
             >
-              <option value="">Select your job title</option>
-              {JOB_TITLES.map((t) => (
-                <option key={t} value={t} className="capitalize">
-                  {t.replace(/_/g, " ")}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="h-10 w-full capitalize">
+                <SelectValue placeholder="Select your job title" />
+              </SelectTrigger>
+              <SelectContent>
+                {JOB_TITLES.map((t) => (
+                  <SelectItem key={t} value={t} className="capitalize">
+                    {t.replace(/_/g, " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="sm:col-span-2">
@@ -360,68 +386,21 @@ const ProfileForm = ({ profileId }) => {
       {/* Social */}
       <section>
         <h2 className="mb-4 font-display text-base font-semibold">
-          Social profiles
+          Social profile
         </h2>
-        <div className="space-y-4">
-          <div>
-            <label className={labelClass}>LinkedIn</label>
-            <div className="flex">
-              <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
-                linkedin.com/in/
-              </span>
-              <Input
-                type="text"
-                value={linkedinValue}
-                onChange={(e) =>
-                  setFormValues((prev) => ({
-                    ...prev,
-                    social_links: e.target.value
-                      ? `linkedin.com/in/${e.target.value}`
-                      : "",
-                  }))
-                }
-                className="rounded-l-none"
-                placeholder="username"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className={labelClass}>Twitter</label>
-            <div className="flex">
-              <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
-                twitter.com/
-              </span>
-              <Input
-                type="text"
-                value={twitterValue}
-                onChange={(e) =>
-                  setFormValues((prev) => ({
-                    ...prev,
-                    social_links: e.target.value
-                      ? `twitter.com/${e.target.value}`
-                      : "",
-                  }))
-                }
-                className="rounded-l-none"
-                placeholder="username"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className={labelClass}>Other social link</label>
-            <Input
-              type="text"
-              name="social_links"
-              value={formValues.social_links}
-              onChange={handleChange}
-              placeholder="https://example.com/profile"
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Enter the full URL for any other social profile.
-            </p>
-          </div>
+        <div>
+          <label className={labelClass}>Social link</label>
+          <Input
+            type="url"
+            inputMode="url"
+            name="social_links"
+            value={formValues.social_links}
+            onChange={handleChange}
+            placeholder="https://linkedin.com/in/your-profile"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Full URL to your LinkedIn, X/Twitter, or other professional profile.
+          </p>
         </div>
       </section>
 
