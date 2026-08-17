@@ -45,6 +45,25 @@ const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const fieldClass =
   "block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none transition-colors focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30";
 
+// Backend caps job_position at 255 characters (CharField max_length).
+const MAX_JOB_POSITION = 255;
+
+// Turn an API error body into a human-readable message. Handles a plain string,
+// DRF's `{ detail }`, and field errors like `{ job_position: ["too long"] }` so
+// the user sees the real reason instead of a generic failure.
+function extractApiError(data, fallback) {
+  if (!data) return fallback;
+  if (typeof data === "string") return data;
+  if (data.detail) return data.detail;
+  const firstKey = Object.keys(data)[0];
+  if (!firstKey) return fallback;
+  const value = data[firstKey];
+  const message = Array.isArray(value) ? value[0] : value;
+  if (typeof message !== "string") return fallback;
+  if (firstKey === "non_field_errors") return message;
+  return `${firstKey.replace(/_/g, " ")}: ${message}`;
+}
+
 const ProfileForm = ({ profileId }) => {
   const { authAxios, userProfileId } = useAuth();
   const [formValues, setFormValues] = useState({
@@ -201,7 +220,9 @@ const ProfileForm = ({ profileId }) => {
         );
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to update profile.");
+      toast.error(
+        extractApiError(error.response?.data, "Failed to update profile."),
+      );
     } finally {
       setLoading(false);
     }
@@ -341,14 +362,29 @@ const ProfileForm = ({ profileId }) => {
           </div>
 
           <div className="sm:col-span-2">
-            <label className={labelClass}>Job description</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">
+                Job description
+              </label>
+              <span
+                className={cn(
+                  "text-xs",
+                  formValues.job_position.length >= MAX_JOB_POSITION
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
+                {formValues.job_position.length}/{MAX_JOB_POSITION}
+              </span>
+            </div>
             <textarea
               name="job_position"
               value={formValues.job_position}
               onChange={handleChange}
               rows={3}
+              maxLength={MAX_JOB_POSITION}
               className={fieldClass}
-              placeholder="Describe your role and responsibilities"
+              placeholder="Briefly describe your role and responsibilities"
             />
           </div>
         </div>
