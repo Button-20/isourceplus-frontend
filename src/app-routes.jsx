@@ -18,7 +18,7 @@ import { ResetPasswordConfirmPage } from "./pages/reset_password_confirm";
 import ProfilePage from "./pages/ProfilePage";
 import TransporterPage from "./pages/TransporterPage";
 import CompanyPage from "./pages/CompanyPage";
-import CompanyChoices from "./pages/CompanyChoices";
+import AccountTypePage from "./pages/AccountTypePage";
 import MobileVerificationPage from "./pages/MobileVerificationPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
 import EmailVerifyKeyPage from "./components/EmailVerifyKeyPage";
@@ -98,6 +98,7 @@ export const appRoutes = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to={"user"} /> },
       { path: "user", element: <ProfilePage /> },
+      { path: "account-type", element: <AccountTypePage /> },
       { path: "mobile-verification", element: <MobileVerificationPage /> },
       { path: "email-verification", element: <EmailVerificationPage /> },
       { path: "email-verify/:key", element: <EmailVerifyKeyPage /> },
@@ -109,7 +110,7 @@ export const appRoutes = createBrowserRouter([
     children: [
       { index: true, element: <DashBoardHome /> },
       { path: "transporter", element: <TransporterPage /> },
-      { path: "companies", element: <CompanyChoices /> },
+      { path: "companies", element: <AccountTypePage /> },
       { path: "company", element: <CompanyPage /> },
       { path: "company/edit", element: <EditCompany /> },
       { path: "transporter/edit", element: <EditTransporter /> },

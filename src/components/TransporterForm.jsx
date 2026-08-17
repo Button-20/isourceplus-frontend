@@ -337,7 +337,7 @@ const TransporterForm = () => {
         console.error("Failed to clear localStorage:", err);
         toast.error("Unable to clear form data. Local storage may be disabled.");
       }
-      navigate("/transporter/edit");
+      navigate("/dashboard/transporter/edit");
     } catch (err) {
       console.error("Registration failed", err);
       toast.error(

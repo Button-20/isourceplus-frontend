@@ -17,6 +17,14 @@ const MobileVerificationPage = () => {
   const [countdown, setCountdown] = useState(60);
   const phoneNumber = searchParams.get('phone');
   const numberType = searchParams.get('number_type');
+  // Where to go after a successful verification. Defaults to the profile step;
+  // the profile form passes the next onboarding step here so the user continues
+  // forward instead of looping back. Guarded to internal paths only.
+  const redirectParam = searchParams.get('redirect');
+  const redirectTo =
+    redirectParam && /^\/(?!\/)/.test(redirectParam)
+      ? redirectParam
+      : '/onboarding/user';
 
   useEffect(() => {
     // if (!phoneNumber) {
@@ -53,7 +61,7 @@ const MobileVerificationPage = () => {
         code: code
       });
       toast.success('Phone number verified successfully!');
-      navigate('/onboarding/user');
+      navigate(redirectTo);
     } catch (error) {
       toast.error(error.response?.data?.error || 'Verification failed');
     } finally {

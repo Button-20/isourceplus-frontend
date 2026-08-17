@@ -23,6 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+  canCreateCompany as jobCanCreateCompany,
+  canCreateTransporter as jobCanCreateTransporter,
+  canCreateOrganization,
+} from "@/utils/account-type";
 import ScrollToTop from "./ScrollToTop";
 
 const JOB_TITLES = [
@@ -58,10 +63,8 @@ const ProfileForm = ({ profileId }) => {
 
   const navigate = useNavigate();
 
-  const canCreateCompany = ["lead buyer", "sales manager"].includes(
-    formValues.job_title?.toLowerCase(),
-  );
-  const isAdmin = formValues.job_title?.toLowerCase() === "logistics manager";
+  const canCreateCompany = jobCanCreateCompany(formValues.job_title);
+  const isAdmin = jobCanCreateTransporter(formValues.job_title);
 
   const handleVerifyNumber = async (numberType) => {
     const number = formValues[numberType];
@@ -174,14 +177,28 @@ const ProfileForm = ({ profileId }) => {
           updatedCell1 && !response.data.cell_1_is_verified
             ? "cell_1"
             : "cell_2";
+        // Continue the flow forward after verifying (account-type for roles
+        // that can own an org, otherwise the dashboard) rather than looping
+        // back to this profile form.
+        const nextAfterVerify = canCreateOrganization(formValues.job_title)
+          ? "/onboarding/account-type"
+          : "/dashboard";
         navigate(
           `/onboarding/mobile-verification/?phone=${encodeURIComponent(
             numberToVerify,
-          )}&number_type=${numberType}`,
+          )}&number_type=${numberType}&redirect=${encodeURIComponent(
+            nextAfterVerify,
+          )}`,
         );
       } else {
         toast.success("Profile updated successfully!");
-        navigate("/dashboard");
+        // Roles that can own an organization continue to the account-type
+        // step; everyone else goes straight to the dashboard.
+        navigate(
+          canCreateOrganization(formValues.job_title)
+            ? "/onboarding/account-type"
+            : "/dashboard",
+        );
       }
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to update profile.");

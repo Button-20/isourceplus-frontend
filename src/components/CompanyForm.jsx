@@ -216,7 +216,7 @@ const CompanyForm = () => {
       toast.success("Company registered successfully!");
       setCompanyId(results.id);
       localStorage.setItem("company_id", results.id);
-      navigate("/company/edit");
+      navigate("/dashboard/company/edit");
 
       // Added: Clear localStorage on successful submission
       try {
