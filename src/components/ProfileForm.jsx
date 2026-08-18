@@ -34,7 +34,7 @@ const JOB_TITLES = [
   "logistics manager",
   "lead buyer",
   "sales manager",
-  "sourcing_officer",
+  "sourcing officer",
   "sales officer",
   "chief buyer",
   "stores officer",
@@ -369,7 +369,7 @@ const ProfileForm = ({ profileId }) => {
               <span
                 className={cn(
                   "text-xs",
-                  formValues.job_position.length >= MAX_JOB_POSITION
+                  formValues.job_position.length > MAX_JOB_POSITION
                     ? "text-destructive"
                     : "text-muted-foreground",
                 )}
