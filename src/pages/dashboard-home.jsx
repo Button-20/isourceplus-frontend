@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/services/context/app.context";
 import { getResourceCount } from "@/services/api/dashboard.service";
 import BuyerOverview from "@/components/dashboard/BuyerOverview";
+import SupplierOverview from "@/components/dashboard/SupplierOverview";
 import {
   Card,
   CardContent,
@@ -141,15 +142,21 @@ export function DashBoardHome() {
   const config = ROLE_CONFIG[jobTitle] || DEFAULT_CONFIG;
   const statKeys = config.stats;
 
-  // Buyers (and users who haven't picked a role yet) get the dedicated
-  // buyer-dashboard overview; sales/logistics roles keep the generic one.
-  const showBuyerOverview = !["sales manager", "logistics manager"].includes(
-    jobTitle,
-  );
+  // Pick which overview to show:
+  //   sales manager (supplier) -> supplier-dashboard overview
+  //   logistics manager        -> generic resource-count grid
+  //   buyers / no role yet     -> buyer-dashboard overview
+  const overviewVariant =
+    jobTitle === "sales manager"
+      ? "supplier"
+      : jobTitle === "logistics manager"
+        ? "generic"
+        : "buyer";
 
   useEffect(() => {
-    // The buyer overview fetches its own data.
-    if (showBuyerOverview) {
+    // The buyer and supplier overviews fetch their own data; only the generic
+    // resource-count grid needs the counts fetched here.
+    if (overviewVariant !== "generic") {
       setLoadingCounts(false);
       return;
     }
@@ -224,8 +231,11 @@ export function DashBoardHome() {
         </Card>
       )}
 
-      {/* Stats — buyers get the dedicated buyer-dashboard overview. */}
-      {showBuyerOverview ? (
+      {/* Stats — buyers and suppliers get their dedicated dashboard overviews;
+          other roles get the generic resource-count grid. */}
+      {overviewVariant === "supplier" ? (
+        <SupplierOverview />
+      ) : overviewVariant === "buyer" ? (
         <BuyerOverview />
       ) : (
         <div>

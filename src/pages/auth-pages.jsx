@@ -65,7 +65,12 @@ export function LoginPage() {
 
       <div className="flex flex-col p-6 sm:p-10">
         <div className="flex items-center justify-between">
-          <Logo imgClassName="h-8 lg:hidden" />
+          <div className="lg:hidden">
+            <Logo imgClassName="h-8" />
+            <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              Connect - Source - Pay
+            </p>
+          </div>
           <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
             New here?
             <Button variant="ghost" size="sm" onClick={() => navigate("/signup")}>
@@ -171,7 +176,12 @@ export function SignUpPage() {
 
       <div className="flex flex-col p-6 sm:p-10">
         <div className="flex items-center justify-between">
-          <Logo imgClassName="h-8 lg:hidden" />
+          <div className="lg:hidden">
+            <Logo imgClassName="h-8" />
+            <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              Connect - Source - Pay
+            </p>
+          </div>
           <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
             Have an account?
             <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
