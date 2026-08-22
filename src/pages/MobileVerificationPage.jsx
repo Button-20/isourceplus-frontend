@@ -1,38 +1,40 @@
-// pages/MobileVerificationPage.jsx
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router';
-import { toast } from 'sonner';
-import { Loader2, ArrowLeft } from 'lucide-react';
-import { useAuth } from '@/contexts/app.context';
+// pages/MobileVerificationPage.jsx — branded OTP / phone-verification step.
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Loader2, ArrowLeft, Smartphone, ShieldCheck } from "lucide-react";
+
+import { useAuth } from "@/services/context/app.context";
+import Logo from "@/components/common/Logo";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+const CODE_LENGTH = 6;
 
 const MobileVerificationPage = () => {
   const { authAxios } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
-  
-  const [code, setCode] = useState('');
+
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendDisabled, setResendDisabled] = useState(true);
   const [countdown, setCountdown] = useState(60);
-  const phoneNumber = searchParams.get('phone');
-  const numberType = searchParams.get('number_type');
+  const phoneNumber = searchParams.get("phone");
   // Where to go after a successful verification. Defaults to the profile step;
   // the profile form passes the next onboarding step here so the user continues
   // forward instead of looping back. Guarded to internal paths only.
-  const redirectParam = searchParams.get('redirect');
+  const redirectParam = searchParams.get("redirect");
   const redirectTo =
     redirectParam && /^\/(?!\/)/.test(redirectParam)
       ? redirectParam
-      : '/onboarding/user';
+      : "/onboarding/user";
 
-  useEffect(() => {
-    // if (!phoneNumber) {
-    //   navigate('/onboarding/user');
-    //   return;
-    // }
-
-    // Start countdown for resend
+  // Countdown that re-enables the "resend" action.
+  const startCountdown = () => {
+    setResendDisabled(true);
+    setCountdown(60);
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -43,27 +45,31 @@ const MobileVerificationPage = () => {
         return prev - 1;
       });
     }, 1000);
+    return timer;
+  };
 
+  useEffect(() => {
+    const timer = startCountdown();
     return () => clearInterval(timer);
-  }, [phoneNumber, navigate]);
+  }, []);
 
   const handleVerify = async (e) => {
     e.preventDefault();
-    if (!code) {
-      toast.error('Please enter verification code');
+    if (code.length < CODE_LENGTH) {
+      toast.error("Please enter the 6-digit verification code");
       return;
     }
 
     setLoading(true);
     try {
-      await authAxios.post('mobile-verification/', {
+      await authAxios.post("mobile-verification/", {
         phone: phoneNumber,
-        code: code
+        code,
       });
-      toast.success('Phone number verified successfully!');
+      toast.success("Phone number verified successfully!");
       navigate(redirectTo);
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Verification failed');
+      toast.error(error.response?.data?.error || "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -71,85 +77,108 @@ const MobileVerificationPage = () => {
 
   const handleResendCode = async () => {
     setResendDisabled(true);
-    setCountdown(60);
     try {
-      await authAxios.get(`send-verification-code/?phone=${encodeURIComponent(phoneNumber)}`);
-      toast.success('Verification code resent!');
-      
-      // Restart countdown
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setResendDisabled(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      await authAxios.get(
+        `send-verification-code/?phone=${encodeURIComponent(phoneNumber)}`,
+      );
+      toast.success("Verification code resent!");
+      startCountdown();
     } catch (error) {
-      toast.error(error.response?.data?.message||'Failed to resend code');
+      toast.error(error.response?.data?.message || "Failed to resend code");
       setResendDisabled(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white p-8 rounded-lg shadow-xs w-full max-w-md">
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-black mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-1" />
-          Back
-        </button>
-        
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Verify Phone Number</h1>
-        <p className="text-gray-600 mb-6">
-          Enter the verification code sent to <span className="font-medium">{phoneNumber}</span>
-        </p>
+    <div className="min-h-screen bg-muted/30 font-montserrat">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-8 sm:py-10">
+        {/* Top bar */}
+        <div className="flex items-center justify-between">
+          <Logo imgClassName="h-8" />
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <ArrowLeft className="mr-1 h-4 w-4" /> Back
+          </Button>
+        </div>
 
-        <form onSubmit={handleVerify} className="space-y-4">
-          <div>
-            <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
-              Verification Code
-            </label>
-            <input
-              id="code"
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
-              placeholder="Enter 6-digit code"
-              maxLength={6}
-            />
+        {/* Centered card */}
+        <div className="flex flex-1 items-center justify-center py-10">
+          <div className="w-full max-w-md">
+            <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-sm sm:p-8">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand/10 blur-2xl" />
+
+              <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-gradient text-brand-foreground">
+                <Smartphone className="h-7 w-7" />
+              </div>
+
+              <h1 className="text-center font-display text-xl font-bold sm:text-2xl">
+                Verify your phone number
+              </h1>
+              <p className="mx-auto mt-2 max-w-sm text-center text-sm text-muted-foreground">
+                Enter the 6-digit code we sent to{" "}
+                <span className="font-medium text-foreground">
+                  {phoneNumber || "your phone"}
+                </span>
+                .
+              </p>
+
+              <form onSubmit={handleVerify} className="mt-6 space-y-4">
+                <label htmlFor="code" className="sr-only">
+                  Verification code
+                </label>
+                <Input
+                  id="code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(e) =>
+                    setCode(
+                      e.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH),
+                    )
+                  }
+                  placeholder="••••••"
+                  className="h-14 text-center text-2xl font-semibold tracking-[0.5em]"
+                />
+
+                <Button
+                  type="submit"
+                  disabled={loading || code.length < CODE_LENGTH}
+                  className="w-full bg-brand-gradient text-brand-foreground hover:opacity-90"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…
+                    </>
+                  ) : (
+                    "Verify phone number"
+                  )}
+                </Button>
+              </form>
+
+              <div className="mt-5 text-center text-sm">
+                {resendDisabled ? (
+                  <span className="text-muted-foreground">
+                    Didn&apos;t get it? Resend in{" "}
+                    <span className="font-medium text-foreground">
+                      {countdown}s
+                    </span>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendCode}
+                    className="font-medium text-brand hover:underline"
+                  >
+                    Resend verification code
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 text-brand" />
+                Your number is kept private and secure.
+              </div>
+            </div>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-black text-white py-2.5 px-4 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                Verifying...
-              </>
-            ) : (
-              'Verify Phone Number'
-            )}
-          </button>
-        </form>
-
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={handleResendCode}
-            disabled={resendDisabled}
-            className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-          >
-            {resendDisabled ? `Resend code in ${countdown}s` : 'Resend verification code'}
-          </button>
         </div>
       </div>
     </div>
