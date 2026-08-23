@@ -1,71 +1,103 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
-import { LandingPage } from "./pages/landing-page";
-import { AboutPage } from "./pages/about-page";
-import { LoginPage, SignUpPage } from "./pages/auth-pages";
-import { MarketplacePage } from "./pages/marketplace-page";
 import {
   ProtectedAuthRoute,
   ProtectedOnBoardingRoute,
 } from "./components/protected-routes";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { AuthLayout } from "./layouts/AuthLayout";
-import { DashBoardHome } from "./pages/dashboard-home";
-import WatchNow from "./pages/watch_now_page.pages";
-import Store from "./pages/store";
-import { ForgotPasswordPage } from "./pages/forgot-password";
-import { ResetPasswordConfirmPage } from "./pages/reset_password_confirm";
-import ProfilePage from "./pages/ProfilePage";
-import TransporterPage from "./pages/TransporterPage";
-import CompanyPage from "./pages/CompanyPage";
-import AccountTypePage from "./pages/AccountTypePage";
-import MobileVerificationPage from "./pages/MobileVerificationPage";
-import EmailVerificationPage from "./pages/EmailVerificationPage";
 import EmailVerifyKeyPage from "./components/EmailVerifyKeyPage";
-import AddNewEmployeePage from "./pages/AddNewEmployeePage";
-import AddExistingEmployeePage from "./pages/AddExistingEmployeePage";
-import AddBranch from "./pages/AddBranch";
-import AllBranches from "./pages/AllBranches";
-import Employees from "./pages/Employees";
-import EditCompany from "./pages/EditCompany";
-import EditTransporter from "./pages/EditTransporter";
-import BranchDetails from "./pages/BranchDetails";
-import AllTransporterEmployees from "./pages/TransporterEmployees";
-import CompanyEmployees from "./pages/CompanyEmployees";
 import EmployeeDetailPage from "./components/EmployeeDetailPage";
-import AddBusinessDocs from "./pages/AddBusinessDocs";
-import ManageUserVerificationDocs from "./pages/ManageUserVerificationDocs";
-import RFxPage from "./pages/RFxPage";
-import RFxDetailPage from "./pages/RFxDetailPage";
-import WaybillDetailPage from "./pages/WaybillDetailPage";
-import ProformaInvoicesPage from "./pages/ProformaInvoicesPage";
-import ProformaInvoiceDetailPage from "./pages/ProformaInvoiceDetailPage";
-import CreateProformaInvoicePage from "./pages/CreateProformaInvoicePage";
-import PurchaseOrderCreationPage from "./pages/PurchaseOrderCreationPage";
-import PurchaseOrderDetailPage from "./pages/PurchaseOrderDetailPage";
-import IssuedWaybillsPage from "./pages/IssuedWaybillsPage";
-import AllWaybillsPage from "./pages/AllWaybillsPage";
-import IssuedProformaInvoicesPage from "./pages/IssuedProformaInvoicesPage";
-import ProformaInvoiceIssuedDetailPage from "./pages/ProformaInvoiceIssuedDetailPage";
-import RFxIssuedPage from "./pages/RFxIssuedPage";
-import RFxCreationPage from "./pages/RFxCreationPage";
-import CreateProformaInvoiceForRFxPage from "./pages/CreateProformaInvoiceForRFxPage";
-import TenderPage from "./pages/TenderPage";
-import TenderCreationPage from "./pages/TenderCreationPage";
-import TenderDetailPage from "./pages/TenderDetailPage";
-import CreateProformaInvoiceForTenderPage from "./pages/CreateProformaInvoiceForTenderPage";
-import SalesInvoicesPage from "./pages/SalesInvoicesPage";
-import SalesInvoiceDetailPage from "./pages/SalesInvoiceDetailPage";
-import CreateSalesInvoicePage from "./pages/CreateSalesInvoicePage";
-import PurchaseOrdersPage from "./pages/PurchaseOrdersPage";
-import IssuedPurchaseOrdersPage from "./pages/IssuedPurchaseOrdersPage";
-import PaymentOrderDetailPage from "./pages/PaymentOrderDetailPage";
-import CreatePaymentOrderPage from "./pages/CreatePaymentOrderPage";
-import PaymentOrdersPage from "./pages/PaymentOrdersPage";
-import IssuedSalesInvoicesPage from "./pages/IssuedSalesInvoicesPage";
-import EditBranch from "./pages/EditBranch";
-import { PricingPage } from "./pages/PricingPage";
-import { SubscriptionCallbackPage } from "./pages/SubscriptionCallbackPage";
+
+// public
+import { LandingPage } from "./pages/public/landing-page";
+import { AboutPage } from "./pages/public/about-page";
+import { MarketplacePage } from "./pages/public/marketplace-page";
+import Store from "./pages/public/store";
+import WatchNow from "./pages/public/watch_now_page.pages";
+import { PricingPage } from "./pages/public/PricingPage";
+
+// auth
+import { LoginPage, SignUpPage } from "./pages/auth/auth-pages";
+import { ForgotPasswordPage } from "./pages/auth/forgot-password";
+import { ResetPasswordConfirmPage } from "./pages/auth/reset_password_confirm";
+
+// onboarding
+import ProfilePage from "./pages/onboarding/ProfilePage";
+import AccountTypePage from "./pages/onboarding/AccountTypePage";
+import MobileVerificationPage from "./pages/onboarding/MobileVerificationPage";
+import EmailVerificationPage from "./pages/onboarding/EmailVerificationPage";
+
+// dashboard
+import { DashBoardHome } from "./pages/dashboard/dashboard-home";
+
+// companies / transporters
+import CompanyPage from "./pages/companies/CompanyPage";
+import EditCompany from "./pages/companies/EditCompany";
+import TransporterPage from "./pages/transporters/TransporterPage";
+import EditTransporter from "./pages/transporters/EditTransporter";
+
+// branches
+import AddBranch from "./pages/branches/AddBranch";
+import AllBranches from "./pages/branches/AllBranches";
+import BranchDetails from "./pages/branches/BranchDetails";
+import EditBranch from "./pages/branches/EditBranch";
+
+// employees
+import AddNewEmployeePage from "./pages/employees/AddNewEmployeePage";
+import AddExistingEmployeePage from "./pages/employees/AddExistingEmployeePage";
+import Employees from "./pages/employees/Employees";
+import CompanyEmployees from "./pages/employees/CompanyEmployees";
+import AllTransporterEmployees from "./pages/employees/TransporterEmployees";
+
+// verification docs
+import AddBusinessDocs from "./pages/verification-docs/AddBusinessDocs";
+import ManageUserVerificationDocs from "./pages/verification-docs/ManageUserVerificationDocs";
+
+// rfx
+import RFxPage from "./pages/rfx/RFxPage";
+import RFxCreationPage from "./pages/rfx/RFxCreationPage";
+import RFxIssuedPage from "./pages/rfx/RFxIssuedPage";
+import RFxDetailPage from "./pages/rfx/RFxDetailPage";
+
+// tenders
+import TenderPage from "./pages/tenders/TenderPage";
+import TenderCreationPage from "./pages/tenders/TenderCreationPage";
+import TenderDetailPage from "./pages/tenders/TenderDetailPage";
+
+// proforma invoices
+import ProformaInvoicesPage from "./pages/proforma-invoices/ProformaInvoicesPage";
+import ProformaInvoiceDetailPage from "./pages/proforma-invoices/ProformaInvoiceDetailPage";
+import ProformaInvoiceIssuedDetailPage from "./pages/proforma-invoices/ProformaInvoiceIssuedDetailPage";
+import IssuedProformaInvoicesPage from "./pages/proforma-invoices/IssuedProformaInvoicesPage";
+import CreateProformaInvoicePage from "./pages/proforma-invoices/CreateProformaInvoicePage";
+import CreateProformaInvoiceForRFxPage from "./pages/proforma-invoices/CreateProformaInvoiceForRFxPage";
+import CreateProformaInvoiceForTenderPage from "./pages/proforma-invoices/CreateProformaInvoiceForTenderPage";
+
+// purchase orders
+import PurchaseOrdersPage from "./pages/purchase-orders/PurchaseOrdersPage";
+import PurchaseOrderCreationPage from "./pages/purchase-orders/PurchaseOrderCreationPage";
+import PurchaseOrderDetailPage from "./pages/purchase-orders/PurchaseOrderDetailPage";
+import IssuedPurchaseOrdersPage from "./pages/purchase-orders/IssuedPurchaseOrdersPage";
+
+// sales invoices
+import SalesInvoicesPage from "./pages/sales-invoices/SalesInvoicesPage";
+import SalesInvoiceDetailPage from "./pages/sales-invoices/SalesInvoiceDetailPage";
+import CreateSalesInvoicePage from "./pages/sales-invoices/CreateSalesInvoicePage";
+import IssuedSalesInvoicesPage from "./pages/sales-invoices/IssuedSalesInvoicesPage";
+
+// payment orders
+import PaymentOrdersPage from "./pages/payment-orders/PaymentOrdersPage";
+import CreatePaymentOrderPage from "./pages/payment-orders/CreatePaymentOrderPage";
+import PaymentOrderDetailPage from "./pages/payment-orders/PaymentOrderDetailPage";
+
+// waybills
+import AllWaybillsPage from "./pages/waybills/AllWaybillsPage";
+import IssuedWaybillsPage from "./pages/waybills/IssuedWaybillsPage";
+import WaybillDetailPage from "./pages/waybills/WaybillDetailPage";
+
+// subscription
+import { SubscriptionCallbackPage } from "./pages/subscription/SubscriptionCallbackPage";
 
 export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
