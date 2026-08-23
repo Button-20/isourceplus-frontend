@@ -12,17 +12,36 @@ import express from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createProxyMiddleware } from "http-proxy-middleware";
+import { createProxyMiddleware, fixRequestBody } from "http-proxy-middleware";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 10000;
 // Canonical backend host. Override with the API_TARGET env var on Render.
 const API_TARGET = process.env.API_TARGET || "https://www.isourceplus.net";
+// The backend's HttpOnly refresh-token cookie, and the logout endpoint path.
+const REFRESH_COOKIE = "isource-plus-refresh-token";
+const LOGOUT_PATH = "/api/v1/account_auth/logout";
 
 const app = express();
 
-// Reverse-proxy every /api request to the backend. Registered BEFORE any body
-// parser so POST/PATCH bodies stream through untouched.
+// The logout endpoint requires the refresh token in the request BODY, but the
+// token lives in an HttpOnly cookie the browser's JS cannot read. The proxy
+// CAN read the cookie (it's just a request header here), so parse logout's
+// small JSON body and inject the refresh token into it. Scoped to the logout
+// path only, so every other request (multipart uploads, etc.) still streams
+// through the proxy untouched.
+app.use(LOGOUT_PATH, express.json(), (req, _res, next) => {
+  const cookies = req.headers.cookie || "";
+  const match = cookies.match(
+    new RegExp(`(?:^|;\\s*)${REFRESH_COOKIE}=([^;]+)`),
+  );
+  if (match && !(req.body && req.body.refresh)) {
+    req.body = { ...(req.body || {}), refresh: decodeURIComponent(match[1]) };
+  }
+  next();
+});
+
+// Reverse-proxy every /api request to the backend.
 app.use(
   createProxyMiddleware({
     pathFilter: "/api",
@@ -31,11 +50,16 @@ app.use(
     secure: true,
     xfwd: true,
     on: {
-      proxyReq: (proxyReq) => {
+      proxyReq: (proxyReq, req) => {
         // Present the request to Django as same-origin so its HTTPS CSRF
         // referer/origin checks pass.
         proxyReq.setHeader("origin", API_TARGET);
         proxyReq.setHeader("referer", `${API_TARGET}/`);
+        // Re-stream a body we parsed above (logout) with a correct
+        // Content-Length. No-op for the streaming requests (no req.body).
+        if (req.body && Object.keys(req.body).length > 0) {
+          fixRequestBody(proxyReq, req);
+        }
       },
       proxyRes: (proxyRes) => {
         // Rewrite Set-Cookie so the backend's HttpOnly auth cookies are stored

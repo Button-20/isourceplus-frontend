@@ -30,11 +30,19 @@ export default defineConfig({
           proxy.on("proxyRes", (proxyRes) => {
             const setCookie = proxyRes.headers["set-cookie"];
             if (setCookie) {
-              proxyRes.headers["set-cookie"] = setCookie.map((cookie) =>
-                cookie
+              proxyRes.headers["set-cookie"] = setCookie.map((cookie) => {
+                let c = cookie
                   .replace(/;\s*Secure/gi, "")
-                  .replace(/;\s*SameSite=None/gi, "; SameSite=Lax"),
-              );
+                  .replace(/;\s*SameSite=None/gi, "; SameSite=Lax");
+                // Dev only: expose the refresh-token cookie to JS so logout
+                // (which needs the refresh token in its body) works locally.
+                // In production the server.js proxy injects it from the
+                // HttpOnly cookie instead.
+                if (/^isource-plus-refresh-token=/i.test(c)) {
+                  c = c.replace(/;\s*HttpOnly/gi, "");
+                }
+                return c;
+              });
             }
           });
         },

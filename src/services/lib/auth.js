@@ -6,6 +6,8 @@
 // session. Access/refresh tokens are still handled if a deployment does return
 // them, so the client works with both cookie- and bearer-based backends.
 
+import { getCookie } from "./cookies";
+
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 const USER_EMAIL_KEY = "user_email";
@@ -14,7 +16,12 @@ const USER_ID_KEY = "user_id";
 
 export const authStorage = {
   getAccessToken: () => localStorage.getItem(ACCESS_TOKEN_KEY),
-  getRefreshToken: () => localStorage.getItem(REFRESH_TOKEN_KEY),
+  // Falls back to the refresh-token cookie when it's JS-readable (dev, where the
+  // Vite proxy strips HttpOnly). In production the cookie stays HttpOnly and the
+  // server.js proxy injects the token into the logout body instead.
+  getRefreshToken: () =>
+    localStorage.getItem(REFRESH_TOKEN_KEY) ||
+    getCookie("isource-plus-refresh-token"),
   getUserEmail: () => localStorage.getItem(USER_EMAIL_KEY),
   getProfileId: () => localStorage.getItem(PROFILE_ID_KEY),
   getUserId: () => localStorage.getItem(USER_ID_KEY),
