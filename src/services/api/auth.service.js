@@ -55,12 +55,23 @@ export async function refreshSession() {
     { _retry: true },
   );
   if (data?.access) authStorage.setAccessToken(data.access);
+  // Persist a rotated refresh token if the backend returns one, so logout (which
+  // requires the refresh token in its body) always has the current value.
+  if (data?.refresh) authStorage.setSession({ refresh: data.refresh });
   return true;
 }
 
 export async function logoutRequest() {
   await ensureCsrfToken();
-  return http.post("account_auth/logout/", {}, { _retry: true });
+  // The logout endpoint requires the refresh token in the body (it returns
+  // "Refresh token is required" otherwise). Send the stored token when we have
+  // it; the empty-body fallback covers backends that read it from the cookie.
+  const refresh = authStorage.getRefreshToken();
+  return http.post(
+    "account_auth/logout/",
+    refresh ? { refresh } : {},
+    { _retry: true },
+  );
 }
 
 // Wire the refresh flow into the HTTP client's 401 handler.

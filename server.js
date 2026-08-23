@@ -9,6 +9,7 @@
 // (vite.config.js), which is why auth already works locally.
 
 import express from "express";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createProxyMiddleware } from "http-proxy-middleware";
@@ -59,6 +60,9 @@ app.use(
   }),
 );
 
+// Health check for Render (and uptime monitors). Fast, no proxying.
+app.get("/healthz", (_req, res) => res.status(200).json({ status: "ok" }));
+
 // Static assets from the Vite build.
 const distDir = path.join(__dirname, "dist");
 app.use(express.static(distDir));
@@ -71,6 +75,10 @@ app.use((req, res, next) => {
 });
 
 app.listen(PORT, () => {
+  const indexPresent = fs.existsSync(path.join(distDir, "index.html"));
   // eslint-disable-next-line no-console
-  console.log(`Serving dist/ + proxying /api -> ${API_TARGET} on :${PORT}`);
+  console.log(
+    `[server] listening on :${PORT} | proxy /api -> ${API_TARGET} | ` +
+      `distDir=${distDir} | index.html present=${indexPresent}`,
+  );
 });

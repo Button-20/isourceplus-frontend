@@ -17,6 +17,7 @@ services:
     plan: free
     buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm run start
+    healthCheckPath: /healthz
     envVars:
       # Canonical backend origin the proxy forwards /api to.
       - key: API_TARGET
