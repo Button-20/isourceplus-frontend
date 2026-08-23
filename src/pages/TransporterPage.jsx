@@ -1,28 +1,28 @@
-// pages/NewTransporterPage.jsx
-import React from "react";
+// pages/TransporterPage.jsx — branded transporter registration screen.
 import TransporterForm from "@/components/TransporterForm";
 import { Truck } from "lucide-react";
 
 export default function TransporterPage() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-9xl mx-auto">
-        <div className="text-center mb-10">
-          <div className="flex items-center justify-center mb-4">
-            <Truck className="w-8 h-8 text-black mr-2" />
-            <h1 className="text-3xl font-bold text-gray-900">Transporter Registration</h1>
-          </div>
-          <p className="text-lg text-gray-600">
-            Register your transportation services to join our network
-          </p>
-        </div>
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-          <div className="bg-black text-white px-6 py-4 flex items-center">
-            <Truck className="w-5 h-5 mr-2" />
-            <h2 className="text-xl font-bold">Transport Service Details</h2>
-          </div>
-          <TransporterForm />
-        </div>
+    <div className="mx-auto max-w-4xl font-montserrat">
+      {/* Branded header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <span className="relative inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+          <Truck className="h-3.5 w-3.5" /> Transporter registration
+        </span>
+        <h1 className="relative mt-4 font-display text-2xl font-bold sm:text-3xl">
+          Register your transport service
+        </h1>
+        <p className="relative mt-2 max-w-2xl text-sm text-white/85">
+          Set up your transporter profile to offer logistics and delivery across
+          the iSource+ supply chain.
+        </p>
+      </div>
+
+      {/* Form card */}
+      <div className="mt-6 rounded-2xl border border-border/70 bg-card p-6 sm:p-8">
+        <TransporterForm />
       </div>
     </div>
   );

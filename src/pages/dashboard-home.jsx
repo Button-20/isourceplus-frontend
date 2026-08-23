@@ -134,7 +134,8 @@ function StatCard({ resource, count, loading }) {
 }
 
 export function DashBoardHome() {
-  const { user, token, jobTitle, companyId, transporterId } = useAuth();
+  const { user, token, jobTitle, companyId, transporterId, viewMode } =
+    useAuth();
   const location = useLocation();
   const [counts, setCounts] = useState({});
   const [loadingCounts, setLoadingCounts] = useState(true);
@@ -142,16 +143,8 @@ export function DashBoardHome() {
   const config = ROLE_CONFIG[jobTitle] || DEFAULT_CONFIG;
   const statKeys = config.stats;
 
-  // Pick which overview to show:
-  //   sales manager (supplier) -> supplier-dashboard overview
-  //   logistics manager        -> generic resource-count grid
-  //   buyers / no role yet     -> buyer-dashboard overview
-  const overviewVariant =
-    jobTitle === "sales manager"
-      ? "supplier"
-      : jobTitle === "logistics manager"
-        ? "generic"
-        : "buyer";
+  // The overview follows the global Buyer/Supplier toggle (see ViewModeToggle).
+  const overviewVariant = viewMode;
 
   useEffect(() => {
     // The buyer and supplier overviews fetch their own data; only the generic

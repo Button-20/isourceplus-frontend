@@ -29,6 +29,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/services/context/app.context";
+import ViewModeToggle from "@/components/dashboard/ViewModeToggle";
 import {
   MdOutlineDocumentScanner,
   MdOutlinePeopleAlt,
@@ -260,7 +261,10 @@ export function DashboardLayout() {
         )}
       </Sidebar>
       <main style={{ width: "100%" }}>
-        <SidebarTrigger className="m-5 mb-0" />
+        <div className="m-5 mb-0 flex items-center justify-between gap-3">
+          <SidebarTrigger />
+          <ViewModeToggle />
+        </div>
         <div className="p-5 pt-5">
           {loading ? (
             <div className="flex items-center justify-center h-64">

@@ -85,26 +85,6 @@ const ProfileForm = ({ profileId }) => {
   const canCreateCompany = jobCanCreateCompany(formValues.job_title);
   const isAdmin = jobCanCreateTransporter(formValues.job_title);
 
-  const handleVerifyNumber = async (numberType) => {
-    const number = formValues[numberType];
-    if (!number) {
-      toast.error("Please enter a phone number first");
-      return;
-    }
-    try {
-      await authAxios.get(
-        `send-verification-code/?phone=${encodeURIComponent(number)}`,
-      );
-      navigate(
-        `/onboarding/mobile-verification/?phone=${encodeURIComponent(
-          number,
-        )}&number_type=${numberType}`,
-      );
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Could not send code.");
-    }
-  };
-
   useEffect(() => {
     if (!profileId) return;
     const fetchProfile = async () => {
@@ -407,15 +387,8 @@ const ProfileForm = ({ profileId }) => {
                   <label className="text-sm font-medium text-foreground">
                     {label}
                   </label>
-                  {formValues[name] && !verified && (
-                    <button
-                      type="button"
-                      onClick={() => handleVerifyNumber(name)}
-                      className="text-xs font-medium text-brand hover:underline"
-                    >
-                      Verify
-                    </button>
-                  )}
+                  {/* Verification runs after the form is submitted, so no inline
+                      verify action here — just reflect an already-verified number. */}
                   {verified && (
                     <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
                       <CheckCircle className="h-3 w-3" /> Verified

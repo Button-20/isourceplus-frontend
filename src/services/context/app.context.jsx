@@ -53,6 +53,11 @@ export const AppProvider = ({ children }) => {
   const [companyId, setCompanyId] = useState(null);
   const [transporterId, setTransporterId] = useState(null);
   const [jobTitle, setJobTitle] = useState(null);
+  // Global buyer/supplier view mode. Null until the user (or the job-title
+  // default below) picks one; persisted so it survives reloads.
+  const [viewMode, setViewModeState] = useState(
+    () => localStorage.getItem("view_mode") || null,
+  );
   const [sidebarLoading, setSidebarLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
@@ -71,8 +76,24 @@ export const AppProvider = ({ children }) => {
     setUserProfileId(null);
     setCompanyId(null);
     setTransporterId(null);
+    setViewModeState(null);
+    try {
+      localStorage.removeItem("view_mode");
+    } catch {
+      /* ignore */
+    }
     authStorage.clear();
     clearCsrfToken();
+  };
+
+  // Switch the global buyer/supplier view and remember the choice.
+  const setViewMode = (mode) => {
+    setViewModeState(mode);
+    try {
+      localStorage.setItem("view_mode", mode);
+    } catch {
+      /* ignore */
+    }
   };
 
   // Fetch the CSRF token as soon as the app mounts.
@@ -275,6 +296,10 @@ export const AppProvider = ({ children }) => {
         refreshTokenFunction,
         jobTitle,
         setJobTitle,
+        // Effective view mode: an explicit choice wins, otherwise default from
+        // the job title (sales manager = supplier, everyone else = buyer).
+        viewMode: viewMode || (jobTitle === "sales manager" ? "supplier" : "buyer"),
+        setViewMode,
         profileLoading,
         setProfileLoading,
         sidebarLoading,
