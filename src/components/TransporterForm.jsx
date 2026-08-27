@@ -17,10 +17,7 @@ const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 const EMPTY_VALUES = {
   name: "",
-  field: "",
   type: "",
-  industry: "",
-  sector: "",
   bio: "",
   email: "",
   office_line: "",
@@ -32,6 +29,7 @@ const VALUE_KEYS = Object.keys(EMPTY_VALUES);
 const TRANSPORT_MODES = ["air", "land", "sea"];
 const TRANSPORT_MEANS = ["car", "truck", "bicycle", "motor-cycle"];
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_BIO = 255; // Backend caps the description/bio at 255 characters.
 
 const titleCase = (s) =>
   s
@@ -332,31 +330,27 @@ const TransporterForm = () => {
             <label className={labelClass}>Type</label>
             <Input name="type" value={values.type} onChange={handleChange} />
           </div>
-          <div>
-            <label className={labelClass}>Field</label>
-            <Input name="field" value={values.field} onChange={handleChange} />
-          </div>
-          <div>
-            <label className={labelClass}>Industry</label>
-            <Input
-              name="industry"
-              value={values.industry}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Sector</label>
-            <Input
-              name="sector"
-              value={values.sector}
-              onChange={handleChange}
-            />
-          </div>
+
           <div className="sm:col-span-2">
-            <label className={labelClass}>Transporter bio</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">
+                Transporter bio
+              </label>
+              <span
+                className={cn(
+                  "text-xs",
+                  values.bio.length >= MAX_BIO
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
+                {values.bio.length}/{MAX_BIO}
+              </span>
+            </div>
             <Textarea
               name="bio"
               rows={3}
+              maxLength={MAX_BIO}
               value={values.bio}
               onChange={handleChange}
               placeholder="Briefly describe your transport service"

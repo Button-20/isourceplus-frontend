@@ -22,3 +22,12 @@ export async function createCompany(payload) {
   const { data } = await http.post("companies/", payload);
   return data;
 }
+
+// GET the industry choices for a given category (drives the dependent industry
+// dropdown on the company form).
+export async function getIndustryChoices(category) {
+  const { data } = await http.get("industry-choices/", {
+    params: { category },
+  });
+  return data;
+}

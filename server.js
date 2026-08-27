@@ -9,10 +9,10 @@
 // (vite.config.js), which is why auth already works locally.
 
 import express from "express";
+import { createProxyMiddleware, fixRequestBody } from "http-proxy-middleware";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createProxyMiddleware, fixRequestBody } from "http-proxy-middleware";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 10000;
@@ -35,8 +35,11 @@ app.use(LOGOUT_PATH, express.json(), (req, _res, next) => {
   const match = cookies.match(
     new RegExp(`(?:^|;\\s*)${REFRESH_COOKIE}=([^;]+)`),
   );
-  if (match && !(req.body && req.body.refresh)) {
-    req.body = { ...(req.body || {}), refresh: decodeURIComponent(match[1]) };
+  const hasToken = req.body && req.body[REFRESH_COOKIE];
+  if (match && !hasToken) {
+    // Send field name; the backend expects `isource-plus-refresh-token` 
+    const token = match[1];
+    req.body = { ...(req.body || {}), "isource-plus-refresh-token": token };
   }
   next();
 });

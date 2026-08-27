@@ -1,13 +1,10 @@
+import { Check, Loader2, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Upload, X, Check } from "lucide-react";
 
-import { useAuth } from "@/services/context/app.context";
-import { createCompany } from "@/services/api/companies.service";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -15,15 +12,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  createCompany,
+  getIndustryChoices,
+} from "@/services/api/companies.service";
+import { useAuth } from "@/services/context/app.context";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 const EMPTY_VALUES = {
   name: "",
   type: "",
-  field: "",
-  industry: "",
-  sector: "",
+  category: "",
   bio: "",
   email: "",
   office_line: "",
@@ -33,14 +34,63 @@ const EMPTY_VALUES = {
 
 const VALUE_KEYS = Object.keys(EMPTY_VALUES);
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB, per the upload guidelines below.
+const MAX_BIO = 225; // Backend caps the description/bio at 225 characters.
+
+const prettify = (s) =>
+  String(s)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+// Top-level categories drive the dependent industry dropdown.
+const CATEGORY_OPTIONS = [
+  "energy",
+  "materials",
+  "industrials",
+  "consumer_discretionary",
+  "consumer_staples",
+  "health_care",
+  "financials",
+  "information_technology",
+  "communication_services",
+  "utilities",
+  "real_estate",
+].map((value) => ({ value, label: prettify(value) }));
+
+// Normalize the /industry-choices/ response into { value, label }[]. The exact
+// shape isn't guaranteed, so handle strings, [value, label] tuples, and objects.
+function normalizeChoices(data) {
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.results)
+      ? data.results
+      : Array.isArray(data?.choices)
+        ? data.choices
+        : [];
+  return list
+    .map((item) => {
+      if (typeof item === "string")
+        return { value: item, label: prettify(item) };
+      if (Array.isArray(item))
+        return {
+          value: String(item[0]),
+          label: String(item[1] ?? prettify(item[0])),
+        };
+      if (item && typeof item === "object") {
+        const value = item.value ?? item.id ?? item.key ?? item.name ?? "";
+        const label =
+          item.label ?? item.display_name ?? item.name ?? prettify(value);
+        return { value: String(value), label: String(label) };
+      }
+      return null;
+    })
+    .filter((c) => c && c.value !== "");
+}
 
 // Only accept a stored blob if it has the keys we expect.
 const validateStoredData = (data, expectedKeys) =>
   data &&
   typeof data === "object" &&
-  expectedKeys.every((key) =>
-    Object.prototype.hasOwnProperty.call(data, key),
-  );
+  expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(data, key));
 
 // Branded dashed-border upload tile with preview + remove.
 function UploadTile({ label, name, preview, onChange, onRemove }) {
@@ -97,6 +147,8 @@ const CompanyForm = () => {
     image_front_view: null,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [industryChoices, setIndustryChoices] = useState([]);
+  const [industryLoading, setIndustryLoading] = useState(false);
 
   // Restore any in-progress draft from a previous session.
   useEffect(() => {
@@ -122,6 +174,33 @@ const CompanyForm = () => {
     }
   }, []);
 
+  // Load the industry options whenever the category changes (or is restored
+  // from a draft).
+  useEffect(() => {
+    if (!values.category) {
+      setIndustryChoices([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setIndustryLoading(true);
+    getIndustryChoices(values.category)
+      .then((data) => {
+        if (!cancelled) setIndustryChoices(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIndustryChoices([]);
+          toast.error("Couldn't load industries for that category.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIndustryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [values.category]);
+
   const persistValues = (next) => {
     try {
       localStorage.setItem("companyFormValues", JSON.stringify(next));
@@ -142,6 +221,15 @@ const CompanyForm = () => {
   const handleSelect = (name, value) => {
     setValues((v) => {
       const next = { ...v, [name]: value };
+      persistValues(next);
+      return next;
+    });
+  };
+
+  // The selected industry is mirrored into `field`.
+  const handleIndustryChange = (value) => {
+    setValues((v) => {
+      const next = { ...v, industry: value, field: value };
       persistValues(next);
       return next;
     });
@@ -242,7 +330,7 @@ const CompanyForm = () => {
           Company information
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
+          <div >
             <label className={labelClass}>
               Company name <span className="text-destructive">*</span>
             </label>
@@ -276,34 +364,25 @@ const CompanyForm = () => {
             </Select>
           </div>
 
-          <div>
-            <label className={labelClass}>Field of operation</label>
-            <Input name="field" value={values.field} onChange={handleChange} />
-          </div>
-
-          <div>
-            <label className={labelClass}>Industry</label>
-            <Input
-              name="industry"
-              value={values.industry}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Sector</label>
-            <Input
-              name="sector"
-              value={values.sector}
-              onChange={handleChange}
-            />
-          </div>
-
           <div className="sm:col-span-2">
-            <label className={labelClass}>Company bio</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">
+                Company bio
+              </label>
+              <span
+                className={`text-xs ${
+                  values.bio.length > MAX_BIO
+                    ? "text-destructive"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {values.bio.length}/{MAX_BIO}
+              </span>
+            </div>
             <Textarea
               name="bio"
               rows={3}
+              maxLength={MAX_BIO}
               value={values.bio}
               onChange={handleChange}
               placeholder="Briefly describe what your company does"

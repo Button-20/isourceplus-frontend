@@ -37,9 +37,6 @@ const EditCompany = () => {
   const [values, setValues] = useState({
     name: "",
     type: "",
-    field: "",
-    industry: "",
-    sector: "",
     bio: "",
     email: "",
     office_line: "",
@@ -66,9 +63,6 @@ const EditCompany = () => {
           setValues({
             name: data.name || "",
             type: data.type || "",
-            field: data.field || "",
-            industry: data.industry || "",
-            sector: data.sector || "",
             bio: data.bio || "",
             email: data.email || "",
             office_line: data.office_line || "",
@@ -278,16 +272,6 @@ const EditCompany = () => {
                 onChange={handleChange}
                 className="w-full border rounded p-2"
                 placeholder="e.g. Manufacturing"
-              />
-            </div>
-            <div>
-              <label className="block mb-1">Sector</label>
-              <input
-                name="sector"
-                value={values.sector}
-                onChange={handleChange}
-                className="w-full border rounded p-2"
-                placeholder="e.g. Procurement"
               />
             </div>
             <div className="sm:col-span-2">

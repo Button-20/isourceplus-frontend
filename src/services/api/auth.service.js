@@ -6,9 +6,9 @@
 // cookies are set by the server and sent automatically via `withCredentials`.
 // Access/refresh tokens are still persisted if a deployment returns them.
 
-import http, { registerRefreshHandler } from "@/services/lib/http";
 import { authStorage } from "@/services/lib/auth";
 import { ensureCsrfToken } from "@/services/lib/csrf";
+import http, { registerRefreshHandler } from "@/services/lib/http";
 
 function persistSession(data) {
   authStorage.setSession({
@@ -67,11 +67,11 @@ export async function logoutRequest() {
   // "Refresh token is required" otherwise). Send the stored token when we have
   // it; the empty-body fallback covers backends that read it from the cookie.
   const refresh = authStorage.getRefreshToken();
-  return http.post(
-    "account_auth/logout/",
-    refresh ? { refresh } : {},
-    { _retry: true },
-  );
+  // The backend rejected the `refresh` key with "Refresh token is required",
+  // so it expects `isource-plus-refresh-token`. Send both common names to be safe; a custom
+  // view reads whichever it wants and ignores the other.
+  const body = refresh ? { "isource-plus-refresh-token": refresh } : {};
+  return http.post("account_auth/logout/", body, { _retry: true });
 }
 
 // Wire the refresh flow into the HTTP client's 401 handler.

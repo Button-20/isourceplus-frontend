@@ -18,6 +18,7 @@ import { useAuth } from "@/services/context/app.context";
 import { getResourceCount } from "@/services/api/dashboard.service";
 import BuyerOverview from "@/components/dashboard/BuyerOverview";
 import SupplierOverview from "@/components/dashboard/SupplierOverview";
+import TransporterOverview from "@/components/dashboard/TransporterOverview";
 import {
   Card,
   CardContent,
@@ -143,8 +144,11 @@ export function DashBoardHome() {
   const config = ROLE_CONFIG[jobTitle] || DEFAULT_CONFIG;
   const statKeys = config.stats;
 
-  // The overview follows the global Buyer/Supplier toggle (see ViewModeToggle).
-  const overviewVariant = viewMode;
+  // Transporters (logistics) get their own overview; everyone else follows the
+  // global Buyer/Supplier toggle (see ViewModeToggle).
+  const isTransporter =
+    Boolean(transporterId) || jobTitle === "logistics manager";
+  const overviewVariant = isTransporter ? "transporter" : viewMode;
 
   useEffect(() => {
     // The buyer and supplier overviews fetch their own data; only the generic
@@ -224,9 +228,11 @@ export function DashBoardHome() {
         </Card>
       )}
 
-      {/* Stats — buyers and suppliers get their dedicated dashboard overviews;
-          other roles get the generic resource-count grid. */}
-      {overviewVariant === "supplier" ? (
+      {/* Stats — transporters, buyers, and suppliers each get their dedicated
+          dashboard overview; other roles get the generic resource-count grid. */}
+      {overviewVariant === "transporter" ? (
+        <TransporterOverview />
+      ) : overviewVariant === "supplier" ? (
         <SupplierOverview />
       ) : overviewVariant === "buyer" ? (
         <BuyerOverview />

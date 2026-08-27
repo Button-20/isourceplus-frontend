@@ -37,10 +37,7 @@ export default function EditTransporter() {
   // Form state
   const [values, setValues] = useState({
     name: "",
-    field: "",
     type: "",
-    industry: "",
-    sector: "",
     bio: "",
     email: "",
     office_line: "",
@@ -70,10 +67,7 @@ export default function EditTransporter() {
           const { data } = await authAxios.get(`transporters/${transporterId}/`);
           setValues({
             name: data.name || "",
-            field: data.field || "",
             type: data.type || "",
-            industry: data.industry || "",
-            sector: data.sector || "",
             bio: data.bio || "",
             email: data.email || "",
             office_line: data.office_line || "",

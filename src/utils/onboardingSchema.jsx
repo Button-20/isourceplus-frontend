@@ -15,9 +15,6 @@ export const onboardingSchema = z.object({
   // Organization step
   name: z.string().min(2, "Name is required"),
   type: z.string().optional(),
-  field: z.string().min(1, "Field is required"),
-  industry: z.string().min(1, "Industry is required"),
-  sector: z.string().min(1, "Sector is required"),
   bio: z.string().min(10, "Description is too short"),
   logo: z.any().optional(),
   email: z.string().email("Invalid email"),
