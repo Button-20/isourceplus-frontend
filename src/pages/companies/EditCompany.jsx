@@ -1,12 +1,33 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Upload, X, Check } from "lucide-react";
 import { getCookie } from "@/utility/getCookie";
+import {
+  getCategoryChoices,
+  getIndustryChoices,
+} from "@/services/api/companies.service";
+import { compressImage } from "@/utils/compress-image";
+
+// The backend caps the whole request at ~1MB; keep the combined upload under it.
+const MAX_TOTAL_UPLOAD = 900 * 1024;
+
+// Normalize a choices response ([{value,label}] | strings | ...) to {value,label}[].
+const toChoices = (data) =>
+  (Array.isArray(data) ? data : data?.results || [])
+    .map((c) =>
+      typeof c === "string"
+        ? { value: c, label: c }
+        : {
+            value: String(c.value ?? c.id ?? ""),
+            label: String(c.label ?? c.name ?? c.value ?? ""),
+          },
+    )
+    .filter((c) => c.value);
 
 const EditCompany = () => {
-  const { authAxios, companyId, setCompanyId, jobTitle } = useAuth();
+  const { authAxios, companyId, setCompanyId } = useAuth();
   const navigate = useNavigate();
   const [idLoading, setIdLoading] = useState(!companyId);
 
@@ -37,12 +58,18 @@ const EditCompany = () => {
   const [values, setValues] = useState({
     name: "",
     type: "",
+    category: "",
+    field: "",
+    industry: "",
+    sector: "",
     bio: "",
     email: "",
     office_line: "",
     office_line_2: "",
     web_address: "",
   });
+  const [categoryChoices, setCategoryChoices] = useState([]);
+  const [industryChoices, setIndustryChoices] = useState([]);
   const [files, setFiles] = useState({
     logo: null,
     image_front_view: null,
@@ -54,6 +81,8 @@ const EditCompany = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  const isSupplier = values.type === "supplier";
+
   useEffect(() => {
     if (companyId) {
       async function fetchCompany() {
@@ -63,6 +92,10 @@ const EditCompany = () => {
           setValues({
             name: data.name || "",
             type: data.type || "",
+            category: data.category || "",
+            field: data.field || "",
+            industry: data.industry || "",
+            sector: data.sector || "",
             bio: data.bio || "",
             email: data.email || "",
             office_line: data.office_line || "",
@@ -73,7 +106,7 @@ const EditCompany = () => {
             logo: data.logo || null,
             image_front_view: data.image_front_view || null,
           });
-        } catch (err) {
+        } catch {
           toast.error("Failed to load company data");
         } finally {
           setLoading(false);
@@ -83,37 +116,96 @@ const EditCompany = () => {
     }
   }, [authAxios, companyId]);
 
+  // Category options depend on the company type.
   useEffect(() => {
+    if (!values.type) {
+      setCategoryChoices([]);
+      return undefined;
+    }
+    let cancelled = false;
+    getCategoryChoices(values.type)
+      .then((d) => {
+        if (!cancelled) setCategoryChoices(toChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setCategoryChoices([]);
+      });
     return () => {
-      if (filePreviews.logo && filePreviews.logo.startsWith("blob:")) {
-        URL.revokeObjectURL(filePreviews.logo);
-      }
-      if (filePreviews.image_front_view && filePreviews.image_front_view.startsWith("blob:")) {
-        URL.revokeObjectURL(filePreviews.image_front_view);
-      }
+      cancelled = true;
     };
-  }, [filePreviews]);
+  }, [values.type]);
+
+  // Suppliers pick an industry, whose options depend on the category.
+  useEffect(() => {
+    if (values.type !== "supplier" || !values.category) {
+      setIndustryChoices([]);
+      return undefined;
+    }
+    let cancelled = false;
+    getIndustryChoices(values.category)
+      .then((d) => {
+        if (!cancelled) setIndustryChoices(toChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setIndustryChoices([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [values.type, values.category]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setValues((v) => ({ ...v, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    const file = files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("File size must be under 2MB");
-        return;
-      }
-      if (!["image/jpeg", "image/png"].includes(file.type)) {
-        toast.error("Only JPG and PNG formats are accepted");
-        return;
-      }
-      setFiles((f) => ({ ...f, [name]: file }));
-      setFilePreviews((p) => ({ ...p, [name]: URL.createObjectURL(file) }));
+  // Changing the type changes which categories are valid, so reset the chain.
+  const handleTypeChange = (e) => {
+    const value = e.target.value;
+    setValues((v) => ({
+      ...v,
+      type: value,
+      category: "",
+      sector: "",
+      industry: "",
+      field: "",
+    }));
+  };
+
+  // For suppliers the category is mirrored into `sector`; buyers just set it.
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    setValues((v) => ({
+      ...v,
+      category: value,
+      sector: v.type === "supplier" ? value : "",
+      industry: "",
+      field: "",
+    }));
+  };
+
+  // The selected industry is mirrored into `field` (suppliers only).
+  const handleIndustryChange = (e) => {
+    const value = e.target.value;
+    setValues((v) => ({ ...v, industry: value, field: value }));
+  };
+
+  const handleFileChange = async (e) => {
+    const { name, files: fileList } = e.target;
+    const picked = fileList[0];
+    e.target.value = "";
+    if (!picked) return;
+    if (!["image/jpeg", "image/png"].includes(picked.type)) {
+      toast.error("Only JPG and PNG formats are accepted");
+      return;
     }
+    const file = await compressImage(picked);
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image is too large. Please use a smaller image.");
+      return;
+    }
+    setFiles((f) => ({ ...f, [name]: file }));
+    setFilePreviews((p) => ({ ...p, [name]: URL.createObjectURL(file) }));
   };
 
   const removeFile = (name) => {
@@ -123,6 +215,14 @@ const EditCompany = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const totalUpload = Object.values(files).reduce(
+      (sum, f) => sum + (f?.size || 0),
+      0,
+    );
+    if (totalUpload > MAX_TOTAL_UPLOAD) {
+      toast.error("Your images are too large. Please use smaller images.");
+      return;
+    }
     setSubmitting(true);
     try {
       const formData = new FormData();
@@ -245,40 +345,63 @@ const EditCompany = () => {
               <select
                 name="type"
                 value={values.type}
-                onChange={handleChange}
+                onChange={handleTypeChange}
                 required
                 className="w-full border rounded p-2"
               >
                 <option value="">Select</option>
-                {jobTitle === "lead buyer" && <option value="buyer">Buyer</option>}
-                {jobTitle === "sales manager" && <option value="supplier">Supplier</option>}
+                <option value="buyer">Buyer</option>
+                <option value="supplier">Supplier</option>
               </select>
             </div>
             <div>
-              <label className="block mb-1">Field of Operation</label>
-              <input
-                name="field"
-                value={values.field}
-                onChange={handleChange}
-                className="w-full border rounded p-2"
-                placeholder="e.g. Logistics"
-              />
+              <label className="block mb-1">Category</label>
+              <select
+                name="category"
+                value={values.category}
+                onChange={handleCategoryChange}
+                disabled={!values.type}
+                className="w-full border rounded p-2 disabled:bg-gray-100"
+              >
+                <option value="">
+                  {values.type ? "Select category" : "Select a type first"}
+                </option>
+                {categoryChoices.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div>
-              <label className="block mb-1">Industry</label>
-              <input
-                name="industry"
-                value={values.industry}
-                onChange={handleChange}
-                className="w-full border rounded p-2"
-                placeholder="e.g. Manufacturing"
-              />
-            </div>
+            {isSupplier && (
+              <div>
+                <label className="block mb-1">Industry</label>
+                <select
+                  name="industry"
+                  value={values.industry}
+                  onChange={handleIndustryChange}
+                  disabled={!values.category}
+                  className="w-full border rounded p-2 disabled:bg-gray-100"
+                >
+                  <option value="">
+                    {values.category
+                      ? "Select industry"
+                      : "Select a category first"}
+                  </option>
+                  {industryChoices.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="block mb-1">Company Bio</label>
               <textarea
                 name="bio"
                 rows={3}
+                maxLength={225}
                 value={values.bio}
                 onChange={handleChange}
                 className="w-full border rounded p-2"

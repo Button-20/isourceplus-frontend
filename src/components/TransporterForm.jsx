@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/utils/compress-image";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -29,6 +30,8 @@ const VALUE_KEYS = Object.keys(EMPTY_VALUES);
 const TRANSPORT_MODES = ["air", "land", "sea"];
 const TRANSPORT_MEANS = ["car", "truck", "bicycle", "motor-cycle"];
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+// The backend caps the whole request at ~1MB; keep the combined upload under it.
+const MAX_TOTAL_UPLOAD = 900 * 1024;
 const MAX_BIO = 255; // Backend caps the description/bio at 255 characters.
 
 const titleCase = (s) =>
@@ -165,18 +168,19 @@ const TransporterForm = () => {
     });
   };
 
-  const handleFileChange = (e, index = null) => {
+  const handleFileChange = async (e, index = null) => {
     const { name, files: fileList } = e.target;
-    const file = fileList[0];
-    if (!file) return;
-    if (file.size > MAX_IMAGE_BYTES) {
-      toast.error("File size must be under 2MB");
-      e.target.value = "";
+    const picked = fileList[0];
+    e.target.value = ""; // let the user re-pick the same file after an error
+    if (!picked) return;
+    if (!["image/jpeg", "image/png"].includes(picked.type)) {
+      toast.error("Only JPG and PNG formats are accepted");
       return;
     }
-    if (!["image/jpeg", "image/png"].includes(file.type)) {
-      toast.error("Only JPG and PNG formats are accepted");
-      e.target.value = "";
+    // Downscale before upload so the request stays under the backend's size cap.
+    const file = await compressImage(picked);
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error("Image is too large. Please use a smaller image.");
       return;
     }
     if (name === "logo") {
@@ -282,6 +286,14 @@ const TransporterForm = () => {
     }
     if (!lists.transport_means.length) {
       toast.error("Please select at least one transport means.");
+      return;
+    }
+    const totalUpload = [files.logo, ...files.vehicle_images].reduce(
+      (sum, f) => sum + (f?.size || 0),
+      0,
+    );
+    if (totalUpload > MAX_TOTAL_UPLOAD) {
+      toast.error("Your images are too large. Please use smaller images.");
       return;
     }
     setSubmitting(true);

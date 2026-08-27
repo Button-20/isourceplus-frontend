@@ -23,8 +23,15 @@ export async function createCompany(payload) {
   return data;
 }
 
-// GET the industry choices for a given category (drives the dependent industry
-// dropdown on the company form).
+// GET the category choices for a company type ("buyer" | "supplier"). Buyers and
+// suppliers have different categories, so a type is always required.
+export async function getCategoryChoices(type) {
+  const { data } = await http.get("category-choices/", { params: { type } });
+  return data;
+}
+
+// GET the industry choices for a given category. Suppliers pick an industry
+// (which then maps to `field`); buyers don't use this.
 export async function getIndustryChoices(category) {
   const { data } = await http.get("industry-choices/", {
     params: { category },

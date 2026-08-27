@@ -15,9 +15,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   createCompany,
+  getCategoryChoices,
   getIndustryChoices,
 } from "@/services/api/companies.service";
 import { useAuth } from "@/services/context/app.context";
+import { compressImage } from "@/utils/compress-image";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -25,6 +27,10 @@ const EMPTY_VALUES = {
   name: "",
   type: "",
   category: "",
+  // Supplier-only fields (industry is picked; field = industry, sector = category).
+  field: "",
+  industry: "",
+  sector: "",
   bio: "",
   email: "",
   office_line: "",
@@ -34,6 +40,8 @@ const EMPTY_VALUES = {
 
 const VALUE_KEYS = Object.keys(EMPTY_VALUES);
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB, per the upload guidelines below.
+// The backend caps the whole request at ~1MB; keep the combined upload under it.
+const MAX_TOTAL_UPLOAD = 900 * 1024;
 const MAX_BIO = 225; // Backend caps the description/bio at 225 characters.
 
 const prettify = (s) =>
@@ -41,23 +49,8 @@ const prettify = (s) =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-// Top-level categories drive the dependent industry dropdown.
-const CATEGORY_OPTIONS = [
-  "energy",
-  "materials",
-  "industrials",
-  "consumer_discretionary",
-  "consumer_staples",
-  "health_care",
-  "financials",
-  "information_technology",
-  "communication_services",
-  "utilities",
-  "real_estate",
-].map((value) => ({ value, label: prettify(value) }));
-
-// Normalize the /industry-choices/ response into { value, label }[]. The exact
-// shape isn't guaranteed, so handle strings, [value, label] tuples, and objects.
+// Normalize a choices response into { value, label }[]. The exact shape isn't
+// guaranteed, so handle strings, [value, label] tuples, and objects.
 function normalizeChoices(data) {
   const list = Array.isArray(data)
     ? data
@@ -137,7 +130,7 @@ function UploadTile({ label, name, preview, onChange, onRemove }) {
 }
 
 const CompanyForm = () => {
-  const { setCompanyId, jobTitle } = useAuth();
+  const { setCompanyId } = useAuth();
   const navigate = useNavigate();
 
   const [values, setValues] = useState(EMPTY_VALUES);
@@ -147,8 +140,12 @@ const CompanyForm = () => {
     image_front_view: null,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [categoryChoices, setCategoryChoices] = useState([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
   const [industryChoices, setIndustryChoices] = useState([]);
   const [industryLoading, setIndustryLoading] = useState(false);
+
+  const isSupplier = values.type === "supplier";
 
   // Restore any in-progress draft from a previous session.
   useEffect(() => {
@@ -174,10 +171,37 @@ const CompanyForm = () => {
     }
   }, []);
 
-  // Load the industry options whenever the category changes (or is restored
-  // from a draft).
+  // Category options depend on the company type (buyers and suppliers have
+  // different categories). Runs on type change and on draft restore.
   useEffect(() => {
-    if (!values.category) {
+    if (!values.type) {
+      setCategoryChoices([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setCategoryLoading(true);
+    getCategoryChoices(values.type)
+      .then((data) => {
+        if (!cancelled) setCategoryChoices(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCategoryChoices([]);
+          toast.error("Couldn't load categories for that type.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCategoryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [values.type]);
+
+  // Suppliers additionally pick an industry, whose options depend on the
+  // selected category. Buyers don't use this.
+  useEffect(() => {
+    if (!isSupplier || !values.category) {
       setIndustryChoices([]);
       return undefined;
     }
@@ -199,7 +223,7 @@ const CompanyForm = () => {
     return () => {
       cancelled = true;
     };
-  }, [values.category]);
+  }, [isSupplier, values.category]);
 
   const persistValues = (next) => {
     try {
@@ -218,15 +242,40 @@ const CompanyForm = () => {
     });
   };
 
-  const handleSelect = (name, value) => {
+  // Type drives the category options, so reset the whole dependent chain.
+  const handleTypeChange = (value) => {
     setValues((v) => {
-      const next = { ...v, [name]: value };
+      const next = {
+        ...v,
+        type: value,
+        category: "",
+        sector: "",
+        industry: "",
+        field: "",
+      };
       persistValues(next);
       return next;
     });
   };
 
-  // The selected industry is mirrored into `field`.
+  // For suppliers, the category is mirrored into `sector` and drives the
+  // industry options. For buyers it's just the category.
+  const handleCategoryChange = (value) => {
+    setValues((v) => {
+      const supplier = v.type === "supplier";
+      const next = {
+        ...v,
+        category: value,
+        sector: supplier ? value : "",
+        industry: "",
+        field: "",
+      };
+      persistValues(next);
+      return next;
+    });
+  };
+
+  // The selected industry is mirrored into `field` (suppliers only).
   const handleIndustryChange = (value) => {
     setValues((v) => {
       const next = { ...v, industry: value, field: value };
@@ -235,13 +284,15 @@ const CompanyForm = () => {
     });
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const { name, files: fileList } = e.target;
-    const file = fileList[0];
-    if (!file) return;
+    const picked = fileList[0];
+    e.target.value = ""; // let the user re-pick the same file after an error
+    if (!picked) return;
+    // Downscale before upload so the request stays under the backend's size cap.
+    const file = await compressImage(picked);
     if (file.size > MAX_IMAGE_BYTES) {
-      toast.error("Image is too large. Maximum size is 2MB.");
-      e.target.value = "";
+      toast.error("Image is too large. Please use a smaller image.");
       return;
     }
     setFiles((f) => ({ ...f, [name]: file }));
@@ -289,6 +340,16 @@ const CompanyForm = () => {
       toast.error("Please select a company type.");
       return;
     }
+    const totalUpload = Object.values(files).reduce(
+      (sum, f) => sum + (f?.size || 0),
+      0,
+    );
+    if (totalUpload > MAX_TOTAL_UPLOAD) {
+      toast.error(
+        "Your images are too large. Please use smaller logo/front-view images.",
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       const formData = new FormData();
@@ -330,7 +391,7 @@ const CompanyForm = () => {
           Company information
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div >
+          <div className="sm:col-span-2">
             <label className={labelClass}>
               Company name <span className="text-destructive">*</span>
             </label>
@@ -348,21 +409,75 @@ const CompanyForm = () => {
             </label>
             <Select
               value={values.type || undefined}
-              onValueChange={(v) => handleSelect("type", v)}
+              onValueChange={handleTypeChange}
             >
               <SelectTrigger className="h-10 w-full">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                {jobTitle === "lead buyer" && (
-                  <SelectItem value="buyer">Buyer</SelectItem>
-                )}
-                {jobTitle === "sales manager" && (
-                  <SelectItem value="supplier">Supplier</SelectItem>
-                )}
+                <SelectItem value="buyer">Buyer</SelectItem>
+                <SelectItem value="supplier">Supplier</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          <div>
+            <label className={labelClass}>Category</label>
+            <Select
+              value={values.category || undefined}
+              onValueChange={handleCategoryChange}
+              disabled={!values.type || categoryLoading}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue
+                  placeholder={
+                    !values.type
+                      ? "Select a type first"
+                      : categoryLoading
+                        ? "Loading categories…"
+                        : "Select category"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {categoryChoices.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isSupplier && (
+            <div>
+              <label className={labelClass}>Industry</label>
+              <Select
+                value={values.industry || undefined}
+                onValueChange={handleIndustryChange}
+                disabled={!values.category || industryLoading}
+              >
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue
+                    placeholder={
+                      !values.category
+                        ? "Select a category first"
+                        : industryLoading
+                          ? "Loading industries…"
+                          : "Select industry"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {industryChoices.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="sm:col-span-2">
             <div className="mb-1 flex items-center justify-between">
@@ -371,7 +486,7 @@ const CompanyForm = () => {
               </label>
               <span
                 className={`text-xs ${
-                  values.bio.length > MAX_BIO
+                  values.bio.length >= MAX_BIO
                     ? "text-destructive"
                     : "text-muted-foreground"
                 }`}
