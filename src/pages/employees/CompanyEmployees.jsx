@@ -1,48 +1,94 @@
 import { useAuth } from "@/contexts/app.context";
-import { 
-  User, 
-  Mail, 
-  Calendar, 
-  CheckCircle, 
+import {
+  User,
+  Calendar,
+  CheckCircle,
   XCircle,
   Plus,
   ArrowLeft,
   Clock,
   Activity,
   Shield,
-  Briefcase
+  Briefcase,
+  Loader2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
 const CompanyEmployees = () => {
-  const { authAxios,companyId } = useAuth();
+  const { authAxios, companyId } = useAuth();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // console.log(companyId, "Company ID in CompanyEmployees");
+  // Add-employee modal.
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState({ email: "", password: "", confirm: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  const fetchEmployees = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await authAxios.get(
+        `companies/${companyId}/all-employees`,
+      );
+      setEmployees(response.data.all_employees);
+    } catch (err) {
+      setError(err.message || "Failed to fetch employees");
+      toast.error("Failed to load company employees");
+      console.error("Error fetching employees:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [authAxios, companyId]);
 
   useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        setLoading(true);
-        const response = await authAxios.get(`companies/${companyId}/all-employees`);
-        setEmployees(response.data.all_employees);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch employees');
-        toast.error('Failed to load company employees');
-        console.error('Error fetching employees:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchEmployees();
-  }, [authAxios, companyId]);
+  }, [fetchEmployees]);
+
+  const handleAddEmployee = async (e) => {
+    e.preventDefault();
+    if (!form.email.trim()) return toast.error("Email is required");
+    if (!form.password) return toast.error("Password is required");
+    if (form.password !== form.confirm)
+      return toast.error("Passwords do not match");
+    setAdding(true);
+    try {
+      const res = await authAxios.post("/add-employee/", {
+        email: form.email.trim(),
+        password: form.password,
+        confirm_password: form.confirm,
+      });
+      toast.success(res.data?.message || "Employee added!");
+      setAddOpen(false);
+      setForm({ email: "", password: "", confirm: "" });
+      fetchEmployees();
+    } catch (err) {
+      const data = err.response?.data || {};
+      toast.error(
+        data.detail || data.error || data.email?.[0] || "Failed to add employee",
+      );
+    } finally {
+      setAdding(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -135,13 +181,14 @@ const CompanyEmployees = () => {
               />
             </svg>
           </div>
-          <Link
-            to="/dashboard/employee/new"
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
             className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             <Plus size={18} />
             <span className="hidden sm:inline">Add Employee</span>
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -158,13 +205,14 @@ const CompanyEmployees = () => {
               ? 'Try a different search term' 
               : 'Add employees to build your team'}
           </p>
-          <Link
-            to="/dashboard/employee/new"
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
             className="inline-flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             <Plus size={16} />
             Add New Employee
-          </Link>
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -266,6 +314,100 @@ const CompanyEmployees = () => {
           ))}
         </div>
       )}
+
+      {/* Add employee modal */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="font-montserrat sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add company employee</DialogTitle>
+            <DialogDescription>
+              Create an account for a new team member. They&apos;ll sign in with
+              this email and password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddEmployee} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Work email
+              </label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
+                placeholder="employee@company.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, password: e.target.value }))
+                  }
+                  placeholder="Minimum 8 characters"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Confirm password
+              </label>
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={form.confirm}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, confirm: e.target.value }))
+                }
+                placeholder="Re-enter password"
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setAddOpen(false)}
+                disabled={adding}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={adding}
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              >
+                {adding ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding…
+                  </>
+                ) : (
+                  "Add employee"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

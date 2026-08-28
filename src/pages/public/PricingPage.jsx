@@ -32,7 +32,7 @@ import {
   planTabs,
 } from "@/data/pricing-plans";
 
-export function PricingPage() {
+export function PricingPage({ embedded = false }) {
   const [activeTab, setActiveTab] = useState("buyer");
   const [showComparison, setShowComparison] = useState(false);
   const [selectedPlans, setSelectedPlans] = useState(
@@ -74,7 +74,9 @@ export function PricingPage() {
         : "Registered Transporters";
 
   useEffect(() => {
-    if (user && token && userProfileId) {
+    // Embedded in the dashboard the profile is already loaded; re-fetching here
+    // toggles sidebarLoading and makes the sidebar flicker to a spinner.
+    if (!embedded && user && token && userProfileId) {
       fetchProfileInfo();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,7 +229,7 @@ export function PricingPage() {
   return (
     <div className="font-montserrat">
       <ScrollToTop />
-      <LandingNav />
+      {!embedded && <LandingNav />}
 
       {/* Header */}
       <section className="relative overflow-hidden bg-grid-faint">
@@ -450,7 +452,7 @@ export function PricingPage() {
         )}
       </section>
 
-      <LandingFooter />
+      {!embedded && <LandingFooter />}
 
       {/* Confirmation dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

@@ -4,10 +4,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, X, Plus } from "lucide-react";
 
 import { useAuth } from "@/services/context/app.context";
-import {
-  createTransporter as createTransporterRequest,
-  updateTransporter as updateTransporterRequest,
-} from "@/services/api/transporters.service";
+import { createTransporter as createTransporterRequest } from "@/services/api/transporters.service";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -255,27 +252,25 @@ const TransporterForm = () => {
     }
   };
 
-  // Create the transporter (JSON), then upload logo/vehicle images (multipart)
-  // if any were provided. CSRF is added by the shared http client.
-  const createTransporter = async () => {
-    const payload = {
-      ...values,
-      transport_mode: lists.transport_mode,
-      transport_means: lists.transport_means,
-    };
-    const data = await createTransporterRequest(payload);
-    setTransporterId(data.id);
-    localStorage.setItem("transporter_id", data.id);
-    return data;
-  };
-
-  const uploadFiles = async (transporterId) => {
+  // Build a single multipart request with all fields, the transport lists, and
+  // the logo/vehicle images — mirrors the company registration (one atomic
+  // POST). CSRF + multipart boundary are added by the shared http client.
+  const buildFormData = () => {
     const formData = new FormData();
+    Object.entries(values).forEach(([k, v]) => {
+      if (v) formData.append(k, v);
+    });
+    lists.transport_mode.forEach((mode) =>
+      formData.append("transport_mode", mode),
+    );
+    lists.transport_means.forEach((means) =>
+      formData.append("transport_means", means),
+    );
     if (files.logo) formData.append("logo", files.logo);
     files.vehicle_images.forEach((file, index) => {
       if (file) formData.append(`vehicle_images[${index}][file]`, file);
     });
-    await updateTransporterRequest(transporterId, formData);
+    return formData;
   };
 
   const handleSubmit = async (e) => {
@@ -298,10 +293,9 @@ const TransporterForm = () => {
     }
     setSubmitting(true);
     try {
-      const created = await createTransporter();
-      if (files.logo || files.vehicle_images.some((file) => file)) {
-        await uploadFiles(created.id);
-      }
+      const data = await createTransporterRequest(buildFormData());
+      setTransporterId(data.id);
+      localStorage.setItem("transporter_id", data.id);
       toast.success("Transporter registered successfully!");
       localStorage.removeItem("transporterFormValues");
       localStorage.removeItem("transporterFormLists");

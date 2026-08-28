@@ -35,6 +35,23 @@ export function NavUser({ user }) {
 
   const navigate = useNavigate()
 
+  // `user` is the email string; derive a readable name + initials from it.
+  const email = typeof user === "string" ? user : user?.email || "";
+  const rawName = user?.fullname || (email ? email.split("@")[0] : "");
+  const displayName = rawName
+    ? rawName
+        .split(/[._\- ]+/)
+        .filter(Boolean)
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(" ")
+    : "User";
+  const nameParts = displayName.split(/\s+/).filter(Boolean);
+  const initials = (
+    nameParts.length > 1
+      ? nameParts[0][0] + nameParts[nameParts.length - 1][0]
+      : (nameParts[0] || email || "U").slice(0, 2)
+  ).toUpperCase();
+
   const handleLogout = async () => {
     await logout();
     setLogoutDialog(false);
@@ -58,14 +75,14 @@ export function NavUser({ user }) {
                     }
                     alt="profile"
                   />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">
-                    {user?.fullname || "User Name"}
+                    {displayName}
                   </span>
                   <span className="truncate text-xs">
-                    {user || "user@gmail.com"}
+                    {email || "user@gmail.com"}
                   </span>
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
@@ -87,14 +104,14 @@ export function NavUser({ user }) {
                       }
                       alt="profile"
                     />
-                    <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                    <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {user?.fullname || "User Name"}
+                      {displayName}
                     </span>
                     <span className="truncate text-xs">
-                      {user || "user@gmail.com"}
+                      {email || "user@gmail.com"}
                     </span>
                   </div>
                 </div>

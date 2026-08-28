@@ -33,6 +33,10 @@ layer(base);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
+  /* Smooth expand/collapse for sidebar sub-navs (Radix Collapsible). */
+  --animate-collapsible-down: collapsible-down 0.25s ease-out;
+  --animate-collapsible-up: collapsible-up 0.2s ease-out;
+
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
 
@@ -151,6 +155,23 @@ layer(base);
     height: 100%;
   }
 } */
+
+@keyframes collapsible-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
 
 @layer base {
   :root {

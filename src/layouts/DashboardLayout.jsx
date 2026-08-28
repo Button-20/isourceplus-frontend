@@ -40,7 +40,6 @@ export function DashboardLayout() {
     user,
     token,
     loading,
-    jobTitle,
     sidebarLoading,
     authAxios,
     fetchProfileInfo,
@@ -117,14 +116,13 @@ export function DashboardLayout() {
   ];
 
   const employeesSubmenu = [
-    { title: "Add Employee", url: "/dashboard/employee/new/" },
     { title: "Company Employees", url: "/dashboard/company/employees" },
     { title: "Transport Employees", url: "/dashboard/transporter/employees" },
   ];
 
   const navLinks = [
     { title: "Home", url: "/dashboard/", icon: Home },
-    { title: "Subscriptions", icon: ShoppingCart, url: "/pricing" },
+    { title: "Subscriptions", icon: ShoppingCart, url: "/dashboard/subscriptions" },
     {
       title: "Companies & Transporters",
       icon: Building2,
@@ -137,7 +135,6 @@ export function DashboardLayout() {
       icon: FileText,
       submenu: [
         { title: "View All RFxs", url: "/dashboard/rfxs" },
-        { title: "Create RFx", url: "/dashboard/rfxs/new" },
         { title: "Issued RFxs", url: "/dashboard/rfxs/issued" },
       ],
     },

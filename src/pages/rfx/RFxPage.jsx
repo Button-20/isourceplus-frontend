@@ -1,183 +1,208 @@
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Plus } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
-import Pagination from "@/components/Pagination";
+import { Loader2, ArrowLeft, Plus, FileText, ArrowRight } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  format,
+  formatDistanceToNow,
+} from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 
-// NO CHANGES
+import Pagination from "@/components/Pagination";
+import { Button } from "@/components/ui/button";
+import RFxCreateModal from "@/components/rfx/RFxCreateModal";
+
 const RFxPage = () => {
   const { authAxios, jobTitle } = useAuth();
   const navigate = useNavigate();
   const [rfxs, setRfxs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ count: 0, next: null, previous: null });
+  const [pagination, setPagination] = useState({
+    count: 0,
+    next: null,
+    previous: null,
+  });
   const [page, setPage] = useState(1);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // NO CHANGES
+  // Open the create modal when arrived from a "Create RFx" quick action.
   useEffect(() => {
-    const fetchRfxs = async () => {
-      setLoading(true);
-      try {
-        const response = await authAxios.get(`/rfxs/?page=${page}`);
-        console.log(`Rfxs fetched:`, response);
-        setRfxs(response.data.results);
-        setPagination({
-          count: response.data.count,
-          next: response.data.next,
-          previous: response.data.previous,
-        });
-      } catch (error) {
-        setRfxs([]);
-        toast.error("Failed to load RFxs.");
-        console.error("Fetch RFxs error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRfxs();
+    if (searchParams.get("new") && jobTitle === "lead buyer") {
+      setCreateOpen(true);
+      searchParams.delete("new");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, jobTitle]);
+
+  const fetchRfxs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await authAxios.get(`/rfxs/?page=${page}`);
+      setRfxs(response.data.results);
+      setPagination({
+        count: response.data.count,
+        next: response.data.next,
+        previous: response.data.previous,
+      });
+    } catch (error) {
+      setRfxs([]);
+      toast.error("Failed to load RFxs.");
+      console.error("Fetch RFxs error:", error);
+    } finally {
+      setLoading(false);
+    }
   }, [authAxios, page]);
 
-  // NO CHANGES
+  useEffect(() => {
+    fetchRfxs();
+  }, [fetchRfxs]);
+
   const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return { formatted: "N/A", relative: "" };
     const date = new Date(dateString);
     return {
-      formatted: format(date, "dd MMM yyyy, HH:mm:ss"),
+      formatted: format(date, "dd MMM yyyy, HH:mm"),
       relative: formatDistanceToNow(date, { addSuffix: true }),
     };
   };
 
-  // NO CHANGES
   if (!["lead buyer", "sales manager"].includes(jobTitle)) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <p className="text-xl font-semibold text-gray-900 mb-4">Access Denied</p>
-          <p className="text-gray-600 mb-6">Only lead buyers and sales managers can view RFxs.</p>
-          <button
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
+        <div className="rounded-2xl border border-border/70 bg-card p-8">
+          <p className="font-display text-lg font-semibold">Access denied</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Only lead buyers and sales managers can view RFxs.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-5"
             onClick={() => navigate("/dashboard")}
-            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-xs"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Dashboard
-          </button>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to dashboard
+          </Button>
         </div>
       </div>
     );
   }
 
-  // NO CHANGES
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-black" />
-        <p className="mt-4 text-lg text-gray-700 font-medium">Loading RFxs...</p>
-      </div>
-    );
-  }
+  const statusClasses = (status) =>
+    status === "draft"
+      ? "bg-amber-100 text-amber-700"
+      : "bg-emerald-100 text-emerald-700";
 
   return (
-    <div className="container mx-auto p-8 max-w-6xl">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-semibold text-gray-900">RFxs</h1>
-        {jobTitle === "lead buyer" && (
-          <Link
-            to="/dashboard/rfxs/create"
-            className="flex items-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-md hover:shadow-lg"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Create RFx
-          </Link>
-        )}
+    <div className="mx-auto max-w-6xl space-y-8 font-montserrat">
+      {/* Branded header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+              <FileText className="h-3.5 w-3.5" /> RFx management
+            </span>
+            <h1 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
+              Requests for quotation
+            </h1>
+            <p className="mt-2 max-w-lg text-sm text-white/85">
+              Track your RFQs, RFPs, and RFIs and compare supplier responses.
+            </p>
+          </div>
+          {jobTitle === "lead buyer" && (
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="bg-white text-brand hover:bg-white/90"
+            >
+              <Plus className="mr-1.5 h-4 w-4" /> Create RFx
+            </Button>
+          )}
+        </div>
       </div>
-      <div className="bg-white shadow-md rounded-lg overflow-scroll w-[105%]">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reference Number
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Title
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Issuing Company
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              {/* NEW ADDITION: Reach column */}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reach
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created At
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {Array.isArray(rfxs) && rfxs.length > 0 ? (
-              rfxs.map((rfx) => (
-                <tr key={rfx.ref_num}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {rfx.ref_num}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {rfx.title}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {rfx.issuing_company_info || "N/A"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        rfx.status === "draft"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {rfx.status === "draft" ? "Open" : "Closed"}
-                    </span>
-                  </td>
-                  {/* NEW ADDITION: Display reach column */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {rfx.reach ? `${rfx.reach.region || "N/A"}, ${rfx.reach.district || "N/A"}` : "N/A"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(rfx.created_at).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(rfx.created_at).relative}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <Link
-                      to={`/dashboard/rfxs/${rfx.ref_num}`}
-                      className="text-black hover:text-gray-800"
-                    >
-                      View Details
-                    </Link>
-                  </td>
+
+      {/* Table card */}
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+        {loading ? (
+          <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin text-brand" /> Loading RFxs…
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 font-medium">Reference</th>
+                  <th className="px-5 py-3 font-medium">Title</th>
+                  <th className="px-5 py-3 font-medium">Issuing company</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Reach</th>
+                  <th className="px-5 py-3 font-medium">Created</th>
+                  <th className="px-5 py-3 font-medium" />
                 </tr>
-              ))
-            ) : (
-              <tr>
-                {/* UPDATED: Adjusted colSpan to account for new Reach column */}
-                <td colSpan="7" className="px-6 py-4 text-sm text-gray-900 text-center">
-                  No RFxs found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {Array.isArray(rfxs) && rfxs.length > 0 ? (
+                  rfxs.map((rfx) => {
+                    const created = formatDateTime(rfx.created_at);
+                    return (
+                      <tr
+                        key={rfx.ref_num}
+                        className="transition-colors hover:bg-muted/30"
+                      >
+                        <td className="whitespace-nowrap px-5 py-3 font-medium">
+                          {rfx.ref_num}
+                        </td>
+                        <td className="px-5 py-3">{rfx.title}</td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          {rfx.issuing_company_info || "N/A"}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusClasses(
+                              rfx.status,
+                            )}`}
+                          >
+                            {rfx.status === "draft" ? "Open" : "Closed"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          {rfx.reach
+                            ? `${rfx.reach.region || "N/A"}, ${
+                                rfx.reach.district || "N/A"
+                              }`
+                            : "N/A"}
+                        </td>
+                        <td
+                          className="whitespace-nowrap px-5 py-3 text-muted-foreground"
+                          title={created.relative}
+                        >
+                          {created.formatted}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3 text-right">
+                          <Link
+                            to={`/dashboard/rfxs/${rfx.ref_num}`}
+                            className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+                          >
+                            View <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-5 py-16 text-center text-muted-foreground"
+                    >
+                      No RFxs found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
         <Pagination
           count={pagination.count}
           page={page}
@@ -186,6 +211,17 @@ const RFxPage = () => {
           previous={pagination.previous}
         />
       </div>
+
+      {jobTitle === "lead buyer" && (
+        <RFxCreateModal
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          onCreated={() => {
+            setPage(1);
+            fetchRfxs();
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -66,7 +66,7 @@ const ROLE_CONFIG = {
   "lead buyer": {
     stats: ["rfx", "tenders", "proforma", "purchaseOrders"],
     actions: [
-      { label: "Create RFx", href: "/dashboard/rfxs/new", icon: FileText },
+      { label: "Create RFx", href: "/dashboard/rfxs?new=1", icon: FileText },
       { label: "Create Tender", href: "/dashboard/tenders/new", icon: Gavel },
       { label: "View Purchase Orders", href: "/dashboard/purchase-orders/issued", icon: ShoppingCart },
       { label: "Issued Waybills", href: "/dashboard/waybills/issued", icon: Truck },

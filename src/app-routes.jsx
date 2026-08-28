@@ -56,7 +56,6 @@ import ManageUserVerificationDocs from "./pages/verification-docs/ManageUserVeri
 
 // rfx
 import RFxPage from "./pages/rfx/RFxPage";
-import RFxCreationPage from "./pages/rfx/RFxCreationPage";
 import RFxIssuedPage from "./pages/rfx/RFxIssuedPage";
 import RFxDetailPage from "./pages/rfx/RFxDetailPage";
 
@@ -141,6 +140,7 @@ export const appRoutes = createBrowserRouter([
     element: <DashboardLayout />,
     children: [
       { index: true, element: <DashBoardHome /> },
+      { path: "subscriptions", element: <PricingPage embedded /> },
       { path: "transporter", element: <TransporterPage /> },
       { path: "companies", element: <AccountTypePage /> },
       { path: "company", element: <CompanyPage /> },
@@ -160,7 +160,6 @@ export const appRoutes = createBrowserRouter([
       { path: "company/employees", element: <CompanyEmployees /> },
       { path: "user/verification-docs", element: <ManageUserVerificationDocs /> },
       { path: "rfxs", element: <RFxPage /> },
-      { path: "rfxs/new", element: <RFxCreationPage /> },
       { path: "rfxs/issued", element: <RFxIssuedPage /> },
       { path: "rfxs/:refNum", element: <RFxDetailPage /> },
       { path: "waybills", element: <AllWaybillsPage /> },

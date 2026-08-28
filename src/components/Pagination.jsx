@@ -1,61 +1,63 @@
-import React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const Pagination = ({ count, page, setPage, next, previous }) => {
-  const itemsPerPage = 10; // Assuming 10 items per page, adjust if different
-  const totalPages = Math.ceil(count / itemsPerPage);
-  const pageNumbers = [];
+  const itemsPerPage = 10;
+  const totalPages = Math.max(1, Math.ceil(count / itemsPerPage));
 
-  // Generate page numbers (show up to 5 pages around the current page)
   const maxPagesToShow = 5;
   const startPage = Math.max(1, page - Math.floor(maxPagesToShow / 2));
   const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i += 1) pageNumbers.push(i);
 
-  for (let i = startPage; i <= endPage; i++) {
-    pageNumbers.push(i);
-  }
-
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setPage(newPage);
-    }
+  const go = (p) => {
+    if (p >= 1 && p <= totalPages) setPage(p);
   };
 
+  // Nothing to paginate — don't render a lonely control.
+  if (totalPages <= 1) return null;
+
+  const navBtn =
+    "inline-flex h-9 items-center gap-1 rounded-lg border border-border/70 px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
+
   return (
-    <div className="flex justify-center items-center mt-6 space-x-2">
+    <div className="flex flex-wrap items-center justify-center gap-1.5 border-t border-border/60 p-4">
       <button
-        onClick={() => handlePageChange(page - 1)}
+        type="button"
+        onClick={() => go(page - 1)}
         disabled={!previous}
-        className={`py-2 px-4 rounded-md text-sm font-medium ${
-          previous
-            ? "bg-black text-white hover:bg-gray-700"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
-        } transition duration-200`}
+        className={navBtn}
       >
-        Previous
+        <ChevronLeft className="h-4 w-4" />
+        <span className="hidden sm:inline">Previous</span>
       </button>
-      {pageNumbers.map((pageNum) => (
+
+      {pageNumbers.map((num) => (
         <button
-          key={pageNum}
-          onClick={() => handlePageChange(pageNum)}
-          className={`py-2 px-4 rounded-md text-sm font-medium ${
-            page === pageNum
-              ? "bg-black text-white"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          } transition duration-200`}
+          key={num}
+          type="button"
+          onClick={() => go(num)}
+          aria-current={page === num ? "page" : undefined}
+          className={cn(
+            "inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-sm font-medium transition-colors",
+            page === num
+              ? "bg-brand-gradient text-brand-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
         >
-          {pageNum}
+          {num}
         </button>
       ))}
+
       <button
-        onClick={() => handlePageChange(page + 1)}
+        type="button"
+        onClick={() => go(page + 1)}
         disabled={!next}
-        className={`py-2 px-4 rounded-md text-sm font-medium ${
-          next
-            ? "bg-black text-white hover:bg-gray-700"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
-        } transition duration-200`}
+        className={navBtn}
       >
-        Next
+        <span className="hidden sm:inline">Next</span>
+        <ChevronRight className="h-4 w-4" />
       </button>
     </div>
   );
