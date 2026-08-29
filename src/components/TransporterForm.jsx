@@ -4,10 +4,20 @@ import { toast } from "sonner";
 import { Loader2, Upload, X, Plus } from "lucide-react";
 
 import { useAuth } from "@/services/context/app.context";
-import { createTransporter as createTransporterRequest } from "@/services/api/transporters.service";
+import {
+  createTransporter as createTransporterRequest,
+  updateTransporter as updateTransporterRequest,
+} from "@/services/api/transporters.service";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/utils/compress-image";
 
@@ -252,27 +262,6 @@ const TransporterForm = () => {
     }
   };
 
-  // Build a single multipart request with all fields, the transport lists, and
-  // the logo/vehicle images — mirrors the company registration (one atomic
-  // POST). CSRF + multipart boundary are added by the shared http client.
-  const buildFormData = () => {
-    const formData = new FormData();
-    Object.entries(values).forEach(([k, v]) => {
-      if (v) formData.append(k, v);
-    });
-    lists.transport_mode.forEach((mode) =>
-      formData.append("transport_mode", mode),
-    );
-    lists.transport_means.forEach((means) =>
-      formData.append("transport_means", means),
-    );
-    if (files.logo) formData.append("logo", files.logo);
-    files.vehicle_images.forEach((file, index) => {
-      if (file) formData.append(`vehicle_images[${index}][file]`, file);
-    });
-    return formData;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!lists.transport_mode.length) {
@@ -293,9 +282,30 @@ const TransporterForm = () => {
     }
     setSubmitting(true);
     try {
-      const data = await createTransporterRequest(buildFormData());
-      setTransporterId(data.id);
-      localStorage.setItem("transporter_id", data.id);
+      // Create with a JSON body so the transport lists are sent as real arrays.
+      // (Multipart form-encoding flattened them to strings, which the API
+      // rejected with "Expected a list of items but got type str".)
+      const payload = {
+        transport_mode: lists.transport_mode,
+        transport_means: lists.transport_means,
+      };
+      Object.entries(values).forEach(([k, v]) => {
+        if (v) payload[k] = v;
+      });
+      const created = await createTransporterRequest(payload);
+      setTransporterId(created.id);
+      localStorage.setItem("transporter_id", created.id);
+
+      // Attach the logo / vehicle images in a follow-up multipart PATCH.
+      if (files.logo || files.vehicle_images.some(Boolean)) {
+        const fd = new FormData();
+        if (files.logo) fd.append("logo", files.logo);
+        files.vehicle_images.forEach((file, index) => {
+          if (file) fd.append(`vehicle_images[${index}][file]`, file);
+        });
+        await updateTransporterRequest(created.id, fd);
+      }
+
       toast.success("Transporter registered successfully!");
       localStorage.removeItem("transporterFormValues");
       localStorage.removeItem("transporterFormLists");
@@ -334,7 +344,24 @@ const TransporterForm = () => {
           </div>
           <div>
             <label className={labelClass}>Type</label>
-            <Input name="type" value={values.type} onChange={handleChange} />
+            <Select
+              value={values.type || undefined}
+              onValueChange={(value) => {
+                setValues((v) => {
+                  const next = { ...v, type: value };
+                  persist("transporterFormValues", next);
+                  return next;
+                });
+              }}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="Select a type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="individual">Individual</SelectItem>
+                <SelectItem value="organisation">Organization</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="sm:col-span-2">

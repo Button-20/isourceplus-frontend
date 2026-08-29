@@ -45,6 +45,8 @@ export function DashboardLayout() {
     userProfileId,
     companyId,
     transporterId,
+    jobTitle,
+    viewMode,
   } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -114,12 +116,14 @@ export function DashboardLayout() {
     { title: "Edit Transporter", url: "/dashboard/transporter/edit" },
   ];
 
-  const employeesSubmenu = [
-    { title: "Company Employees", url: "/dashboard/company/employees" },
-    { title: "Transport Employees", url: "/dashboard/transporter/employees" },
-  ];
+  // A single Employees entry that points at the company or transporter roster
+  // depending on which kind of organization the user belongs to.
+  const employeesUrl = transporterId
+    ? "/dashboard/transporter/employees"
+    : "/dashboard/company/employees";
 
-  const navLinks = [
+  // Transaction navs carry a `key` so they can be hidden per view/role below.
+  const allNavLinks = [
     { title: "Home", url: "/dashboard/", icon: Home },
     { title: "Subscriptions", icon: ShoppingCart, url: "/dashboard/subscriptions" },
     {
@@ -127,11 +131,12 @@ export function DashboardLayout() {
       icon: Building2,
       submenu: companiesSubmenu,
     },
-    { title: "Employees", icon: MdOutlinePeopleAlt, submenu: employeesSubmenu },
+    { title: "Employees", icon: MdOutlinePeopleAlt, url: employeesUrl },
     { title: "Branches", icon: TruckIcon, url: "/dashboard/branches" },
     {
       title: "RFx Management",
       icon: FileText,
+      key: "rfx",
       submenu: [
         { title: "View All RFxs", url: "/dashboard/rfxs" },
         { title: "Issued RFxs", url: "/dashboard/rfxs/issued" },
@@ -140,6 +145,7 @@ export function DashboardLayout() {
     {
       title: "Tender Management",
       icon: Gavel,
+      key: "tenders",
       submenu: [
         { title: "View All Tenders", url: "/dashboard/tenders" },
         { title: "Issued Tenders", url: "/dashboard/tenders/issued" },
@@ -148,6 +154,7 @@ export function DashboardLayout() {
     {
       title: "Proforma Invoices",
       icon: ReceiptText,
+      key: "proforma",
       submenu: [
         { title: "All Proforma Invoices", url: "/dashboard/proforma-invoices" },
         {
@@ -159,6 +166,7 @@ export function DashboardLayout() {
     {
       title: "Purchase Orders",
       icon: FilePlus,
+      key: "purchase-orders",
       submenu: [
         { title: "All Purchase Orders", url: "/dashboard/purchase-orders" },
         {
@@ -170,6 +178,7 @@ export function DashboardLayout() {
     {
       title: "Sales Invoices",
       icon: Wallet,
+      key: "sales-invoices",
       submenu: [
         { title: "All Sales Invoices", url: "/dashboard/sales-invoices" },
         {
@@ -181,6 +190,7 @@ export function DashboardLayout() {
     {
       title: "Waybills",
       icon: TruckIcon,
+      key: "waybills",
       submenu: [
         { title: "All Waybills", url: "/dashboard/waybills" },
         { title: "Issued Waybills", url: "/dashboard/waybills/issued" },
@@ -189,6 +199,7 @@ export function DashboardLayout() {
     {
       title: "Payment Orders",
       icon: Wallet,
+      key: "payment-orders",
       url: "/dashboard/payment-orders/issued",
     },
     {
@@ -197,6 +208,25 @@ export function DashboardLayout() {
       url: "/dashboard/user/verification-docs",
     },
   ];
+
+  // Exception (hidden) routes per view/role. A transporter follows its own set;
+  // company users follow the Buyer/Supplier view toggle. Untagged entries
+  // (Home, Subscriptions, Employees, Branches, etc.) are always shown.
+  const HIDDEN_KEYS = {
+    buyer: ["proforma", "sales-invoices", "payment-orders"],
+    supplier: ["rfx", "tenders", "purchase-orders"],
+    transporter: ["rfx", "tenders", "purchase-orders", "waybills"],
+  };
+  const isTransporter =
+    Boolean(transporterId) || jobTitle === "logistics manager";
+  const hidden = new Set(
+    isTransporter
+      ? HIDDEN_KEYS.transporter
+      : HIDDEN_KEYS[viewMode] || HIDDEN_KEYS.buyer,
+  );
+  const navLinks = allNavLinks.filter(
+    (item) => !item.key || !hidden.has(item.key),
+  );
 
   // Redirecting to /login (see effect above).
   if (!user || !token) {
