@@ -11,7 +11,16 @@
 export const COMPANY_JOB_TITLES = ["lead buyer", "sales manager"];
 export const TRANSPORTER_JOB_TITLES = ["logistics manager"];
 
-const normalize = (jobTitle) => (jobTitle || "").toLowerCase().trim();
+// Normalize a job title for comparison: lowercase, and collapse the separators
+// a backend might use (underscores, hyphens, repeated spaces) to single spaces
+// so "Logistics_Manager", "logistics-manager" and "logistics  manager" all match
+// the canonical "logistics manager".
+const normalize = (jobTitle) =>
+  (jobTitle || "")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export const canCreateCompany = (jobTitle) =>
   COMPANY_JOB_TITLES.includes(normalize(jobTitle));

@@ -240,8 +240,33 @@ const AccountTypePage = () => {
               })}
             </div>
 
+            {/* Role note + correction escape hatch. The available options are
+                driven by the profile's job title, so if it's wrong the user
+                needs a way to fix it rather than being stuck with the wrong
+                choice. */}
+            <p className="mt-4 text-sm text-muted-foreground">
+              {jobTitle ? (
+                <>
+                  These options are based on your role:{" "}
+                  <span className="font-medium capitalize text-foreground">
+                    {jobTitle}
+                  </span>
+                  .{" "}
+                </>
+              ) : null}
+              Not what you expected?{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/onboarding/user")}
+                className="font-medium text-brand hover:underline"
+              >
+                Update your job title
+              </button>
+              .
+            </p>
+
             {/* Actions */}
-            <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
               <Button
                 variant="ghost"
                 onClick={() => navigate("/dashboard")}
@@ -267,8 +292,26 @@ const AccountTypePage = () => {
               You&apos;re all set
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Your role doesn&apos;t require setting up an organization. You can
-              head straight to your dashboard and get started.
+              Your role
+              {jobTitle ? (
+                <>
+                  {" "}
+                  (<span className="font-medium capitalize">{jobTitle}</span>)
+                </>
+              ) : null}{" "}
+              doesn&apos;t require setting up an organization. You can head
+              straight to your dashboard and get started.
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Expected to create a company or transporter?{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/onboarding/user")}
+                className="font-medium text-brand hover:underline"
+              >
+                Update your job title
+              </button>
+              .
             </p>
             <Button
               className="mt-5 gap-2 bg-brand-gradient text-brand-foreground hover:opacity-90"
