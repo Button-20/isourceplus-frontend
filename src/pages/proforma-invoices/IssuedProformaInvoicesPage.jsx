@@ -1,19 +1,29 @@
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, FileText, Plus, ArrowLeft, X, Trash2 } from "lucide-react";
+import { Loader2, ReceiptText, ArrowLeft, ArrowRight, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
-import { getCookie } from "@/utility/getCookie";
+import {
+  format,
+  formatDistanceToNow,
+} from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 import ScrollToTop from "@/components/ScrollToTop";
 import Pagination from "@/components/Pagination";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const IssuedProformaInvoicesPage = () => {
   const { authAxios, jobTitle } = useAuth();
   const navigate = useNavigate();
   const [proformaInvoices, setProformaInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -23,48 +33,48 @@ const IssuedProformaInvoicesPage = () => {
   });
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
+  const fetchIssuedProformaInvoices = useCallback(async () => {
     if (jobTitle !== "logistics manager") {
+      setLoading(false);
       return;
     }
-    const fetchIssuedProformaInvoices = async () => {
-      try {
-        const response = await authAxios.get(`proforma-invoices/issued/?page=${page}`);
-        console.log("IssuedProformaInvoicesPage: Fetched issued proforma invoices:", response.data);
-        setProformaInvoices(response.data.results || response.data);
-        setPagination({
-          count: response.data.count || 0,
-          next: response.data.next || null,
-          previous: response.data.previous || null,
-        });
-      } catch (error) {
-        setProformaInvoices([]);
-        toast.error("Failed to load issued proforma invoices.");
-        console.error("Fetch issued proforma invoices error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchIssuedProformaInvoices();
+    setLoading(true);
+    try {
+      const response = await authAxios.get(
+        `proforma-invoices/issued/?page=${page}`,
+      );
+      setProformaInvoices(response.data.results || response.data || []);
+      setPagination({
+        count: response.data.count || 0,
+        next: response.data.next || null,
+        previous: response.data.previous || null,
+      });
+    } catch (error) {
+      setProformaInvoices([]);
+      toast.error("Failed to load issued proforma invoices.");
+      console.error("Fetch issued proforma invoices error:", error);
+    } finally {
+      setLoading(false);
+    }
   }, [authAxios, jobTitle, page]);
+
+  useEffect(() => {
+    fetchIssuedProformaInvoices();
+  }, [fetchIssuedProformaInvoices]);
 
   const handleDelete = async () => {
     if (jobTitle !== "logistics manager") {
       toast.error("Only logistics managers can delete proforma invoices.");
-      setShowDeleteModal(false);
+      setInvoiceToDelete(null);
       return;
     }
     setDeleteLoading(true);
-    const csrfToken = getCookie("csrftoken");
     try {
-      await authAxios.delete(`proforma-invoices/${invoiceToDelete.ref_num}/`, {
-        headers: {
-          "X-CSRFToken": csrfToken,
-        },
-      });
-      toast.success("Proforma Invoice deleted successfully!");
-      setProformaInvoices(proformaInvoices.filter((invoice) => invoice.ref_num !== invoiceToDelete.ref_num));
-      setShowDeleteModal(false);
+      await authAxios.delete(`proforma-invoices/${invoiceToDelete.ref_num}/`);
+      toast.success("Proforma invoice deleted successfully!");
+      setProformaInvoices((prev) =>
+        prev.filter((invoice) => invoice.ref_num !== invoiceToDelete.ref_num),
+      );
       setInvoiceToDelete(null);
     } catch (error) {
       toast.error("Failed to delete proforma invoice.");
@@ -74,201 +84,151 @@ const IssuedProformaInvoicesPage = () => {
     }
   };
 
-  const openDeleteModal = (invoice) => {
-    setInvoiceToDelete(invoice);
-    setShowDeleteModal(true);
-  };
-
   const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return { formatted: "N/A", relative: "" };
     const date = new Date(dateString);
     return {
-      formatted: format(date, "dd MMM yyyy, HH:mm:ss"),
+      formatted: format(date, "dd MMM yyyy, HH:mm"),
       relative: formatDistanceToNow(date, { addSuffix: true }),
     };
   };
 
   if (jobTitle !== "logistics manager") {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <p className="text-xl font-semibold text-gray-900 mb-4">Access Denied</p>
-          <p className="text-gray-600 mb-6">Only logistics managers can view issued proforma invoices.</p>
-          <button
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
+        <div className="rounded-2xl border border-border/70 bg-card p-8">
+          <p className="font-display text-lg font-semibold">Access denied</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Only logistics managers can view issued proforma invoices.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-5"
             onClick={() => navigate("/dashboard")}
-            className="flex items-center justify-center w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200 shadow-xs"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Dashboard
-          </button>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to dashboard
+          </Button>
         </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-gray-600" />
-        <p className="mt-4 text-lg text-gray-700 font-medium">Loading Issued Proforma Invoices...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-8 max-w-6xl"><ScrollToTop/>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-semibold text-gray-900 flex items-center">
-          <FileText className="w-8 h-8 mr-2 text-gray-600" />
-          Issued Proforma Invoices
-        </h1>
-        {jobTitle === "logistics manager" && (
-          <button
-            onClick={() => navigate("/dashboard/proforma-invoices/new")}
-            className="bg-black text-white py-2 px-4 rounded-md hover:bg-gray-700 flex items-center shadow-md"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Create New Proforma Invoice
-          </button>
-        )}
-      </div>
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full border border-gray-200 shadow-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-medium text-gray-900">Delete Proforma Invoice</h2>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-gray-600 mb-6 font-medium">
-              Are you sure you want to delete the proforma invoice "{invoiceToDelete?.title}" ({invoiceToDelete?.ref_num})? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleteLoading}
-                className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center shadow-md disabled:opacity-50"
-              >
-                {deleteLoading ? (
-                  <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                ) : (
-                  <Trash2 className="w-5 h-5 mr-2" />
-                )}
-                {deleteLoading ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
+    <div className="mx-auto max-w-6xl space-y-8 font-montserrat">
+      <ScrollToTop />
+      {/* Branded header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+            <ReceiptText className="h-3.5 w-3.5" /> Proforma invoices
+          </span>
+          <h1 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
+            Issued proforma invoices
+          </h1>
+          <p className="mt-2 max-w-lg text-sm text-white/85">
+            Proforma invoices your organization has issued.
+          </p>
         </div>
-      )}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reference Number
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Title
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Issuing Company
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Priority
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total Cost
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created At
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {Array.isArray(proformaInvoices) && proformaInvoices.length > 0 ? (
-              proformaInvoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {invoice.ref_num}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {invoice.title}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {invoice.issuing_company_name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        invoice.status === "draft"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {invoice.status === "draft" ? "Open" : "Closed"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {invoice.priority === "urgent" ? "Urgent" : "Non-Urgent"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {invoice.total_cost}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(invoice.created_at).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(invoice.created_at).relative}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex space-x-4">
-                      <Link
-                        to={`/dashboard/proforma-invoices/issued/${invoice.ref_num}`}
-                        className="text-gray-600 hover:text-gray-800"
-                      >
-                        View Details
-                      </Link>
-                      {jobTitle === "logistics manager" && (
-                        <button
-                          onClick={() => openDeleteModal(invoice)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </td>
+      </div>
+
+      {/* Table card */}
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+        {loading ? (
+          <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin text-brand" /> Loading
+            issued proforma invoices…
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 font-medium">Reference</th>
+                  <th className="px-5 py-3 font-medium">Title</th>
+                  <th className="px-5 py-3 font-medium">Issuing company</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Priority</th>
+                  <th className="px-5 py-3 font-medium">Total cost</th>
+                  <th className="px-5 py-3 font-medium">Created</th>
+                  <th className="px-5 py-3 font-medium" />
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="8" className="px-6 py-4 text-sm text-gray-900 text-center">
-                  No issued proforma invoices found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {Array.isArray(proformaInvoices) &&
+                proformaInvoices.length > 0 ? (
+                  proformaInvoices.map((invoice) => {
+                    const created = formatDateTime(invoice.created_at);
+                    return (
+                      <tr
+                        key={invoice.id || invoice.ref_num}
+                        className="transition-colors hover:bg-muted/30"
+                      >
+                        <td className="whitespace-nowrap px-5 py-3 font-medium">
+                          {invoice.ref_num}
+                        </td>
+                        <td className="px-5 py-3">{invoice.title}</td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          {invoice.issuing_company_name || "N/A"}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              invoice.status === "draft"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {invoice.status === "draft" ? "Open" : "Closed"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          {invoice.priority === "urgent"
+                            ? "Urgent"
+                            : "Non-Urgent"}
+                        </td>
+                        <td className="px-5 py-3">{invoice.total_cost}</td>
+                        <td
+                          className="whitespace-nowrap px-5 py-3 text-muted-foreground"
+                          title={created.relative}
+                        >
+                          {created.formatted}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3 text-right">
+                          <div className="flex items-center justify-end gap-3">
+                            <Link
+                              to={`/dashboard/proforma-invoices/issued/${invoice.ref_num}`}
+                              className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+                            >
+                              View <ArrowRight className="h-3.5 w-3.5" />
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => setInvoiceToDelete(invoice)}
+                              className="text-muted-foreground transition-colors hover:text-destructive"
+                              aria-label="Delete proforma invoice"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      className="px-5 py-16 text-center text-muted-foreground"
+                    >
+                      No issued proforma invoices found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
         <Pagination
           count={pagination.count}
           page={page}
@@ -277,6 +237,49 @@ const IssuedProformaInvoicesPage = () => {
           previous={pagination.previous}
         />
       </div>
+
+      {/* Delete confirmation */}
+      <Dialog
+        open={Boolean(invoiceToDelete)}
+        onOpenChange={(o) => !o && setInvoiceToDelete(null)}
+      >
+        <DialogContent className="font-montserrat sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete proforma invoice</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-foreground">
+                {invoiceToDelete?.title}
+              </span>{" "}
+              ({invoiceToDelete?.ref_num})? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setInvoiceToDelete(null)}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleDelete}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

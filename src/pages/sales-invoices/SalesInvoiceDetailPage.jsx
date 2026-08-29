@@ -1,10 +1,74 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Trash2, FileText, ChevronDown, ChevronUp, AlertCircle, X, Send } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  Trash2,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Send,
+  Wallet,
+  Save,
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
-import { getCookie } from "@/utility/getCookie";
+import {
+  format,
+  formatDistanceToNow,
+} from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+const labelClass = "mb-1 block text-sm font-medium text-foreground";
+
+function Section({ title, open, onToggle, children }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/40"
+      >
+        <h2 className="font-display text-base font-semibold">{title}</h2>
+        {open ? (
+          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+        )}
+      </button>
+      {open && <div className="border-t border-border/60 p-5">{children}</div>}
+    </div>
+  );
+}
+
+function Row({ label, children }) {
+  return (
+    <div className="flex items-start gap-3 text-sm">
+      <span className="w-40 shrink-0 font-medium text-muted-foreground">
+        {label}
+      </span>
+      <span className="text-foreground">{children}</span>
+    </div>
+  );
+}
 
 const SalesInvoiceDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -17,13 +81,19 @@ const SalesInvoiceDetailPage = () => {
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [attachmentsOpen, setAttachmentsOpen] = useState(true);
   const [itemsOpen, setItemsOpen] = useState(true);
-  const [formData, setFormData] = useState({ title: "", notes: "", priority: "normal" });
+  const [formData, setFormData] = useState({
+    title: "",
+    notes: "",
+    priority: "normal",
+  });
+
+  const canManage = ["sales manager", "logistics manager"].includes(jobTitle);
 
   useEffect(() => {
     const fetchSalesInvoice = async () => {
+      setLoading(true);
       try {
         const response = await authAxios.get(`sales-invoices/${refNum}/`);
-        console.log("SalesInvoiceDetailPage: Sales invoice fetched:", response.data);
         setSalesInvoice(response.data);
         setFormData({
           title: response.data.title,
@@ -32,7 +102,7 @@ const SalesInvoiceDetailPage = () => {
         });
       } catch (error) {
         toast.error("Failed to load sales invoice details.");
-        console.error("SalesInvoiceDetailPage: Fetch error:", error.response?.data || error);
+        console.error("Fetch sales invoice error:", error);
       } finally {
         setLoading(false);
       }
@@ -40,57 +110,44 @@ const SalesInvoiceDetailPage = () => {
     fetchSalesInvoice();
   }, [authAxios, refNum]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
   const handleUpdate = async () => {
-    if (!["sales manager", "logistics manager"].includes(jobTitle)) {
-      toast.error("Only sales managers and logistics managers can update sales invoices.");
+    if (!canManage) {
+      toast.error("You cannot update sales invoices.");
       return;
     }
     setModalLoading(true);
     try {
-      const csrfToken = getCookie("csrftoken");
-      const response = await authAxios.patch(
-        `sales-invoices/${refNum}/`,
-        {
-          title: formData.title,
-          notes: formData.notes,
-          priority: formData.priority,
-        },
-        { headers: { "X-CSRFToken": csrfToken } }
-      );
-      console.log("SalesInvoiceDetailPage: Sales invoice updated:", response.data);
+      const response = await authAxios.patch(`sales-invoices/${refNum}/`, {
+        title: formData.title,
+        notes: formData.notes,
+        priority: formData.priority,
+      });
       setSalesInvoice(response.data);
       toast.success("Sales invoice updated successfully!");
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || "Failed to update sales invoice.";
-      toast.error(errorMessage);
-      console.error("SalesInvoiceDetailPage: Update error:", error.response?.data || error);
+      toast.error(
+        error.response?.data?.detail || "Failed to update sales invoice.",
+      );
+      console.error("Update error:", error);
     } finally {
       setModalLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!["sales manager", "logistics manager"].includes(jobTitle)) {
-      toast.error("Only sales managers and logistics managers can delete sales invoices.");
+    if (!canManage) {
+      toast.error("You cannot delete sales invoices.");
       setShowDeleteModal(false);
       return;
     }
     setModalLoading(true);
     try {
-      const csrfToken = getCookie("csrftoken");
-      await authAxios.delete(`sales-invoices/${refNum}/`, {
-        headers: { "X-CSRFToken": csrfToken },
-      });
+      await authAxios.delete(`sales-invoices/${refNum}/`);
       toast.success("Sales invoice deleted successfully!");
       navigate("/dashboard/sales-invoices");
     } catch (error) {
       toast.error("Failed to delete sales invoice.");
-      console.error("SalesInvoiceDetailPage: Delete error:", error.response?.data || error);
+      console.error("Delete error:", error);
     } finally {
       setModalLoading(false);
       setShowDeleteModal(false);
@@ -98,415 +155,338 @@ const SalesInvoiceDetailPage = () => {
   };
 
   const handleSendPaymentOrder = async () => {
-    if (!["sales manager", "logistics manager"].includes(jobTitle)) {
-      toast.error("Only sales or logistics managers can send payment orders.");
+    if (!canManage) {
+      toast.error("You cannot send payment orders.");
       return;
     }
     setModalLoading(true);
     try {
-      const response = await authAxios.get(`sales-invoices/${refNum}/send-payment-order/`, {
-        maxRedirects: 0,
-      });
-      console.log("SalesInvoiceDetailPage: Send payment order response:", response.data);
+      const response = await authAxios.get(
+        `sales-invoices/${refNum}/send-payment-order/`,
+        { maxRedirects: 0 },
+      );
       const url = response.data.event_response_create_url;
-      if (!url || !url.startsWith("/api/v1/payment-orders/create-payment-order/")) {
+      if (
+        !url ||
+        !url.startsWith("/api/v1/payment-orders/create-payment-order/")
+      ) {
         throw new Error("Invalid redirect URL received.");
       }
-      const dashboardUrl = url.replace(
-        "/api/v1/payment-orders/create-payment-order",
-        "/dashboard/payment-orders/create-payment-order"
+      navigate(
+        url.replace(
+          "/api/v1/payment-orders/create-payment-order",
+          "/dashboard/payment-orders/create-payment-order",
+        ),
       );
-      console.log("SalesInvoiceDetailPage: Navigating to:", dashboardUrl);
-      navigate(dashboardUrl);
     } catch (error) {
       if (error.response && error.response.status === 302) {
         const url = error.response.data.event_response_create_url;
-        console.log("SalesInvoiceDetailPage: Caught 302 redirect with URL:", url);
-        if (!url || !url.startsWith("/api/v1/payment-orders/create-payment-order/")) {
-          throw new Error("Invalid redirect URL received.");
+        if (url?.startsWith("/api/v1/payment-orders/create-payment-order/")) {
+          navigate(
+            url.replace(
+              "/api/v1/payment-orders/create-payment-order",
+              "/dashboard/payment-orders/create-payment-order",
+            ),
+          );
+          return;
         }
-        const dashboardUrl = url.replace(
-          "/api/v1/payment-orders/create-payment-order",
-          "/dashboard/payment-orders/create-payment-order"
-        );
-        console.log("SalesInvoiceDetailPage: Navigating to:", dashboardUrl);
-        navigate(dashboardUrl);
-      } else {
-        const errorMessage = error.response?.data?.detail || "Failed to initiate payment order.";
-        toast.error(errorMessage);
-        console.error("SalesInvoiceDetailPage: Send payment order error:", error.response?.data || error);
       }
+      toast.error(
+        error.response?.data?.detail || "Failed to initiate payment order.",
+      );
+      console.error("Send payment order error:", error);
     } finally {
       setModalLoading(false);
     }
   };
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return { formatted: "N/A", relative: "" };
     const date = new Date(dateString);
     return {
-      formatted: format(date, "dd MMM yyyy, HH:mm:ss"),
+      formatted: format(date, "dd MMM yyyy, HH:mm"),
       relative: formatDistanceToNow(date, { addSuffix: true }),
     };
   };
 
-  if (loading) {
+  if (!loading && !salesInvoice) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
-        <p className="mt-4 text-lg text-gray-700 font-medium">Loading Sales Invoice Details...</p>
-      </div>
-    );
-  }
-
-  if (!salesInvoice) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
-          <p className="mt-4 text-xl font-semibold text-gray-900">Sales Invoice Not Found</p>
-          <button
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
+        <div className="rounded-2xl border border-border/70 bg-card p-8">
+          <p className="font-display text-lg font-semibold">
+            Sales invoice not found
+          </p>
+          <Button
+            variant="outline"
+            className="mt-5"
             onClick={() => navigate("/dashboard/sales-invoices")}
-            className="mt-6 flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-xs"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Sales Invoices
-          </button>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to sales invoices
+          </Button>
         </div>
       </div>
     );
   }
+
+  if (loading || !salesInvoice) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+      </div>
+    );
+  }
+
+  const created = formatDateTime(salesInvoice.created_at);
+  const updated = formatDateTime(salesInvoice.updated_at);
 
   return (
-    <div className="container mx-auto p-8 max-w-6xl">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <FileText className="h-16 w-16 text-indigo-600" />
-            <h1 className="text-3xl font-semibold text-gray-900">
-              Sales Invoice: {salesInvoice.title || "Untitled"} <span className="text-gray-500 text-sm">({salesInvoice.ref_num})</span>
-            </h1>
+    <div className="mx-auto max-w-5xl space-y-6 font-montserrat">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/15">
+              <Wallet className="h-7 w-7" />
+            </span>
+            <div>
+              <p className="text-xs text-white/80">{salesInvoice.ref_num}</p>
+              <h1 className="font-display text-2xl font-bold">
+                {salesInvoice.title || "Untitled invoice"}
+              </h1>
+            </div>
           </div>
-          <button
+          <Button
+            variant="outline"
             onClick={() => navigate("/dashboard/sales-invoices")}
-            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-xs"
+            className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Sales Invoices
-          </button>
+            <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
+          </Button>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Invoice Details Section */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <button
-              onClick={() => setDetailsOpen(!detailsOpen)}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
-            >
-              <h2 className="text-xl font-medium text-gray-900">Invoice Details</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
-                {detailsOpen ? "Collapse" : "Expand"}
-                {detailsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
-              </span>
-            </button>
-          </div>
-          {detailsOpen && (
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Title</label>
-                    <input
-                      type="text"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-200 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Notes</label>
-                    <textarea
-                      name="notes"
-                      value={formData.notes}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-200 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      rows="4"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Priority</label>
-                    <select
-                      name="priority"
-                      value={formData.priority}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-200 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    >
-                      <option value="normal">Normal</option>
-                      <option value="urgent">Urgent</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Status</span>
-                    <span className="text-gray-900">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          salesInvoice.status === "draft"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {salesInvoice.status === "draft" ? "Open" : "Closed"}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Reference Number</span>
-                    <span className="text-gray-900">{salesInvoice.ref_num}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Spend Category</span>
-                    <span className="text-gray-900">{salesInvoice.spend_category}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Total Cost</span>
-                    <span className="text-gray-900">{salesInvoice.total_cost}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Purchase Order Reference</span>
-                    <span className="text-gray-900">{salesInvoice.po_ref_num}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Issuing Company</span>
-                    <span className="text-gray-900">{salesInvoice.issuing_company_name}</span>
-                  </div>
-                  {salesInvoice.created_at && (
-                    <div className="flex items-center">
-                      <span className="w-1/3 font-medium text-gray-700">Created At</span>
-                      <div className="relative group">
-                        <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                          {formatDateTime(salesInvoice.created_at).formatted}
-                        </span>
-                        <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                          {formatDateTime(salesInvoice.created_at).relative}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {salesInvoice.updated_at && (
-                    <div className="flex items-center">
-                      <span className="w-1/3 font-medium text-gray-700">Updated At</span>
-                      <div className="relative group">
-                        <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                          {formatDateTime(salesInvoice.updated_at).formatted}
-                        </span>
-                        <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                          {formatDateTime(salesInvoice.updated_at).relative}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+      {/* Details */}
+      <Section
+        title="Invoice details"
+        open={detailsOpen}
+        onToggle={() => setDetailsOpen((o) => !o)}
+      >
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="space-y-4">
+            <div>
+              <label className={labelClass}>Title</label>
+              <Input
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, title: e.target.value }))
+                }
+                disabled={!canManage}
+              />
             </div>
-          )}
-        </div>
-
-        {/* Attachments Section */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <button
-              onClick={() => setAttachmentsOpen(!attachmentsOpen)}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
-            >
-              <h2 className="text-xl font-medium text-gray-900">Attachments</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
-                {attachmentsOpen ? "Collapse" : "Expand"}
-                {attachmentsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
-              </span>
-            </button>
-          </div>
-          {attachmentsOpen && (
-            <div className="p-6">
-              {salesInvoice.attachments?.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Name</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Orientation</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">File</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {salesInvoice.attachments.map((attachment, index) => (
-                        <tr
-                          key={attachment.id}
-                          className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100 transition duration-200`}
-                        >
-                          <td className="py-3 px-4 text-gray-900">{attachment.name}</td>
-                          <td className="py-3 px-4 text-gray-900">{attachment.orientation}</td>
-                          <td className="py-3 px-4 text-gray-900">
-                            <a
-                              href={attachment.file}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center text-indigo-600 hover:text-indigo-800"
-                            >
-                              <FileText className="w-4 h-4 mr-2" />
-                              View
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-600 text-center font-medium">No attachments available.</p>
-              )}
+            <div>
+              <label className={labelClass}>Notes</label>
+              <Textarea
+                rows={4}
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, notes: e.target.value }))
+                }
+                disabled={!canManage}
+              />
             </div>
-          )}
-        </div>
-
-        {/* Items Section */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <button
-              onClick={() => setItemsOpen(!itemsOpen)}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
-            >
-              <h2 className="text-xl font-medium text-gray-900">Items</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
-                {itemsOpen ? "Collapse" : "Expand"}
-                {itemsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
-              </span>
-            </button>
-          </div>
-          {itemsOpen && (
-            <div className="p-6">
-              {salesInvoice.items?.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Name</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Description</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Quantity</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Unit of Measure</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {salesInvoice.items.map((item, index) => (
-                        <tr
-                          key={item.id}
-                          className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100 transition duration-200`}
-                        >
-                          <td className="py-3 px-4 text-gray-900">{item.name}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.description || "N/A"}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.quantity}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.unit_of_measure}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-600 text-center font-medium">No items available.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="p-6 flex justify-end space-x-4">
-          {["sales manager", "logistics manager"].includes(jobTitle) && (
-            <>
-              <button
-                onClick={handleUpdate}
-                disabled={modalLoading}
-                className="bg-black text-white py-2 px-6 rounded-md hover:bg-gray-700 transition duration-200 flex items-center shadow-md disabled:opacity-50"
+            <div>
+              <label className={labelClass}>Priority</label>
+              <Select
+                value={formData.priority}
+                onValueChange={(v) =>
+                  setFormData((p) => ({ ...p, priority: v }))
+                }
+                disabled={!canManage}
               >
-                {modalLoading ? (
-                  <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                ) : (
-                  <FileText className="w-5 h-5 mr-2" />
-                )}
-                {modalLoading ? "Updating..." : "Update Sales Invoice"}
-              </button>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                disabled={modalLoading}
-                className="bg-red-600 text-white py-2 px-6 rounded-md hover:bg-red-700 transition duration-200 flex items-center shadow-md disabled:opacity-50"
-              >
-                {modalLoading ? (
-                  <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                ) : (
-                  <Trash2 className="w-5 h-5 mr-2" />
-                )}
-                {modalLoading ? "Deleting..." : "Delete Sales Invoice"}
-              </button>
-              <button
-                onClick={handleSendPaymentOrder}
-                disabled={modalLoading}
-                className="bg-black text-white py-2 px-6 rounded-md hover:bg-gray-700 transition duration-200 flex items-center shadow-md disabled:opacity-50"
-              >
-                {modalLoading ? (
-                  <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                ) : (
-                  <Send className="w-5 h-5 mr-2" />
-                )}
-                {modalLoading ? "Processing..." : "Send Payment Order"}
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full border border-gray-200 shadow-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-medium text-gray-900">Delete Sales Invoice</h2>
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <p className="text-gray-600 mb-6 font-medium">
-                Are you sure you want to delete the sales invoice "{salesInvoice.title || "Untitled"}" ({salesInvoice.ref_num})? This action cannot be undone.
-              </p>
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={modalLoading}
-                  className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center shadow-md disabled:opacity-50"
-                >
-                  {modalLoading ? (
-                    <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                  ) : (
-                    <Trash2 className="w-5 h-5 mr-2" />
-                  )}
-                  {modalLoading ? "Deleting..." : "Delete"}
-                </button>
-              </div>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
+          <div className="space-y-3">
+            <Row label="Reference">{salesInvoice.ref_num}</Row>
+            <Row label="Status">
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  salesInvoice.status === "draft"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-emerald-100 text-emerald-700"
+                }`}
+              >
+                {salesInvoice.status === "draft" ? "Open" : "Closed"}
+              </span>
+            </Row>
+            <Row label="Spend category">{salesInvoice.spend_category}</Row>
+            <Row label="Total cost">{salesInvoice.total_cost}</Row>
+            <Row label="Purchase order ref">{salesInvoice.po_ref_num}</Row>
+            <Row label="Issuing company">
+              {salesInvoice.issuing_company_name}
+            </Row>
+            <Row label="Created">
+              <span title={created.relative}>{created.formatted}</span>
+            </Row>
+            <Row label="Updated">
+              <span title={updated.relative}>{updated.formatted}</span>
+            </Row>
+          </div>
+        </div>
+      </Section>
+
+      {/* Attachments */}
+      <Section
+        title="Attachments"
+        open={attachmentsOpen}
+        onToggle={() => setAttachmentsOpen((o) => !o)}
+      >
+        {salesInvoice.attachments?.length > 0 ? (
+          <div className="space-y-2">
+            {salesInvoice.attachments.map((attachment) => (
+              <a
+                key={attachment.id}
+                href={attachment.file}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-xl border border-border/70 px-4 py-3 text-sm transition-colors hover:bg-muted/40"
+              >
+                <FileText className="h-5 w-5 text-brand" />
+                <span className="flex-1 font-medium">{attachment.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {attachment.orientation}
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No attachments available.
+          </p>
         )}
-      </div>
+      </Section>
+
+      {/* Items */}
+      <Section
+        title="Items"
+        open={itemsOpen}
+        onToggle={() => setItemsOpen((o) => !o)}
+      >
+        {salesInvoice.items?.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Description</th>
+                  <th className="px-4 py-2.5 font-medium">Quantity</th>
+                  <th className="px-4 py-2.5 font-medium">Unit</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {salesInvoice.items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-2.5 font-medium">{item.name}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      {item.description || "N/A"}
+                    </td>
+                    <td className="px-4 py-2.5">{item.quantity}</td>
+                    <td className="px-4 py-2.5">{item.unit_of_measure}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No items available.
+          </p>
+        )}
+      </Section>
+
+      {/* Actions */}
+      {canManage && (
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={handleUpdate}
+            disabled={modalLoading}
+          >
+            <Save className="mr-1.5 h-4 w-4" /> Update
+          </Button>
+          <Button
+            className="bg-destructive text-white hover:bg-destructive/90"
+            onClick={() => setShowDeleteModal(true)}
+            disabled={modalLoading}
+          >
+            <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+          </Button>
+          <Button
+            className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+            onClick={handleSendPaymentOrder}
+            disabled={modalLoading}
+          >
+            {modalLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
+              </>
+            ) : (
+              <>
+                <Send className="mr-1.5 h-4 w-4" /> Send payment order
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="font-montserrat sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete sales invoice</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-foreground">
+                {salesInvoice.title || "Untitled"}
+              </span>{" "}
+              ({salesInvoice.ref_num})? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={modalLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleDelete}
+              disabled={modalLoading}
+            >
+              {modalLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

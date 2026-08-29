@@ -1,19 +1,13 @@
 import { useAuth } from "@/contexts/app.context";
-import {
-  User,
-  Mail,
-  Calendar,
-  CheckCircle,
-  XCircle,
-  Plus,
-  ArrowLeft,
-  Clock,
-  Activity,
-  Shield,
-} from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Plus, ArrowLeft, Search, Users, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import EmployeeGrid from "@/components/employees/EmployeeGrid";
+import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 
 const AllTransporterEmployees = () => {
   const { authAxios, transporterId } = useAuth();
@@ -22,249 +16,129 @@ const AllTransporterEmployees = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+
+  const fetchEmployees = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await authAxios.get(
+        `transporters/${transporterId}/all-employees`,
+      );
+      setEmployees(response.data.all_employees || []);
+    } catch (err) {
+      setError(err.message || "Failed to fetch employees");
+      toast.error(err.response?.data?.detail || "Failed to load employees");
+      console.error("Error fetching employees:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [authAxios, transporterId]);
 
   useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        setLoading(true);
-        const response = await authAxios.get(
-          `transporters/${transporterId}/all-employees`
-        );
-        setEmployees(response.data.all_employees);
-      } catch (err) {
-        setError(err.message || "Failed to fetch employees");
-        toast.error(err.response.data?.detail || "Failed to load employees");
-        console.error("Error fetching employees:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchEmployees();
-  }, [authAxios]);
+  }, [fetchEmployees]);
 
   if (loading) {
     return (
-      <div className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-xl shadow-xs border border-gray-100 p-5 animate-pulse"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
-                  <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
-                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
-                  <div className="h-4 bg-gray-200 rounded w-4/6"></div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4">
-        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-xs border border-gray-100 p-6 text-center">
-          <div className="text-red-500 mb-4">Error loading employees</div>
-          <button
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
+        <div className="rounded-2xl border border-border/70 bg-card p-8">
+          <p className="font-display text-lg font-semibold">
+            Error loading employees
+          </p>
+          <Button
+            variant="outline"
+            className="mt-5"
             onClick={() => navigate("/dashboard")}
-            className="text-gray-600 hover:text-gray-800 font-medium flex items-center justify-center gap-2"
           >
-            <ArrowLeft size={16} />
-            Back to Dashboard
-          </button>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to dashboard
+          </Button>
         </div>
       </div>
     );
   }
 
-  const filteredEmployees = employees.filter((employee) =>
-    employee.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEmployees = employees.filter((e) =>
+    e.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "short", day: "numeric" };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-
   return (
-    <div className="p-4">
-      {/* Header with search and add button */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Team Members</h1>
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <input
-              type="text"
-              placeholder="Search employees..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
-            />
-            <svg
-              className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+    <div className="mx-auto max-w-6xl space-y-8 font-montserrat">
+      {/* Branded header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+              <Users className="h-3.5 w-3.5" /> Team
+            </span>
+            <h1 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
+              Team members
+            </h1>
+            <p className="mt-2 text-sm text-white/85">
+              {employees.length}{" "}
+              {employees.length === 1 ? "member" : "members"} in your transport
+              service.
+            </p>
           </div>
-          <Link
-            to="/dashboard/employee/new"
-            className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+          <Button
+            onClick={() => setAddOpen(true)}
+            className="bg-white text-brand hover:bg-white/90"
           >
-            <Plus size={18} />
-            <span className="hidden sm:inline">Add Employee</span>
-          </Link>
+            <Plus className="mr-1.5 h-4 w-4" /> Add employee
+          </Button>
         </div>
       </div>
 
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search employees…"
+          className="pl-9"
+        />
+      </div>
+
       {filteredEmployees.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-8 text-center">
-          <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <User className="text-gray-400" size={40} />
+        <div className="rounded-2xl border border-border/70 bg-card p-10 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand/10">
+            <Users className="h-7 w-7 text-brand" />
           </div>
-          <h3 className="text-lg font-medium text-gray-700 mb-2">
-            {searchTerm ? "No matching employees found" : "No employees yet"}
+          <h3 className="font-display text-lg font-semibold">
+            {searchTerm ? "No matching employees" : "No employees yet"}
           </h3>
-          <p className="text-gray-500 mb-4">
+          <p className="mt-1 text-sm text-muted-foreground">
             {searchTerm
-              ? "Try a different search term"
-              : "Add your first team member to get started"}
+              ? "Try a different search term."
+              : "Add your first team member to get started."}
           </p>
-          <Link
-            to="/dashboard/employee/new"
-            className="inline-flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            <Plus size={16} />
-            Add New Employee
-          </Link>
+          {!searchTerm && (
+            <Button
+              className="mt-5 bg-brand-gradient text-brand-foreground hover:opacity-90"
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus className="mr-1.5 h-4 w-4" /> Add employee
+            </Button>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEmployees.map((employee) => (
-            <div
-              key={employee.id}
-              className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
-            >
-              <div className="p-6">
-                {/* Employee header */}
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                    <User className="text-gray-600" size={24} />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-gray-800">
-                      {employee.email.split("@")[0]}
-                    </h2>
-                    <p className="text-sm text-gray-500">{employee.email}</p>
-                  </div>
-                </div>
-
-                {/* Employee details */}
-                <div className="space-y-4">
-                  {/* Email Verification */}
-                  <div className="flex items-center gap-3">
-                    {employee.email_is_verified ? (
-                      <CheckCircle className="text-green-500" size={18} />
-                    ) : (
-                      <XCircle className="text-yellow-500" size={18} />
-                    )}
-                    <span className="text-sm">
-                      Email{" "}
-                      {employee.email_is_verified ? "Verified" : "Not Verified"}
-                    </span>
-                  </div>
-
-                  {/* Account Status */}
-                  <div className="flex items-center gap-3">
-                    {employee.is_active ? (
-                      <Activity className="text-green-500" size={18} />
-                    ) : (
-                      <Shield className="text-gray-400" size={18} />
-                    )}
-                    <span className="text-sm">
-                      {employee.is_active ? "Active" : "Inactive"} Account
-                    </span>
-                  </div>
-
-                  {/* Last Login */}
-                  <div className="flex items-center gap-3">
-                    <Clock className="text-gray-500" size={18} />
-                    <div>
-                      <p className="text-sm text-gray-500">Last Login</p>
-                      <p className="text-sm font-medium">
-                        {employee.last_login
-                          ? formatDate(employee.last_login)
-                          : "Never"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Member Since */}
-                  <div className="flex items-center gap-3">
-                    <Calendar className="text-gray-500" size={18} />
-                    <div>
-                      <p className="text-sm text-gray-500">Member Since</p>
-                      <p className="text-sm font-medium">
-                        {formatDate(employee.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* View Details */}
-                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
-                  <Link
-                    to={`/dashboard/employees/${employee.id}`}
-                    className="text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center gap-1"
-                    title={`View details for ${employee.email}`}
-                    aria-label={`View details for ${employee.email}`}
-                    state={{ employee }}
-                  >
-                    View details
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <EmployeeGrid employees={filteredEmployees} joinedLabel="Member since" />
       )}
+
+      <AddEmployeeModal
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAdded={fetchEmployees}
+      />
     </div>
   );
 };

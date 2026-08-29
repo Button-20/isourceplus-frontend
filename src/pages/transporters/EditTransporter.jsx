@@ -1,16 +1,104 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Check, Loader2, Upload, X } from "lucide-react";
-import { getCookie } from "@/utility/getCookie";
+import { Loader2, Upload, X, Plus, Truck, ArrowLeft, FileCheck2, Save } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
+const labelClass = "mb-1 block text-sm font-medium text-foreground";
+
+const TRANSPORT_MODES = ["air", "land", "sea"];
+const TRANSPORT_MEANS = ["car", "truck", "bicycle", "motor-cycle"];
+const MAX_BIO = 255;
+
+const titleCase = (s) =>
+  s
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+
+// Branded dashed-border upload tile with preview + remove.
+function UploadTile({ label, name, preview, onChange, onRemove }) {
+  return (
+    <div>
+      <label className={labelClass}>{label}</label>
+      <div className="flex items-center gap-3">
+        <label className="relative flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-input bg-muted/30 text-center transition-colors hover:border-brand/50 hover:bg-brand/5">
+          {preview ? (
+            <img
+              src={preview}
+              alt={`${label} preview`}
+              className="h-full w-full rounded-xl object-contain p-2"
+            />
+          ) : (
+            <>
+              <Upload className="mb-1 h-5 w-5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                Click to upload
+              </span>
+            </>
+          )}
+          <input
+            type="file"
+            name={name}
+            accept="image/*"
+            onChange={onChange}
+            className="hidden"
+          />
+        </label>
+        {preview && (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={`Remove ${label}`}
+            className="text-muted-foreground transition-colors hover:text-destructive"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function EditTransporter() {
   const { authAxios, transporterId, setTransporterId } = useAuth();
   const navigate = useNavigate();
   const [idLoading, setIdLoading] = useState(!transporterId);
 
-  // Fetch transporterId if missing
+  const [values, setValues] = useState({
+    name: "",
+    type: "",
+    bio: "",
+    email: "",
+    office_line: "",
+    office_line_2: "",
+    web_address: "",
+  });
+  const [lists, setLists] = useState({
+    transport_mode: [],
+    transport_means: [],
+  });
+  const [files, setFiles] = useState({ logo: null, vehicle_images: [] });
+  const [filePreviews, setFilePreviews] = useState({
+    logo: null,
+    vehicle_images: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Resolve the transporter id from the current user if it isn't in context yet.
   useEffect(() => {
     if (!transporterId) {
       (async () => {
@@ -34,32 +122,7 @@ export default function EditTransporter() {
     }
   }, [authAxios, transporterId, setTransporterId]);
 
-  // Form state
-  const [values, setValues] = useState({
-    name: "",
-    type: "",
-    bio: "",
-    email: "",
-    office_line: "",
-    office_line_2: "",
-    web_address: "",
-  });
-  const [lists, setLists] = useState({
-    transport_mode: [],
-    transport_means: [],
-  });
-  const [files, setFiles] = useState({
-    logo: null,
-    vehicle_images: [],
-  });
-  const [filePreviews, setFilePreviews] = useState({
-    logo: null,
-    vehicle_images: [],
-  });
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Fetch transporter data
+  // Load the transporter's current details.
   useEffect(() => {
     if (transporterId) {
       (async () => {
@@ -82,10 +145,7 @@ export default function EditTransporter() {
             logo: data.logo || null,
             vehicle_images: data.vehicle_images?.map((img) => img.file) || [],
           });
-          setFiles({
-            logo: null,
-            vehicle_images: [],
-          });
+          setFiles({ logo: null, vehicle_images: [] });
         } catch {
           toast.error("Failed to load transporter data");
         } finally {
@@ -95,12 +155,11 @@ export default function EditTransporter() {
     }
   }, [authAxios, transporterId]);
 
+  // Revoke object URLs for any locally-previewed uploads on unmount.
   useEffect(() => {
     return () => {
       filePreviews.vehicle_images.forEach((preview) => {
-        if (preview && preview.startsWith("blob:")) {
-          URL.revokeObjectURL(preview);
-        }
+        if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
       });
       if (filePreviews.logo && filePreviews.logo.startsWith("blob:")) {
         URL.revokeObjectURL(filePreviews.logo);
@@ -112,43 +171,45 @@ export default function EditTransporter() {
     const { name, value } = e.target;
     setValues((v) => ({ ...v, [name]: value }));
   };
-  const handleListChange = (e) => {
-    const { name, value, checked } = e.target;
+
+  const toggleListItem = (name, value) => {
     setLists((prev) => {
       const set = new Set(prev[name]);
-      checked ? set.add(value) : set.delete(value);
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
       return { ...prev, [name]: Array.from(set) };
     });
   };
+
   const handleFileChange = (e, index = null) => {
-    const { name, files } = e.target;
-    const file = files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("File size must be under 2MB");
-        return;
-      }
-      if (!["image/jpeg", "image/png"].includes(file.type)) {
-        toast.error("Only JPG and PNG formats are accepted");
-        return;
-      }
-      if (name === "logo") {
-        setFiles((f) => ({ ...f, logo: file }));
-        setFilePreviews((p) => ({ ...p, logo: URL.createObjectURL(file) }));
-      } else if (name === "vehicle_image" && index !== null) {
-        setFiles((f) => {
-          const newVehicleImages = [...f.vehicle_images];
-          newVehicleImages[index] = file;
-          return { ...f, vehicle_images: newVehicleImages };
-        });
-        setFilePreviews((p) => {
-          const newPreviews = [...p.vehicle_images];
-          newPreviews[index] = URL.createObjectURL(file);
-          return { ...p, vehicle_images: newPreviews };
-        });
-      }
+    const { name, files: fileList } = e.target;
+    const file = fileList[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File size must be under 2MB");
+      return;
+    }
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      toast.error("Only JPG and PNG formats are accepted");
+      return;
+    }
+    if (name === "logo") {
+      setFiles((f) => ({ ...f, logo: file }));
+      setFilePreviews((p) => ({ ...p, logo: URL.createObjectURL(file) }));
+    } else if (name === "vehicle_image" && index !== null) {
+      setFiles((f) => {
+        const images = [...f.vehicle_images];
+        images[index] = file;
+        return { ...f, vehicle_images: images };
+      });
+      setFilePreviews((p) => {
+        const previews = [...p.vehicle_images];
+        previews[index] = URL.createObjectURL(file);
+        return { ...p, vehicle_images: previews };
+      });
     }
   };
+
   const addVehicleImageSlot = () => {
     setFiles((f) => ({ ...f, vehicle_images: [...f.vehicle_images, null] }));
     setFilePreviews((p) => ({
@@ -156,20 +217,21 @@ export default function EditTransporter() {
       vehicle_images: [...p.vehicle_images, null],
     }));
   };
+
   const removeFile = (name, index = null) => {
     if (name === "logo") {
       setFiles((f) => ({ ...f, logo: null }));
       setFilePreviews((p) => ({ ...p, logo: null }));
     } else if (name === "vehicle_image" && index !== null) {
       setFiles((f) => {
-        const newVehicleImages = [...f.vehicle_images];
-        newVehicleImages.splice(index, 1);
-        return { ...f, vehicle_images: newVehicleImages };
+        const images = [...f.vehicle_images];
+        images.splice(index, 1);
+        return { ...f, vehicle_images: images };
       });
       setFilePreviews((p) => {
-        const newPreviews = [...p.vehicle_images];
-        newPreviews.splice(index, 1);
-        return { ...p, vehicle_images: newPreviews };
+        const previews = [...p.vehicle_images];
+        previews.splice(index, 1);
+        return { ...p, vehicle_images: previews };
       });
     }
   };
@@ -178,37 +240,18 @@ export default function EditTransporter() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const csrfToken = getCookie("csrftoken");
-      await authAxios.patch(
-        `transporters/${transporterId}/`,
-        {
-          ...values,
-          transport_mode: lists.transport_mode,
-          transport_means: lists.transport_means,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken,
-          },
-        }
-      );
+      await authAxios.patch(`transporters/${transporterId}/`, {
+        ...values,
+        transport_mode: lists.transport_mode,
+        transport_means: lists.transport_means,
+      });
       const formData = new FormData();
-      if (files.logo) {
-        formData.append("logo", files.logo);
-      }
+      if (files.logo) formData.append("logo", files.logo);
       files.vehicle_images.forEach((file, index) => {
-        if (file) {
-          formData.append(`vehicle_images[${index}][file]`, file);
-        }
+        if (file) formData.append(`vehicle_images[${index}][file]`, file);
       });
       if (files.logo || files.vehicle_images.some((file) => file)) {
-        await authAxios.patch(`transporters/${transporterId}/`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            "X-CSRFToken": csrfToken,
-          },
-        });
+        await authAxios.patch(`transporters/${transporterId}/`, formData);
       }
       toast.success("Transporter updated successfully!");
       navigate("/dashboard");
@@ -217,338 +260,323 @@ export default function EditTransporter() {
       toast.error(
         err.response?.data?.vehicle_images?.[0] ||
           err.response?.data?.detail ||
-          "Update failed"
+          "Update failed",
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (idLoading) {
+  if (idLoading || (transporterId && loading)) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
-        <p className="ml-2 text-gray-500">Loading transporter ID…</p>
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     );
   }
 
   if (!transporterId) {
     return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <p className="text-gray-500 mb-4">No transporter associated with this user.</p>
-        <Link
-          to="/dashboard/transporter"
-          className="bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
-        >
-          Create Transporter
-        </Link>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
-        <p className="ml-2 text-gray-500">Loading transporter data…</p>
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
+        <div className="rounded-2xl border border-border/70 bg-card p-8">
+          <p className="font-display text-lg font-semibold">
+            No transporter found
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            There&apos;s no transporter associated with this account yet.
+          </p>
+          <Button
+            asChild
+            className="mt-5 bg-brand-gradient text-brand-foreground hover:opacity-90"
+          >
+            <Link to="/dashboard/transporter">Create transporter</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 grid md:grid-cols-3 gap-8">
-      <div className="md:col-span-1">
-        <div className="bg-gray-50 p-4 rounded-lg border">
-          <h3 className="font-medium mb-3">Edit Transporter</h3>
-          <div className="w-full bg-gray-200 h-2.5 mb-3 rounded-full">
-            <div className="bg-black h-2.5 rounded-full" style={{ width: "100%" }} />
+    <div className="mx-auto max-w-3xl space-y-6 font-montserrat">
+      {/* Branded header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15">
+              <Truck className="h-6 w-6" />
+            </span>
+            <div>
+              <h1 className="font-display text-2xl font-bold">
+                Edit transporter
+              </h1>
+              <p className="mt-1 text-sm text-white/85">
+                Update your transport service profile and fleet.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              asChild
+              className="bg-white text-brand hover:bg-white/90"
+            >
+              <Link to="/dashboard/transporter/add-business-docs">
+                <FileCheck2 className="mr-1.5 h-4 w-4" /> Documents
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard")}
+              className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
+            </Button>
           </div>
         </div>
-        <div title="Add Business Documents" className="bg-black hover:bg-gray-800 p-2 text-white mt-4 rounded-lg border">
-          <Link to="/dashboard/transporter/add-business-docs" className="font-medium mb-3">
-            Add Documents
-          </Link>
-        </div>
-        <div className="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-3">Upload Guidelines</h3>
-          <ul className="text-sm text-gray-600 space-y-2">
-            <li className="flex items-start">
-              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 shrink-0" />
-              <span>Logo should be square (1:1 ratio)</span>
-            </li>
-            <li className="flex items-start">
-              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 shrink-0" />
-              <span>Images must be under 2MB</span>
-            </li>
-            <li className="flex items-start">
-              <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 shrink-0" />
-              <span>Acceptable formats: JPG, PNG</span>
-            </li>
-          </ul>
-        </div>
       </div>
-      <div className="md:col-span-2 space-y-6">
-        <div>
-          <h2 className="text-lg font-medium mb-4">Basic Information</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <label className="block mb-1">Name *</label>
-              <input
+
+      {/* Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-8 rounded-2xl border border-border/70 bg-card p-6 sm:p-8"
+      >
+        {/* Basic information */}
+        <section className="border-b border-border pb-6">
+          <h2 className="mb-4 font-display text-base font-semibold">
+            Basic information
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>
+                Transporter name <span className="text-destructive">*</span>
+              </label>
+              <Input
                 name="name"
                 value={values.name}
                 onChange={handleChange}
                 required
-                className="w-full border rounded p-2"
               />
             </div>
             <div>
-              <label className="block mb-1">Type *</label>
-              <select
-                name="type"
+              <label className={labelClass}>Type</label>
+              <Select
                 value={values.type}
-                onChange={handleChange}
-                required
-                className="w-full border rounded p-2"
+                onValueChange={(v) => setValues((prev) => ({ ...prev, type: v }))}
               >
-                <option value="">Select</option>
-                <option value="individual">Individual</option>
-                <option value="organisation">Organization</option>
-              </select>
-            </div>
-            <div>
-              <label className="block mb-1">Industry</label>
-              <input
-                name="industry"
-                value={values.industry}
-                onChange={handleChange}
-                className="w-full border rounded p-2"
-              />
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue placeholder="Select a type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="organisation">Organization</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block mb-1">Description</label>
-              <textarea
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">
+                  Transporter bio
+                </label>
+                <span
+                  className={cn(
+                    "text-xs",
+                    values.bio.length >= MAX_BIO
+                      ? "text-destructive"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {values.bio.length}/{MAX_BIO}
+                </span>
+              </div>
+              <Textarea
                 name="bio"
                 rows={3}
+                maxLength={MAX_BIO}
                 value={values.bio}
                 onChange={handleChange}
-                className="w-full border rounded p-2"
+                placeholder="Briefly describe your transport service"
               />
             </div>
           </div>
-        </div>
-        <div>
-          <h2 className="text-lg font-medium mb-4">Contact Information</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        </section>
+
+        {/* Contact information */}
+        <section className="border-b border-border pb-6">
+          <h2 className="mb-4 font-display text-base font-semibold">
+            Contact information
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="block mb-1">Email *</label>
-              <input
+              <label className={labelClass}>
+                Email <span className="text-destructive">*</span>
+              </label>
+              <Input
                 type="email"
                 name="email"
                 value={values.email}
                 onChange={handleChange}
+                placeholder="contact@example.com"
                 required
-                className="w-full border rounded p-2"
               />
             </div>
             <div>
-              <label className="block mb-1">Primary Phone *</label>
-              <input
+              <label className={labelClass}>
+                Primary phone <span className="text-destructive">*</span>
+              </label>
+              <Input
+                type="tel"
                 name="office_line"
                 value={values.office_line}
                 onChange={handleChange}
+                placeholder="+233 …"
                 required
-                className="w-full border rounded p-2"
               />
             </div>
             <div>
-              <label className="block mb-1">Secondary Phone</label>
-              <input
+              <label className={labelClass}>Secondary phone</label>
+              <Input
+                type="tel"
                 name="office_line_2"
                 value={values.office_line_2}
                 onChange={handleChange}
-                className="w-full border rounded p-2"
+                placeholder="+233 …"
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block mb-1">Website</label>
-              <input
+              <label className={labelClass}>Website</label>
+              <Input
                 type="url"
                 name="web_address"
                 value={values.web_address}
                 onChange={handleChange}
-                className="w-full border rounded p-2"
+                placeholder="https://example.com"
               />
             </div>
           </div>
-        </div>
-        <div>
-          <h2 className="text-lg font-medium mb-4">Transport Services</h2>
-          <div className="grid gap-4">
+        </section>
+
+        {/* Transport services */}
+        <section className="border-b border-border pb-6">
+          <h2 className="mb-4 font-display text-base font-semibold">
+            Transport services
+          </h2>
+          <div className="space-y-5">
             <div>
-              <label className="block mb-2">Transport Modes *</label>
-              <div className="grid grid-cols-3 gap-3">
-                {["air", "land", "sea"].map((mode) => (
-                  <label key={mode} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="transport_mode"
-                      value={mode}
-                      checked={lists.transport_mode.includes(mode)}
-                      onChange={handleListChange}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <span className="ml-2">{mode.charAt(0).toUpperCase() + mode.slice(1)}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block mb-2">Transport Means *</label>
-              <div className="grid grid-cols-2 gap-3">
-                {["car", "truck", "bicycle", "motor-cycle"].map((m) => (
-                  <label key={m} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="transport_means"
-                      value={m}
-                      checked={lists.transport_means.includes(m)}
-                      onChange={handleListChange}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <span className="ml-2">
-                      {m
-                        .split("-")
-                        .map((w) => w[0].toUpperCase() + w.slice(1))
-                        .join(" ")}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div>
-          <h2 className="text-lg font-medium mb-4">Media Uploads</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Upload up to three vehicle images to showcase your transport means.
-          </p>
-          <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="font-medium text-gray-900 mb-3">Upload Guidelines</h3>
-            <ul className="text-sm text-gray-600 space-y-2">
-              <li className="flex items-start">
-                <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 shrink-0" />
-                <span>Logo should be square (1:1 ratio)</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 shrink-0" />
-                <span>Images must be under 2MB</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="w-4 h-4 text-green-500 mr-2 mt-0.5 shrink-0" />
-                <span>Acceptable formats: JPG, PNG</span>
-              </li>
-            </ul>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div>
-              <label className="block mb-2">Logo</label>
-              <div className="flex items-center">
-                <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 p-4 w-full hover:bg-gray-100">
-                  {filePreviews.logo ? (
-                    <img
-                      src={filePreviews.logo}
-                      alt="Logo preview"
-                      className="h-20 w-20 object-contain"
-                    />
-                  ) : (
-                    <div className="text-center">
-                      <Upload className="w-6 h-6 mb-2 text-gray-500" />
-                      <span className="text-xs text-gray-500">Click to upload logo</span>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    name="logo"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e)}
-                    className="hidden"
-                  />
-                </label>
-                {filePreviews.logo && (
-                  <button
-                    type="button"
-                    onClick={() => removeFile("logo")}
-                    className="ml-2 text-red-600 hover:text-red-800"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-            </div>
-            {filePreviews.vehicle_images.map((preview, index) => (
-              <div key={index}>
-                <label className="block mb-2">Vehicle Image {index + 1}</label>
-                <div className="flex items-center">
-                  <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 p-4 w-full hover:bg-gray-100">
-                    {preview ? (
-                      <img
-                        src={preview}
-                        alt={`Vehicle preview ${index + 1}`}
-                        className="h-20 w-20 object-contain"
-                      />
-                    ) : (
-                      <div className="text-center">
-                        <Upload className="w-6 h-6 mb-2 text-gray-500" />
-                        <span className="text-xs text-gray-500">Click to upload vehicle</span>
-                      </div>
-                    )}
-                    <input
-                      type="file"
-                      name="vehicle_image"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, index)}
-                      className="hidden"
-                    />
-                  </label>
-                  {preview && (
+              <label className={labelClass}>Transport modes</label>
+              <div className="flex flex-wrap gap-2">
+                {TRANSPORT_MODES.map((mode) => {
+                  const active = lists.transport_mode.includes(mode);
+                  return (
                     <button
                       type="button"
-                      onClick={() => removeFile("vehicle_image", index)}
-                      className="ml-2 text-red-600 hover:text-red-800"
+                      key={mode}
+                      aria-pressed={active}
+                      onClick={() => toggleListItem("transport_mode", mode)}
+                      className={cn(
+                        "rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-colors",
+                        active
+                          ? "border-brand bg-brand/10 text-brand"
+                          : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
+                      )}
                     >
-                      <X className="w-5 h-5" />
+                      {mode}
                     </button>
-                  )}
-                </div>
+                  );
+                })}
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={addVehicleImageSlot}
-              className="mt-4 bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300"
-            >
-              Add Vehicle Image
-            </button>
+            </div>
+            <div>
+              <label className={labelClass}>Transport means</label>
+              <div className="flex flex-wrap gap-2">
+                {TRANSPORT_MEANS.map((means) => {
+                  const active = lists.transport_means.includes(means);
+                  return (
+                    <button
+                      type="button"
+                      key={means}
+                      aria-pressed={active}
+                      onClick={() => toggleListItem("transport_means", means)}
+                      className={cn(
+                        "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+                        active
+                          ? "border-brand bg-brand/10 text-brand"
+                          : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
+                      )}
+                    >
+                      {titleCase(means)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex justify-end pt-4 border-t">
-          <button
+        </section>
+
+        {/* Media uploads */}
+        <section>
+          <h2 className="mb-1 font-display text-base font-semibold">
+            Media uploads
+          </h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Add a square logo (under 2MB, JPG or PNG) and vehicle images to
+            showcase your fleet.
+          </p>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <UploadTile
+              label="Logo"
+              name="logo"
+              preview={filePreviews.logo}
+              onChange={(e) => handleFileChange(e)}
+              onRemove={() => removeFile("logo")}
+            />
+            {filePreviews.vehicle_images.map((preview, index) => (
+              <UploadTile
+                key={index}
+                label={`Vehicle image ${index + 1}`}
+                name="vehicle_image"
+                preview={preview}
+                onChange={(e) => handleFileChange(e, index)}
+                onRemove={() => removeFile("vehicle_image", index)}
+              />
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addVehicleImageSlot}
+            className="mt-4 gap-1.5"
+          >
+            <Plus className="h-4 w-4" /> Add vehicle image
+          </Button>
+        </section>
+
+        {/* Actions */}
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate("/dashboard")}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+          <Button
             type="submit"
             disabled={submitting}
-            className="bg-black text-white py-2 px-6 rounded flex items-center disabled:opacity-50"
+            className="bg-brand-gradient text-brand-foreground hover:opacity-90"
           >
             {submitting ? (
               <>
-                <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                Saving…
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
               </>
             ) : (
-              "Save Changes"
+              <>
+                <Save className="mr-2 h-4 w-4" /> Save changes
+              </>
             )}
-          </button>
+          </Button>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }

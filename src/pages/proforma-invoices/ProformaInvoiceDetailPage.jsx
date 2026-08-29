@@ -1,22 +1,52 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import {
   Loader2,
-  FileText,
   Building2,
-  CircleDot,
-  Tag,
-  Clock,
-  Package,
-  AlertCircle,
   ArrowLeft,
   Send,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+import {
+  format,
+  formatDistanceToNow,
+} from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+
+import { Button } from "@/components/ui/button";
+
+function Section({ title, open, onToggle, children }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/40"
+      >
+        <h2 className="font-display text-base font-semibold">{title}</h2>
+        {open ? (
+          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+        )}
+      </button>
+      {open && <div className="border-t border-border/60 p-5">{children}</div>}
+    </div>
+  );
+}
+
+function Row({ label, children }) {
+  return (
+    <div className="flex items-start gap-3 text-sm">
+      <span className="w-36 shrink-0 font-medium text-muted-foreground">
+        {label}
+      </span>
+      <span className="text-foreground">{children}</span>
+    </div>
+  );
+}
 
 const ProformaInvoiceDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -30,9 +60,9 @@ const ProformaInvoiceDetailPage = () => {
 
   useEffect(() => {
     const fetchInvoice = async () => {
+      setLoading(true);
       try {
         const response = await authAxios.get(`proforma-invoices/${refNum}/`);
-        console.log("ProformaInvoiceDetailPage: Fetched invoice details:", response.data);
         setInvoice(response.data);
       } catch (error) {
         toast.error("Failed to load proforma invoice details.");
@@ -47,311 +77,232 @@ const ProformaInvoiceDetailPage = () => {
   const handleSendPurchaseOrder = async () => {
     setModalLoading(true);
     try {
-      console.log("ProformaInvoiceDetailPage: Sending purchase order for refNum:", refNum);
-      const response = await authAxios.get(`proforma-invoices/${refNum}/send-purchase-order/`);
-      console.log("ProformaInvoiceDetailPage: Send purchase order response:", response.data);
+      const response = await authAxios.get(
+        `proforma-invoices/${refNum}/send-purchase-order/`,
+      );
       const apiUrl = response.data.event_response_create_url;
-      console.log("ProformaInvoiceDetailPage: API URL received:", apiUrl);
-      if (!apiUrl || !apiUrl.startsWith("/api/v1/purchase-orders/create-business-award/")) {
+      if (
+        !apiUrl ||
+        !apiUrl.startsWith("/api/v1/purchase-orders/create-business-award/")
+      ) {
         throw new Error("Invalid redirect URL received.");
       }
-      const dashboardUrl = apiUrl.replace("/api/v1", "/dashboard");
-      console.log("ProformaInvoiceDetailPage: Navigating to:", dashboardUrl);
-      navigate(dashboardUrl, { state: { redirectUrl: apiUrl } });
+      navigate(apiUrl.replace("/api/v1", "/dashboard"), {
+        state: { redirectUrl: apiUrl },
+      });
     } catch (error) {
       if (error.response && error.response.status === 302) {
         const apiUrl = error.response.data.event_response_create_url;
-        if (!apiUrl || !apiUrl.startsWith("/api/v1/purchase-orders/create-business-award/")) {
-          throw new Error("Invalid redirect URL received.");
+        if (
+          apiUrl?.startsWith("/api/v1/purchase-orders/create-business-award/")
+        ) {
+          navigate(apiUrl.replace("/api/v1", "/dashboard"), {
+            state: { redirectUrl: apiUrl },
+          });
+          return;
         }
-        const dashboardUrl = apiUrl.replace("/api/v1", "/dashboard");
-        console.log("ProformaInvoiceDetailPage: Navigating to:", dashboardUrl);
-        navigate(dashboardUrl, { state: { redirectUrl: apiUrl } });
-      } else {
-        const errorMessage = error.response?.data?.detail || "Failed to initiate purchase order.";
-        toast.error(errorMessage);
-        console.error("Send purchase order error:", error);
       }
+      toast.error(
+        error.response?.data?.detail || "Failed to initiate purchase order.",
+      );
+      console.error("Send purchase order error:", error);
     } finally {
       setModalLoading(false);
     }
   };
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return { formatted: "N/A", relative: "" };
     const date = new Date(dateString);
     return {
-      formatted: format(date, "dd MMM yyyy, HH:mm:ss"),
+      formatted: format(date, "dd MMM yyyy, HH:mm"),
       relative: formatDistanceToNow(date, { addSuffix: true }),
     };
   };
 
-  if (loading) {
+  if (!loading && !invoice) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
-        <p className="mt-4 text-lg text-gray-700 font-medium">Loading Proforma Invoice Details...</p>
-      </div>
-    );
-  }
-
-  if (!invoice) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
-          <p className="mt-4 text-xl font-semibold text-gray-900">Proforma Invoice not found.</p>
-          <button
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
+        <div className="rounded-2xl border border-border/70 bg-card p-8">
+          <p className="font-display text-lg font-semibold">
+            Proforma invoice not found
+          </p>
+          <Button
+            variant="outline"
+            className="mt-5"
             onClick={() => navigate("/dashboard/proforma-invoices")}
-            className="mt-6 flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-xs"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Proforma Invoices
-          </button>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to proforma invoices
+          </Button>
         </div>
       </div>
     );
   }
 
+  if (loading || !invoice) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+      </div>
+    );
+  }
+
+  const created = formatDateTime(invoice.created_at);
+  const updated = formatDateTime(invoice.updated_at);
+
   return (
-    <div className="container mx-auto p-8 max-w-6xl">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
+    <div className="mx-auto max-w-5xl space-y-6 font-montserrat">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
             {invoice.issuing_company_display_logo ? (
               <img
                 src={invoice.issuing_company_display_logo}
-                alt="Issuing Company Logo"
-                className="h-16 w-16 object-contain rounded-md border border-gray-200"
+                alt="Issuing company logo"
+                className="h-14 w-14 rounded-xl border border-white/30 bg-white/10 object-contain p-1"
               />
             ) : (
-              <Building2 className="h-16 w-16 text-gray-400" />
+              <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/15">
+                <Building2 className="h-7 w-7" />
+              </span>
             )}
-            <h1 className="text-3xl font-semibold text-gray-900">
-              Proforma Invoice: {invoice.title || "Untitled"} <span className="text-gray-500 text-sm">({invoice.ref_num})</span>
-            </h1>
+            <div>
+              <p className="text-xs text-white/80">{invoice.ref_num}</p>
+              <h1 className="font-display text-2xl font-bold">
+                {invoice.title || "Untitled invoice"}
+              </h1>
+            </div>
           </div>
-          <button
-            onClick={() => navigate("/dashboard/proforma-invoices")}
-            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-xs"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Proforma Invoices
-          </button>
+          <div className="flex items-center gap-3">
+            {jobTitle === "lead buyer" && invoice.status === "draft" && (
+              <Button
+                onClick={handleSendPurchaseOrder}
+                disabled={modalLoading}
+                className="bg-white text-brand hover:bg-white/90"
+              >
+                {modalLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-1.5 h-4 w-4" /> Send purchase order
+                  </>
+                )}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard/proforma-invoices")}
+              className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Invoice Details Section */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <button
-              onClick={() => setDetailsOpen(!detailsOpen)}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
+      {/* Details */}
+      <Section
+        title="Invoice details"
+        open={detailsOpen}
+        onToggle={() => setDetailsOpen((o) => !o)}
+      >
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <Row label="Reference">{invoice.ref_num}</Row>
+          <Row label="Title">{invoice.title}</Row>
+          <Row label="Description">{invoice.description || "N/A"}</Row>
+          <Row label="Issuing company">{invoice.issuing_company_name}</Row>
+          <Row label="Status">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                invoice.status === "draft"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
             >
-              <h2 className="text-xl font-medium text-gray-900">Invoice Details</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
-                {detailsOpen ? "Collapse" : "Expand"}
-                {detailsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
-              </span>
-            </button>
-          </div>
-          {detailsOpen && (
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Reference Number</span>
-                    <span className="text-gray-900">{invoice.ref_num}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Title</span>
-                    <span className="text-gray-900">{invoice.title}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Description</span>
-                    <span className="text-gray-900">{invoice.description || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Issuing Company</span>
-                    <span className="text-gray-900">{invoice.issuing_company_name}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Status</span>
-                    <span className="text-gray-900">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          invoice.status === "draft"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {invoice.status === "draft" ? "Open" : "Closed"}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Spend Category</span>
-                    <span className="text-gray-900">{invoice.spend_category}</span>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Priority</span>
-                    <span className="text-gray-900">{invoice.priority === "urgent" ? "Urgent" : "Non-Urgent"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Entity Type</span>
-                    <span className="text-gray-900">{invoice.type_of_entity || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Start Date</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(invoice.start_datetime).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(invoice.start_datetime).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Submission Date</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(invoice.submission_datetime).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(invoice.submission_datetime).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Created At</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(invoice.created_at).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(invoice.created_at).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Updated At</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(invoice.updated_at).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(invoice.updated_at).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Is Active</span>
-                    <span className="text-gray-900">{invoice.is_active ? "Yes" : "No"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Is Approved</span>
-                    <span className="text-gray-900">{invoice.is_approved ? "Yes" : "No"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Total Cost</span>
-                    <span className="text-gray-900">{invoice.total_cost}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Waybill Reference</span>
-                    <span className="text-gray-900">{invoice.external_event_ref_num}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+              {invoice.status === "draft" ? "Open" : "Closed"}
+            </span>
+          </Row>
+          <Row label="Spend category">{invoice.spend_category}</Row>
+          <Row label="Priority">
+            {invoice.priority === "urgent" ? "Urgent" : "Non-Urgent"}
+          </Row>
+          <Row label="Entity type">{invoice.type_of_entity || "N/A"}</Row>
+          <Row label="Start date">
+            {formatDateTime(invoice.start_datetime).formatted}
+          </Row>
+          <Row label="Submission date">
+            {formatDateTime(invoice.submission_datetime).formatted}
+          </Row>
+          <Row label="Created">
+            <span title={created.relative}>{created.formatted}</span>
+          </Row>
+          <Row label="Updated">
+            <span title={updated.relative}>{updated.formatted}</span>
+          </Row>
+          <Row label="Active">{invoice.is_active ? "Yes" : "No"}</Row>
+          <Row label="Approved">{invoice.is_approved ? "Yes" : "No"}</Row>
+          <Row label="Total cost">{invoice.total_cost}</Row>
+          <Row label="Waybill reference">
+            {invoice.external_event_ref_num || "N/A"}
+          </Row>
         </div>
+      </Section>
 
-        {/* Items Section */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <button
-              onClick={() => setItemsOpen(!itemsOpen)}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
-            >
-              <h2 className="text-xl font-medium text-gray-900">Items</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
-                {itemsOpen ? "Collapse" : "Expand"}
-                {itemsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
-              </span>
-            </button>
+      {/* Items */}
+      <Section
+        title="Items"
+        open={itemsOpen}
+        onToggle={() => setItemsOpen((o) => !o)}
+      >
+        {invoice.items?.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Description</th>
+                  <th className="px-4 py-2.5 font-medium">Qty</th>
+                  <th className="px-4 py-2.5 font-medium">Unit</th>
+                  <th className="px-4 py-2.5 font-medium">Special handling</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {invoice.items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-2.5 font-medium">{item.name}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      {item.description || "N/A"}
+                    </td>
+                    <td className="px-4 py-2.5">{item.quantity}</td>
+                    <td className="px-4 py-2.5">{item.unit_of_measure}</td>
+                    <td className="px-4 py-2.5">
+                      {item.special_handles?.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {item.special_handles.map((sh) => (
+                            <span key={sh.id} className="text-muted-foreground">
+                              {sh.handling_description}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {itemsOpen && (
-            <div className="p-6">
-              {invoice.items.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Name</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Description</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Quantity</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Unit of Measure</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Special Handling</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoice.items.map((item, index) => (
-                        <tr
-                          key={item.id}
-                          className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100 transition duration-200`}
-                        >
-                          <td className="py-3 px-4 text-gray-900">{item.name}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.description || "N/A"}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.quantity}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.unit_of_measure}</td>
-                          <td className="py-3 px-4 text-gray-900">
-                            {item.special_handles.length > 0 ? (
-                              <div className="flex flex-col gap-2">
-                                {item.special_handles.map((sh, shIndex) => (
-                                  <div key={sh.id} className="relative group">
-                                    <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                                      Handling Description: {sh.handling_description}
-                                    </span>
-                                    <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                                      Created: {formatDateTime(sh.created_at).relative}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              "N/A"
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-600 text-center font-medium">No items available.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        {(jobTitle === "lead buyer") && invoice.status === "draft" && (
-          <div className="p-6 flex justify-end">
-            <button
-              onClick={handleSendPurchaseOrder}
-              disabled={modalLoading}
-              className="bg-black text-white py-2 px-6 rounded-md hover:bg-gray-700 transition duration-200 flex items-center shadow-md disabled:opacity-50"
-            >
-              <Send className="w-5 h-5 mr-2" />
-              {modalLoading ? "Processing..." : "Send Purchase Order"}
-            </button>
-          </div>
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No items available.
+          </p>
         )}
-      </div>
+      </Section>
     </div>
   );
 };

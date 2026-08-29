@@ -1,10 +1,60 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, FileText, Trash2, ArrowLeft, ChevronDown, ChevronUp, AlertCircle, X } from "lucide-react";
+import {
+  Loader2,
+  ReceiptText,
+  Trash2,
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
-import { getCookie } from "@/utility/getCookie";
+import {
+  format,
+  formatDistanceToNow,
+} from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+function Section({ title, open, onToggle, children }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/40"
+      >
+        <h2 className="font-display text-base font-semibold">{title}</h2>
+        {open ? (
+          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+        )}
+      </button>
+      {open && <div className="border-t border-border/60 p-5">{children}</div>}
+    </div>
+  );
+}
+
+function Row({ label, children }) {
+  return (
+    <div className="flex items-start gap-3 text-sm">
+      <span className="w-36 shrink-0 font-medium text-muted-foreground">
+        {label}
+      </span>
+      <span className="text-foreground">{children}</span>
+    </div>
+  );
+}
 
 const ProformaInvoiceIssuedDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -19,12 +69,13 @@ const ProformaInvoiceIssuedDetailPage = () => {
 
   useEffect(() => {
     if (jobTitle !== "logistics manager") {
+      setLoading(false);
       return;
     }
     const fetchInvoiceDetails = async () => {
+      setLoading(true);
       try {
         const response = await authAxios.get(`proforma-invoices/${refNum}/`);
-        console.log("ProformaInvoiceIssuedDetailPage: Fetched invoice details:", response.data);
         setInvoice(response.data);
       } catch (error) {
         toast.error("Failed to load proforma invoice details.");
@@ -43,13 +94,8 @@ const ProformaInvoiceIssuedDetailPage = () => {
       return;
     }
     setDeleting(true);
-    const csrfToken = getCookie("csrftoken");
     try {
-      await authAxios.delete(`proforma-invoices/${refNum}/`, {
-        headers: {
-          "X-CSRFToken": csrfToken,
-        },
-      });
+      await authAxios.delete(`proforma-invoices/${refNum}/`);
       toast.success("Proforma invoice deleted successfully.");
       navigate("/dashboard/proforma-invoices/issued");
     } catch (error) {
@@ -62,307 +108,218 @@ const ProformaInvoiceIssuedDetailPage = () => {
   };
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return { formatted: "N/A", relative: "" };
     const date = new Date(dateString);
     return {
-      formatted: format(date, "dd MMM yyyy, HH:mm:ss"),
+      formatted: format(date, "dd MMM yyyy, HH:mm"),
       relative: formatDistanceToNow(date, { addSuffix: true }),
     };
   };
 
-  if (jobTitle !== "logistics manager") {
+  if (jobTitle !== "logistics manager" || (!loading && !invoice)) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <p className="text-xl font-semibold text-gray-900 mb-4">Access Denied</p>
-          <p className="text-gray-600 mb-6">Only logistics managers can view issued proforma invoice details.</p>
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-xs"
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
+        <div className="rounded-2xl border border-border/70 bg-card p-8">
+          <p className="font-display text-lg font-semibold">
+            {jobTitle !== "logistics manager"
+              ? "Access denied"
+              : "Proforma invoice not found"}
+          </p>
+          {jobTitle !== "logistics manager" && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Only logistics managers can view issued proforma invoice details.
+            </p>
+          )}
+          <Button
+            variant="outline"
+            className="mt-5"
+            onClick={() =>
+              navigate(
+                jobTitle !== "logistics manager"
+                  ? "/dashboard"
+                  : "/dashboard/proforma-invoices/issued",
+              )
+            }
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Dashboard
-          </button>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          </Button>
         </div>
       </div>
     );
   }
 
-  if (loading) {
+  if (loading || !invoice) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
-        <p className="mt-4 text-lg text-gray-700 font-medium">Loading Invoice Details...</p>
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     );
   }
 
-  if (!invoice) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
-          <p className="mt-4 text-xl font-semibold text-gray-900">Proforma Invoice not found.</p>
-          <button
-            onClick={() => navigate("/dashboard/proforma-invoices/issued")}
-            className="mt-6 flex items-center justify-center w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-xs"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Issued Proforma Invoices
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const created = formatDateTime(invoice.created_at);
+  const updated = formatDateTime(invoice.updated_at);
 
   return (
-    <div className="container mx-auto p-8 max-w-6xl">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <FileText className="h-16 w-16 text-indigo-600" />
-            <h1 className="text-3xl font-semibold text-gray-900">
-              Proforma Invoice: {invoice.title || "Untitled"} <span className="text-gray-500 text-sm">({invoice.ref_num})</span>
-            </h1>
-          </div>
-          <button
-            onClick={() => navigate("/dashboard/proforma-invoices/issued")}
-            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-xs"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Issued Proforma Invoices
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        {/* Invoice Details Section */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <button
-              onClick={() => setDetailsOpen(!detailsOpen)}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
-            >
-              <h2 className="text-xl font-medium text-gray-900">Invoice Details</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
-                {detailsOpen ? "Collapse" : "Expand"}
-                {detailsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
-              </span>
-            </button>
-          </div>
-          {detailsOpen && (
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Reference Number</span>
-                    <span className="text-gray-900">{invoice.ref_num}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Title</span>
-                    <span className="text-gray-900">{invoice.title || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Description</span>
-                    <span className="text-gray-900">{invoice.description || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Issuing Company</span>
-                    <span className="text-gray-900">{invoice.issuing_company_name}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Status</span>
-                    <span className="text-gray-900">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          invoice.status === "draft"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {invoice.status === "draft" ? "Open" : "Closed"}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Spend Category</span>
-                    <span className="text-gray-900">{invoice.spend_category}</span>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Priority</span>
-                    <span className="text-gray-900">{invoice.priority === "urgent" ? "Urgent" : "Non-Urgent"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Total Cost</span>
-                    <span className="text-gray-900">{invoice.total_cost}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Start Date</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(invoice.start_datetime).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(invoice.start_datetime).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Submission Date</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(invoice.submission_datetime).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(invoice.submission_datetime).relative}
-                      </div>
-                    </div>
-                  </div>
-                  {invoice.created_at && (
-                    <div className="flex items-center">
-                      <span className="w-1/3 font-medium text-gray-700">Created At</span>
-                      <div className="relative group">
-                        <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                          {formatDateTime(invoice.created_at).formatted}
-                        </span>
-                        <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                          {formatDateTime(invoice.created_at).relative}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {invoice.updated_at && (
-                    <div className="flex items-center">
-                      <span className="w-1/3 font-medium text-gray-700">Updated At</span>
-                      <div className="relative group">
-                        <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                          {formatDateTime(invoice.updated_at).formatted}
-                        </span>
-                        <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                          {formatDateTime(invoice.updated_at).relative}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+    <div className="mx-auto max-w-5xl space-y-6 font-montserrat">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/15">
+              <ReceiptText className="h-7 w-7" />
+            </span>
+            <div>
+              <p className="text-xs text-white/80">{invoice.ref_num}</p>
+              <h1 className="font-display text-2xl font-bold">
+                {invoice.title || "Untitled invoice"}
+              </h1>
             </div>
-          )}
-        </div>
-
-        {/* Items Section */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <button
-              onClick={() => setItemsOpen(!itemsOpen)}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
-            >
-              <h2 className="text-xl font-medium text-gray-900">Items</h2>
-              <span className="flex items-center text-indigo-600 font-medium">
-                {itemsOpen ? "Collapse" : "Expand"}
-                {itemsOpen ? <ChevronUp className="w-5 h-5 ml-2" /> : <ChevronDown className="w-5 h-5 ml-2" />}
-              </span>
-            </button>
           </div>
-          {itemsOpen && (
-            <div className="p-6">
-              {invoice.items.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Name</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Description</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Quantity</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Unit of Measure</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Unit Price</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Extended Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoice.items.map((item, index) => (
-                        <tr
-                          key={item.id}
-                          className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100 transition duration-200`}
-                        >
-                          <td className="py-3 px-4 text-gray-900">{item.name || "N/A"}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.description || "N/A"}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.quantity}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.unit_of_measure}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.unit_price}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.extended_value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-600 text-center font-medium">No items available.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        {jobTitle === "logistics manager" && (
-          <div className="p-6 flex justify-end">
-            <button
+          <div className="flex items-center gap-3">
+            <Button
               onClick={() => setShowDeleteModal(true)}
               disabled={deleting}
-              className="bg-red-600 text-white py-2 px-6 rounded-md hover:bg-red-700 transition duration-200 flex items-center shadow-md disabled:opacity-50"
+              className="bg-white/15 text-brand-foreground hover:bg-white/25"
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard/proforma-invoices/issued")}
+              className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Details */}
+      <Section
+        title="Invoice details"
+        open={detailsOpen}
+        onToggle={() => setDetailsOpen((o) => !o)}
+      >
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <Row label="Reference">{invoice.ref_num}</Row>
+          <Row label="Title">{invoice.title || "N/A"}</Row>
+          <Row label="Description">{invoice.description || "N/A"}</Row>
+          <Row label="Issuing company">{invoice.issuing_company_name}</Row>
+          <Row label="Status">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                invoice.status === "draft"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {invoice.status === "draft" ? "Open" : "Closed"}
+            </span>
+          </Row>
+          <Row label="Spend category">{invoice.spend_category}</Row>
+          <Row label="Priority">
+            {invoice.priority === "urgent" ? "Urgent" : "Non-Urgent"}
+          </Row>
+          <Row label="Total cost">{invoice.total_cost}</Row>
+          <Row label="Start date">
+            {formatDateTime(invoice.start_datetime).formatted}
+          </Row>
+          <Row label="Submission date">
+            {formatDateTime(invoice.submission_datetime).formatted}
+          </Row>
+          <Row label="Created">
+            <span title={created.relative}>{created.formatted}</span>
+          </Row>
+          <Row label="Updated">
+            <span title={updated.relative}>{updated.formatted}</span>
+          </Row>
+        </div>
+      </Section>
+
+      {/* Items */}
+      <Section
+        title="Items"
+        open={itemsOpen}
+        onToggle={() => setItemsOpen((o) => !o)}
+      >
+        {invoice.items?.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Description</th>
+                  <th className="px-4 py-2.5 font-medium">Qty</th>
+                  <th className="px-4 py-2.5 font-medium">Unit</th>
+                  <th className="px-4 py-2.5 font-medium">Unit price</th>
+                  <th className="px-4 py-2.5 font-medium">Extended value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {invoice.items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-2.5 font-medium">
+                      {item.name || "N/A"}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      {item.description || "N/A"}
+                    </td>
+                    <td className="px-4 py-2.5">{item.quantity}</td>
+                    <td className="px-4 py-2.5">{item.unit_of_measure}</td>
+                    <td className="px-4 py-2.5">{item.unit_price}</td>
+                    <td className="px-4 py-2.5">{item.extended_value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No items available.
+          </p>
+        )}
+      </Section>
+
+      {/* Delete confirmation */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="font-montserrat sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete proforma invoice</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-foreground">
+                {invoice.title || "Untitled"}
+              </span>{" "}
+              ({invoice.ref_num})? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleDelete}
+              disabled={deleting}
             >
               {deleting ? (
-                <Loader2 className="animate-spin w-5 h-5 mr-2" />
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting…
+                </>
               ) : (
-                <Trash2 className="w-5 h-5 mr-2" />
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </>
               )}
-              {deleting ? "Deleting..." : "Delete Invoice"}
-            </button>
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full border border-gray-200 shadow-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-medium text-gray-900">Delete Proforma Invoice</h2>
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <p className="text-gray-600 mb-6 font-medium">
-                Are you sure you want to delete the proforma invoice "{invoice.title || "Untitled"}" ({invoice.ref_num})? This action cannot be undone.
-              </p>
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center shadow-md disabled:opacity-50"
-                >
-                  {deleting ? (
-                    <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                  ) : (
-                    <Trash2 className="w-5 h-5 mr-2" />
-                  )}
-                  {deleting ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

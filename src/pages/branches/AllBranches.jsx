@@ -1,17 +1,39 @@
 import { useAuth } from "@/contexts/app.context";
-import { Plus, MapPin, Phone, Mail, Building, Navigation, MoreVertical } from "lucide-react";
-import React, { useEffect, useState, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Plus,
+  MapPin,
+  Phone,
+  Mail,
+  Building,
+  Navigation,
+  MoreVertical,
+  Search,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Trash2,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { getCookie } from "@/utility/getCookie";
 
-// No changes to component declaration
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import BranchCreateModal from "@/components/branches/BranchCreateModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
 const AllBranches = () => {
   const { authAxios } = useAuth();
-  const navigate = useNavigate(); // Added: For Add Branch button navigation
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({
     count: 0,
     next: null,
@@ -19,59 +41,65 @@ const AllBranches = () => {
     currentPage: 1,
   });
   const [searchTerm, setSearchTerm] = useState("");
-  // Added: State for menu and modal
   const [openMenuId, setOpenMenuId] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const menuRef = useRef(null);
 
-  // No changes to fetchBranches
-  const fetchBranches = async (page = 1, search = "") => {
-    try {
+  const fetchBranches = useCallback(
+    async (page = 1, search = "") => {
       setLoading(true);
-      const url = search
-        ? `branches/?search=${search}`
-        : `branches/?page=${page}`;
-      const response = await authAxios.get(url);
-      setBranches(response.data.results);
-      setPagination({
-        count: response.data.count,
-        next: response.data.next,
-        previous: response.data.previous,
-        currentPage: page,
-      });
-    } catch (err) {
-      setError(err.message || "Failed to fetch branches");
-      toast.error("Failed to fetch branches");
-      console.error("Error fetching branches:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const url = search
+          ? `branches/?search=${search}`
+          : `branches/?page=${page}`;
+        const response = await authAxios.get(url);
+        setBranches(response.data.results || []);
+        setPagination({
+          count: response.data.count,
+          next: response.data.next,
+          previous: response.data.previous,
+          currentPage: page,
+        });
+      } catch (err) {
+        toast.error("Failed to fetch branches");
+        console.error("Error fetching branches:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [authAxios],
+  );
 
-  // Added: Handle delete branch
+  useEffect(() => {
+    fetchBranches();
+  }, [fetchBranches]);
+
+  useEffect(() => {
+    if (searchParams.get("new")) {
+      setCreateOpen(true);
+      searchParams.delete("new");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const handleDelete = async (branchId) => {
     setDeleting(true);
     try {
-      const csrfToken = getCookie("csrftoken");
-      await authAxios.delete(`branches/${branchId}/`, {
-        headers: {
-          "X-CSRFToken": csrfToken,
-        },
-      });
+      await authAxios.delete(`branches/${branchId}/`);
       toast.success("Branch deleted successfully!");
       setDeleteModal(null);
       fetchBranches(pagination.currentPage, searchTerm);
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || "Failed to delete branch";
-      toast.error(errorMessage);
+      toast.error(err.response?.data?.detail || "Failed to delete branch");
       console.error("Error deleting branch:", err);
     } finally {
       setDeleting(false);
     }
   };
 
-  // Added: Click-outside handler for submenu
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -79,142 +107,98 @@ const AllBranches = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Added: Focus management for modal
-  const modalRef = useRef(null);
-  useEffect(() => {
-    if (deleteModal && modalRef.current) {
-      modalRef.current.focus();
-    }
-  }, [deleteModal]);
-
-  // No changes to initial useEffect
-  useEffect(() => {
-    fetchBranches();
-  }, [authAxios]);
-
-  // No changes to loading state
-  if (loading) {
-    return (
-      <div className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-xs border border-gray-100 p-5 animate-pulse">
-              <div className="space-y-4">
-                <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-                <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 bg-gray-200 rounded-full"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="h-5 w-5 bg-gray-200 rounded-full mt-1"></div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-full"></div>
-                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // No changes to error state
-  if (error) {
-    return (
-      <div className="p-4 text-red-600 bg-red-50 rounded-lg">
-        Error: {error}
-      </div>
-    );
-  }
+  const totalPages = Math.max(1, Math.ceil(pagination.count / 10));
 
   return (
-    <div className="p-4">
-      {/* Modified: Added conditional Add Branch button */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Branch Locations</h1>
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <input
-              type="text"
-              placeholder="Search branches..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                fetchBranches(1, e.target.value);
-              }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
-            />
-            <svg
-              className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+    <div className="mx-auto max-w-6xl space-y-8 font-montserrat">
+      {/* Branded header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+              <Building className="h-3.5 w-3.5" /> Branches
+            </span>
+            <h1 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
+              Branch locations
+            </h1>
+            <p className="mt-2 max-w-lg text-sm text-white/85">
+              Manage the branches and locations across your organization.
+            </p>
           </div>
-          {branches.length > 0 && (
-            <button
-              onClick={() => navigate("/dashboard/branches/new")}
-              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              <Plus size={18} />
-              <span className="hidden sm:inline">Add Branch</span>
-            </button>
-          )}
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="bg-white text-brand hover:bg-white/90"
+          >
+            <Plus className="mr-1.5 h-4 w-4" /> Add branch
+          </Button>
         </div>
       </div>
 
-      {branches.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-8 text-center">
-          <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <Building className="text-gray-400" size={40} />
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            fetchBranches(1, e.target.value);
+          }}
+          placeholder="Search branches…"
+          className="pl-9"
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-brand" /> Loading
+          branches…
+        </div>
+      ) : branches.length === 0 ? (
+        <div className="rounded-2xl border border-border/70 bg-card p-10 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand/10">
+            <Building className="h-7 w-7 text-brand" />
           </div>
-          <h3 className="text-lg font-medium text-gray-700 mb-2">No branches found</h3>
-          <p className="text-gray-500 mb-4">Create your first branch to get started</p>
-          <Link
-            to="/dashboard/branches/new"
-            className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+          <h3 className="font-display text-lg font-semibold">
+            No branches found
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Create your first branch to get started.
+          </p>
+          <Button
+            className="mt-5 bg-brand-gradient text-brand-foreground hover:opacity-90"
+            onClick={() => setCreateOpen(true)}
           >
-            <Plus size={16} />
-            Add New Branch
-          </Link>
+            <Plus className="mr-1.5 h-4 w-4" /> Add branch
+          </Button>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {branches.map((branch) => (
               <div
                 key={branch.id}
-                className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+                className="overflow-hidden rounded-2xl border border-border/70 bg-card transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/5"
               >
                 <div className="p-5">
-                  {/* Modified: Added three-dot menu */}
-                  <div className="flex justify-between items-start mb-4 relative">
-                    <h2 className="text-xl font-semibold text-gray-800">{branch.name}</h2>
+                  <div className="relative mb-4 flex items-start justify-between">
+                    <h2 className="font-display text-lg font-semibold">
+                      {branch.name}
+                    </h2>
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      <span className="inline-flex items-center rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand">
                         Branch
                       </span>
                       <button
-                        onClick={() => setOpenMenuId(openMenuId === branch.id ? null : branch.id)}
-                        className="text-gray-500 hover:text-gray-700"
+                        onClick={() =>
+                          setOpenMenuId(
+                            openMenuId === branch.id ? null : branch.id,
+                          )
+                        }
+                        className="text-muted-foreground hover:text-foreground"
                         aria-label="Branch options"
                       >
                         <MoreVertical size={18} />
@@ -222,71 +206,56 @@ const AllBranches = () => {
                       {openMenuId === branch.id && (
                         <div
                           ref={menuRef}
-                          className="absolute top-8 right-4 bg-white shadow-lg rounded-lg border border-gray-200 z-10"
+                          className="absolute right-4 top-8 z-10 overflow-hidden rounded-xl border border-border/70 bg-card shadow-lg"
                         >
-                          <ul className="text-sm">
-                            <li>
-                              <Link
-                                to={`/dashboard/branches/${branch.id}/edit`}
-                                className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                                onClick={() => setOpenMenuId(null)}
-                              >
-                                Edit
-                              </Link>
-                            </li>
-                            <li>
-                              <button
-                                onClick={() => {
-                                  setDeleteModal(branch.id);
-                                  setOpenMenuId(null);
-                                }}
-                                className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
-                              >
-                                Delete
-                              </button>
-                            </li>
-                          </ul>
+                          <Link
+                            to={`/dashboard/branches/${branch.id}/edit`}
+                            className="block px-4 py-2 text-sm hover:bg-muted/40"
+                            onClick={() => setOpenMenuId(null)}
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setDeleteModal(branch.id);
+                              setOpenMenuId(null);
+                            }}
+                            className="block w-full px-4 py-2 text-left text-sm text-destructive hover:bg-muted/40"
+                          >
+                            Delete
+                          </button>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    {/* Email - No changes */}
+                  <div className="space-y-3 text-sm">
                     <div className="flex items-start gap-3">
-                      <Mail className="shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <Mail className="mt-0.5 shrink-0 text-muted-foreground" size={16} />
                       <div>
-                        <p className="text-sm text-gray-500">Email</p>
-                        <p className="text-gray-800 font-medium">
-                          {branch.email || 'Not provided'}
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="font-medium">
+                          {branch.email || "Not provided"}
                         </p>
                       </div>
                     </div>
-
-                    {/* Phone Numbers - No changes */}
                     <div className="flex items-start gap-3">
-                      <Phone className="shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <Phone className="mt-0.5 shrink-0 text-muted-foreground" size={16} />
                       <div>
-                        <p className="text-sm text-gray-500">Phone</p>
-                        <div className="space-y-1">
-                          <p className="text-gray-800 font-medium">
-                            {branch.office_line || 'Not provided'}
-                          </p>
-                          {branch.office_line_2 && (
-                            <p className="text-gray-800 font-medium">
-                              {branch.office_line_2}
-                            </p>
-                          )}
-                        </div>
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="font-medium">
+                          {branch.office_line || "Not provided"}
+                        </p>
+                        {branch.office_line_2 && (
+                          <p className="font-medium">{branch.office_line_2}</p>
+                        )}
                       </div>
                     </div>
-
-                    {/* Address - No changes */}
                     <div className="flex items-start gap-3">
-                      <MapPin className="shrink-0 text-gray-500 mt-0.5" size={18} />
+                      <MapPin className="mt-0.5 shrink-0 text-muted-foreground" size={16} />
                       <div>
-                        <p className="text-sm text-gray-500">Address</p>
-                        <div className="text-gray-800 font-medium space-y-1">
+                        <p className="text-xs text-muted-foreground">Address</p>
+                        <div className="space-y-0.5 font-medium">
                           {branch.location.street_address && (
                             <p>{branch.location.street_address}</p>
                           )}
@@ -298,13 +267,14 @@ const AllBranches = () => {
                               branch.location.town,
                               branch.location.city,
                               branch.location.district,
-                              branch.location.region
-                            ].filter(Boolean).join(', ')}
+                              branch.location.region,
+                            ]
+                              .filter(Boolean)
+                              .join(", ")}
                           </p>
                           {branch.location.gps && (
-                            <p className="flex items-center gap-1 text-sm text-gray-600">
-                              <Navigation size={14} />
-                              GPS: {branch.location.gps}
+                            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Navigation size={12} /> GPS: {branch.location.gps}
                             </p>
                           )}
                         </div>
@@ -312,25 +282,12 @@ const AllBranches = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+                  <div className="mt-5 flex justify-end border-t border-border/60 pt-4">
                     <Link
                       to={`/dashboard/branches/${branch.id}`}
-                      className="text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center gap-1"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
                     >
-                      View details
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
+                      View details <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
                 </div>
@@ -338,129 +295,82 @@ const AllBranches = () => {
             ))}
           </div>
 
-          {/* Pagination - No changes */}
-          {pagination.count > 0 && (
-            <div className="flex justify-between items-center mt-8">
-              <button
+          {pagination.count > 10 && (
+            <div className="flex items-center justify-between gap-3">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => fetchBranches(pagination.currentPage - 1)}
                 disabled={!pagination.previous}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                  !pagination.previous
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
-                }`}
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                Previous
-              </button>
-              <span className="text-sm text-gray-600">
-                Page {pagination.currentPage} of {Math.ceil(pagination.count / 10)}
+                <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {pagination.currentPage} of {totalPages}
               </span>
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => fetchBranches(pagination.currentPage + 1)}
                 disabled={!pagination.next}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                  !pagination.next
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
-                }`}
               >
-                Next
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
+                Next <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
             </div>
           )}
         </>
       )}
 
-      {/* Added: Delete confirmation modal */}
-      {deleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div
-            ref={modalRef}
-            role="dialog"
-            aria-modal="true"
-            tabIndex={-1}
-            className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
-          >
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Delete Branch</h2>
-            <p className="text-gray-600 mb-6">
+      {/* Create wizard modal */}
+      <BranchCreateModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={() => fetchBranches()}
+      />
+
+      {/* Delete confirmation */}
+      <Dialog
+        open={Boolean(deleteModal)}
+        onOpenChange={(o) => !o && setDeleteModal(null)}
+      >
+        <DialogContent className="font-montserrat sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete branch</DialogTitle>
+            <DialogDescription>
               Are you sure you want to delete{" "}
-              <span className="font-medium">
-                {branches.find((b) => b.id === deleteModal)?.name || "this branch"}
+              <span className="font-medium text-foreground">
+                {branches.find((b) => b.id === deleteModal)?.name ||
+                  "this branch"}
               </span>
               ? This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteModal(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteModal)}
-                disabled={deleting}
-                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
-                  deleting ? "opacity-70 cursor-not-allowed" : ""
-                }`}
-              >
-                {deleting ? (
-                  <span className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Deleting...
-                  </span>
-                ) : (
-                  "Delete"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteModal(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => handleDelete(deleteModal)}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

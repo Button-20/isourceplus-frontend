@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Truck, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+import {
+  format,
+  formatDistanceToNow,
+} from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 import ScrollToTop from "@/components/ScrollToTop";
+import { Button } from "@/components/ui/button";
 
 const AllWaybillsPage = () => {
   const { authAxios, jobTitle, BASE_URL } = useAuth();
@@ -15,9 +19,8 @@ const AllWaybillsPage = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [nextPage, setNextPage] = useState(null);
   const [previousPage, setPreviousPage] = useState(null);
-  const pageSize = 10; // Matches PAGE_SIZE in settings.py
+  const pageSize = 10;
 
-  // Restrict access for "lead buyer" and "sales manager"
   useEffect(() => {
     if (["lead buyer", "sales manager"].includes(jobTitle)) {
       navigate("/dashboard/waybills/issued", { replace: true });
@@ -27,9 +30,8 @@ const AllWaybillsPage = () => {
   const fetchWaybills = async (page = 1) => {
     try {
       setLoading(true);
-      console.log(`Fetching waybills from: ${BASE_URL}waybills/?page=${page}`);
       const response = await authAxios.get(`waybills/?page=${page}`);
-      setWaybills(response.data.results);
+      setWaybills(response.data.results || []);
       setTotalCount(response.data.count);
       setNextPage(response.data.next);
       setPreviousPage(response.data.previous);
@@ -46,18 +48,19 @@ const AllWaybillsPage = () => {
     if (!["lead buyer", "sales manager"].includes(jobTitle)) {
       fetchWaybills();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authAxios, BASE_URL, jobTitle]);
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return { formatted: "N/A", relative: "" };
     const date = new Date(dateString);
     return {
-      formatted: format(date, "dd MMM yyyy, HH:mm:ss"),
+      formatted: format(date, "dd MMM yyyy, HH:mm"),
       relative: formatDistanceToNow(date, { addSuffix: true }),
     };
   };
 
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -65,115 +68,128 @@ const AllWaybillsPage = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto p-6">
-      <ScrollToTop/>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">All Waybills</h1>
+    <div className="mx-auto max-w-6xl space-y-8 font-montserrat">
+      <ScrollToTop />
+      {/* Branded header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+            <Truck className="h-3.5 w-3.5" /> Waybills
+          </span>
+          <h1 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
+            All waybills
+          </h1>
+          <p className="mt-2 max-w-lg text-sm text-white/85">
+            Waybills available to your organization for delivery.
+          </p>
+        </div>
       </div>
-      <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reference Number
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Title
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Issuing Company
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created At
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {waybills.map((waybill) => (
-              <tr key={waybill.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {waybill.ref_num}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {waybill.title}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {waybill.issuing_company_info}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {waybill.status === "draft" ? "Open" : "Closed"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <div className="relative group">
-                    <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                      {formatDateTime(waybill.created_at).formatted}
-                    </span>
-                    <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                      {formatDateTime(waybill.created_at).relative}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <div className="flex space-x-4">
-                    <Link
-                      to={`/dashboard/waybills/${waybill.ref_num}`}
-                      className="text-indigo-600 hover:text-indigo-800"
-                    >
-                      View Details
-                    </Link>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {totalPages > 1 && (
-        <div className="mt-6 flex justify-between items-center">
-          <div className="text-sm text-gray-700">
-            Showing page {currentPage} of {totalPages} ({totalCount} waybills)
+
+      {/* Table card */}
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+        {loading ? (
+          <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin text-brand" /> Loading
+            waybills…
           </div>
-          <div className="flex space-x-2">
-            <button
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 font-medium">Reference</th>
+                  <th className="px-5 py-3 font-medium">Title</th>
+                  <th className="px-5 py-3 font-medium">Issuing company</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Created</th>
+                  <th className="px-5 py-3 font-medium" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {waybills.length > 0 ? (
+                  waybills.map((waybill) => {
+                    const created = formatDateTime(waybill.created_at);
+                    return (
+                      <tr
+                        key={waybill.id || waybill.ref_num}
+                        className="transition-colors hover:bg-muted/30"
+                      >
+                        <td className="whitespace-nowrap px-5 py-3 font-medium">
+                          {waybill.ref_num}
+                        </td>
+                        <td className="px-5 py-3">{waybill.title}</td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          {waybill.issuing_company_info || "N/A"}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              waybill.status === "draft"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {waybill.status === "draft" ? "Open" : "Closed"}
+                          </span>
+                        </td>
+                        <td
+                          className="whitespace-nowrap px-5 py-3 text-muted-foreground"
+                          title={created.relative}
+                        >
+                          {created.formatted}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3 text-right">
+                          <Link
+                            to={`/dashboard/waybills/${waybill.ref_num}`}
+                            className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+                          >
+                            View <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-5 py-16 text-center text-muted-foreground"
+                    >
+                      No waybills found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-3 border-t border-border/70 px-5 py-4">
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={!previousPage}
-              className={`px-4 py-2 border border-gray-300 rounded-md text-sm font-medium ${
-                previousPage
-                  ? "bg-white text-gray-700 hover:bg-gray-50"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
             >
-              Previous
-            </button>
-            <button
+              <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages} ({totalCount} waybills)
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={!nextPage}
-              className={`px-4 py-2 border border-gray-300 rounded-md text-sm font-medium ${
-                nextPage
-                  ? "bg-white text-gray-700 hover:bg-gray-50"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
             >
-              Next
-            </button>
+              Next <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

@@ -67,7 +67,7 @@ const ROLE_CONFIG = {
     stats: ["rfx", "tenders", "proforma", "purchaseOrders"],
     actions: [
       { label: "Create RFx", href: "/dashboard/rfxs?new=1", icon: FileText },
-      { label: "Create Tender", href: "/dashboard/tenders/new", icon: Gavel },
+      { label: "Create Tender", href: "/dashboard/tenders?new=1", icon: Gavel },
       { label: "View Purchase Orders", href: "/dashboard/purchase-orders/issued", icon: ShoppingCart },
       { label: "Issued Waybills", href: "/dashboard/waybills/issued", icon: Truck },
     ],

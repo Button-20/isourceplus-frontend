@@ -40,7 +40,6 @@ export function DashboardLayout() {
     user,
     token,
     loading,
-    sidebarLoading,
     authAxios,
     fetchProfileInfo,
     userProfileId,
@@ -143,7 +142,6 @@ export function DashboardLayout() {
       icon: Gavel,
       submenu: [
         { title: "View All Tenders", url: "/dashboard/tenders" },
-        { title: "Create Tender", url: "/dashboard/tenders/new" },
         { title: "Issued Tenders", url: "/dashboard/tenders/issued" },
       ],
     },
@@ -223,39 +221,34 @@ export function DashboardLayout() {
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        {sidebarLoading ? (
-          <div className=" font-montserrat flex h-full w-full items-center justify-center bg-sidebar-background">
-            <Loader2 className="animate-spin h-8 w-8 text-sidebar-foreground" />
-          </div>
-        ) : (
-          <>
-            <SidebarHeader>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton size="lg" asChild>
-                    <Link to={"/dashboard"} className="gap-2">
-                      <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
-                        iS
-                      </div>
-                      <img
-                        src={assets.ISlogo}
-                        alt="iSource+"
-                        className="h-6 w-auto group-data-[collapsible=icon]:hidden"
-                      />
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarHeader>
-            <SidebarContent>
-              <NavMain items={navLinks} pathname={location.pathname} />
-              <NavSecondary className="mt-auto" />
-            </SidebarContent>
-            <SidebarFooter>
-              <NavUser user={user} />
-            </SidebarFooter>
-          </>
-        )}
+        {/* The sidebar is always fully rendered — its nav is static and doesn't
+            depend on the job title, so we never blank it while background
+            profile data loads (that caused a visible reload/flicker). */}
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <Link to={"/dashboard"} className="gap-2">
+                  <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
+                    iS
+                  </div>
+                  <img
+                    src={assets.ISlogo}
+                    alt="iSource+"
+                    className="h-6 w-auto group-data-[collapsible=icon]:hidden"
+                  />
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <NavMain items={navLinks} pathname={location.pathname} />
+          <NavSecondary className="mt-auto" />
+        </SidebarContent>
+        <SidebarFooter>
+          <NavUser user={user} />
+        </SidebarFooter>
       </Sidebar>
       <main style={{ width: "100%" }}>
         <div className="m-5 mb-0 flex items-center justify-between gap-3">

@@ -1,43 +1,48 @@
-import React from "react";
-import { X, AlertTriangle } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
-export default function DeleteConfirmationModal({ isOpen, onClose, onConfirm, docType, docId }) {
-  if (!isOpen) return null;
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
+export default function DeleteConfirmationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  docType,
+  docId,
+}) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <AlertTriangle className="w-6 h-6 text-red-500 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">Delete Document</h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <p className="text-gray-600 mb-6">
-          Are you sure you want to delete the {docType.toUpperCase()} document (ID: {docId})? This action cannot be undone.
-        </p>
-        <div className="flex justify-end space-x-4">
-          <button
-            onClick={onClose}
-            className="bg-gray-200 text-gray-700 py-2 px-4 rounded hover:bg-gray-300 transition-colors"
-          >
+    <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="font-montserrat sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete document</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete the{" "}
+            <span className="font-medium capitalize text-foreground">
+              {docType || "selected"}
+            </span>{" "}
+            document{docId ? ` (ID: ${docId})` : ""}? This action cannot be
+            undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            className="bg-destructive text-white hover:bg-destructive/90"
             onClick={onConfirm}
-            className="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition-colors"
           >
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
+            <Trash2 className="mr-2 h-4 w-4" /> Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,13 +1,64 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, ChevronDown, ChevronUp, Building2, Trash2, X } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Building2,
+  Trash2,
+  Send,
+} from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
-import { getCookie } from "@/utility/getCookie";
+import {
+  format,
+  formatDistanceToNow,
+} from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+function Section({ title, open, onToggle, children }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/40"
+      >
+        <h2 className="font-display text-base font-semibold">{title}</h2>
+        {open ? (
+          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+        )}
+      </button>
+      {open && <div className="border-t border-border/60 p-5">{children}</div>}
+    </div>
+  );
+}
+
+function Row({ label, children }) {
+  return (
+    <div className="flex items-start gap-3 text-sm">
+      <span className="w-36 shrink-0 font-medium text-muted-foreground">
+        {label}
+      </span>
+      <span className="text-foreground">{children}</span>
+    </div>
+  );
+}
 
 const WaybillDetailPage = () => {
-  const { authAxios, jobTitle, BASE_URL } = useAuth();
+  const { authAxios, jobTitle } = useAuth();
   const { refNum } = useParams();
   const [waybill, setWaybill] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,10 +73,10 @@ const WaybillDetailPage = () => {
 
   useEffect(() => {
     const fetchWaybill = async () => {
+      setLoading(true);
       try {
         const response = await authAxios.get(`waybills/${refNum}/`);
         setWaybill(response.data);
-        console.log("Fetched waybill:", response.data);
       } catch (error) {
         toast.error("Failed to load waybill details.");
         console.error("Fetch waybill error:", error);
@@ -44,23 +95,17 @@ const WaybillDetailPage = () => {
       if (!url || !url.startsWith("/api/v1/proforma-invoices/create-offer/")) {
         throw new Error("Invalid redirect URL received.");
       }
-      const dashboardUrl = url.replace("/api/v1", "/dashboard");
-      console.log("Navigating to:", dashboardUrl);
-      navigate(dashboardUrl);
+      navigate(url.replace("/api/v1", "/dashboard"));
     } catch (error) {
       if (error.response && error.response.status === 302) {
         const url = error.response.data.event_response_create_url;
-        if (!url || !url.startsWith("/api/v1/proforma-invoices/create-offer/")) {
-          throw new Error("Invalid redirect URL received.");
+        if (url?.startsWith("/api/v1/proforma-invoices/create-offer/")) {
+          navigate(url.replace("/api/v1", "/dashboard"));
+          return;
         }
-        const dashboardUrl = url.replace("/api/v1", "/dashboard");
-        console.log("Navigating to:", dashboardUrl);
-        navigate(dashboardUrl);
-      } else {
-        const errorMessage = error.response?.data?.detail || "Failed to initiate offer.";
-        toast.error(errorMessage);
-        console.error("Send offer error:", error);
       }
+      toast.error(error.response?.data?.detail || "Failed to initiate offer.");
+      console.error("Send offer error:", error);
     } finally {
       setModalLoading(false);
     }
@@ -68,13 +113,8 @@ const WaybillDetailPage = () => {
 
   const handleDeleteWaybill = async () => {
     setDeleteLoading(true);
-    const csrfToken = getCookie("csrftoken");
     try {
-      await authAxios.delete(`waybills/${refNum}/`, {
-        headers: {
-          "X-CSRFToken": csrfToken,
-        },
-      });
+      await authAxios.delete(`waybills/${refNum}/`);
       toast.success("Waybill deleted successfully!");
       setShowDeleteModal(false);
       navigate("/dashboard/waybills/issued");
@@ -86,342 +126,257 @@ const WaybillDetailPage = () => {
     }
   };
 
-  const toggleDetails = () => setDetailsOpen(!detailsOpen);
-  const toggleItems = () => setItemsOpen(!itemsOpen);
-
   const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return { formatted: "N/A", relative: "" };
     const date = new Date(dateString);
     return {
-      formatted: format(date, "dd MMM yyyy, HH:mm:ss"),
+      formatted: format(date, "dd MMM yyyy, HH:mm"),
       relative: formatDistanceToNow(date, { addSuffix: true }),
     };
   };
 
-  if (loading) {
+  if (!loading && !waybill) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
-        <p className="mt-4 text-lg text-gray-700 font-medium">Loading Waybill Details...</p>
+      <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
+        <div className="rounded-2xl border border-border/70 bg-card p-8">
+          <p className="font-display text-lg font-semibold">Waybill not found</p>
+          <Button
+            variant="outline"
+            className="mt-5"
+            onClick={() => navigate("/dashboard/waybills")}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to waybills
+          </Button>
+        </div>
       </div>
     );
   }
 
-  if (!waybill) {
+  if (loading || !waybill) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <p className="mt-4 text-xl text-gray-800 font-medium">Waybill not found.</p>
-        <button
-          onClick={() => navigate("/dashboard/waybills")}
-          className="mt-6 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-200 shadow-xs"
-        >
-          Back to Waybills
-        </button>
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     );
   }
+
+  const created = formatDateTime(waybill.created_at);
+  const updated = formatDateTime(waybill.updated_at);
 
   return (
-    <div className="container mx-auto p-8 max-w-6xl">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
+    <div className="mx-auto max-w-5xl space-y-6 font-montserrat">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
             {waybill.issuing_company_display_logo ? (
               <img
                 src={waybill.issuing_company_display_logo}
-                alt="Issuing Company Logo"
-                className="h-16 w-16 object-contain rounded-md border border-gray-200"
+                alt="Issuing company logo"
+                className="h-14 w-14 rounded-xl border border-white/30 bg-white/10 object-contain p-1"
               />
             ) : (
-              <Building2 className="h-16 w-16 text-gray-400" />
+              <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/15">
+                <Building2 className="h-7 w-7" />
+              </span>
             )}
-            <h1 className="text-3xl font-semibold text-gray-900">
-              Waybill: {waybill.title || "Untitled"} <span className="text-gray-500 text-sm">({waybill.ref_num})</span>
-            </h1>
+            <div>
+              <p className="text-xs text-white/80">{waybill.ref_num}</p>
+              <h1 className="font-display text-2xl font-bold">
+                {waybill.title || "Untitled waybill"}
+              </h1>
+            </div>
           </div>
-          <button
-            onClick={() => navigate("/dashboard/waybills")}
-            className="flex items-center bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200 shadow-xs"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Waybills
-          </button>
+          <div className="flex items-center gap-3">
+            {jobTitle === "logistics manager" && (
+              <Button
+                onClick={handleSendOffer}
+                disabled={modalLoading}
+                className="bg-white text-brand hover:bg-white/90"
+              >
+                {modalLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-1.5 h-4 w-4" /> Send offer
+                  </>
+                )}
+              </Button>
+            )}
+            {canCreateWaybill && (
+              <Button
+                onClick={() => setShowDeleteModal(true)}
+                className="bg-white/15 text-brand-foreground hover:bg-white/25"
+              >
+                <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard/waybills")}
+              className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Waybill Details Section */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <button
-              onClick={toggleDetails}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
+      {/* Details */}
+      <Section
+        title="Waybill details"
+        open={detailsOpen}
+        onToggle={() => setDetailsOpen((o) => !o)}
+      >
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <Row label="Reference">{waybill.ref_num}</Row>
+          <Row label="Title">{waybill.title}</Row>
+          <Row label="Issuing company">{waybill.issuing_company_info}</Row>
+          <Row label="Status">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                waybill.status === "draft"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
             >
-              <h2 className="text-xl font-medium text-gray-900">Waybill Details</h2>
-              <span className="text-indigo-600 font-medium">
-                {detailsOpen ? "Collapse" : "Expand"}
-              </span>
-            </button>
-          </div>
-          {detailsOpen && (
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Reference Number</span>
-                    <span className="text-gray-900">{waybill.ref_num}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Title</span>
-                    <span className="text-gray-900">{waybill.title}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Issuing Company</span>
-                    <span className="text-gray-900">{waybill.issuing_company_info}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Status</span>
-                    <span className="text-gray-900">{waybill.status === "draft" ? "Open" : "Closed"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Procedure</span>
-                    <span className="text-gray-900">{waybill.procedure}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Spend Category</span>
-                    <span className="text-gray-900">{waybill.spend_category}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Priority</span>
-                    <span className="text-gray-900">{waybill.priority === "urgent" ? "Urgent" : "Non-Urgent"}</span>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Start Date</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(waybill.start_datetime).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(waybill.start_datetime).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Submission Date</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(waybill.submission_datetime).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(waybill.submission_datetime).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Departure Date</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(waybill.departure_datetime).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(waybill.departure_datetime).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Delivery Date</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(waybill.delivery_datetime).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(waybill.delivery_datetime).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Is Active</span>
-                    <span className="text-gray-900">{waybill.is_active ? "Yes" : "No"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Is Approved</span>
-                    <span className="text-gray-900">{waybill.is_approved ? "Yes" : "No"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Created At</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(waybill.created_at).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(waybill.created_at).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Updated At</span>
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(waybill.updated_at).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(waybill.updated_at).relative}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Region</span>
-                    <span className="text-gray-900">{waybill.reach?.region || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">District</span>
-                    <span className="text-gray-900">{waybill.reach?.district || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">City</span>
-                    <span className="text-gray-900">{waybill.reach?.city || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-1/3 font-medium text-gray-700">Town</span>
-                    <span className="text-gray-900">{waybill.reach?.town || "N/A"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+              {waybill.status === "draft" ? "Open" : "Closed"}
+            </span>
+          </Row>
+          <Row label="Procedure">{waybill.procedure}</Row>
+          <Row label="Spend category">{waybill.spend_category}</Row>
+          <Row label="Priority">
+            {waybill.priority === "urgent" ? "Urgent" : "Non-Urgent"}
+          </Row>
+          <Row label="Start date">
+            {formatDateTime(waybill.start_datetime).formatted}
+          </Row>
+          <Row label="Submission date">
+            {formatDateTime(waybill.submission_datetime).formatted}
+          </Row>
+          <Row label="Departure date">
+            {formatDateTime(waybill.departure_datetime).formatted}
+          </Row>
+          <Row label="Delivery date">
+            {formatDateTime(waybill.delivery_datetime).formatted}
+          </Row>
+          <Row label="Active">{waybill.is_active ? "Yes" : "No"}</Row>
+          <Row label="Approved">{waybill.is_approved ? "Yes" : "No"}</Row>
+          <Row label="Reach">
+            {waybill.reach
+              ? [
+                  waybill.reach.region,
+                  waybill.reach.district,
+                  waybill.reach.city,
+                  waybill.reach.town,
+                ]
+                  .filter(Boolean)
+                  .join(", ") || "N/A"
+              : "N/A"}
+          </Row>
+          <Row label="Created">
+            <span title={created.relative}>{created.formatted}</span>
+          </Row>
+          <Row label="Updated">
+            <span title={updated.relative}>{updated.formatted}</span>
+          </Row>
         </div>
+      </Section>
 
-        {/* Items Section */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-md">
-          <div className="bg-linear-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <button
-              onClick={toggleItems}
-              className="w-full flex justify-between items-center p-4 hover:bg-gray-200 transition duration-200"
-            >
-              <h2 className="text-xl font-medium text-gray-900">Items</h2>
-              <span className="text-indigo-600 font-medium">
-                {itemsOpen ? "Collapse" : "Expand"}
-              </span>
-            </button>
+      {/* Items */}
+      <Section
+        title="Items"
+        open={itemsOpen}
+        onToggle={() => setItemsOpen((o) => !o)}
+      >
+        {waybill.items?.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Description</th>
+                  <th className="px-4 py-2.5 font-medium">Qty</th>
+                  <th className="px-4 py-2.5 font-medium">Unit</th>
+                  <th className="px-4 py-2.5 font-medium">Special handling</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {waybill.items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-2.5 font-medium">{item.name}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      {item.description || "N/A"}
+                    </td>
+                    <td className="px-4 py-2.5">{item.quantity}</td>
+                    <td className="px-4 py-2.5">{item.unit_of_measure}</td>
+                    <td className="px-4 py-2.5">
+                      {item.special_handles?.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {item.special_handles.map((sh) => (
+                            <span key={sh.id} className="text-muted-foreground">
+                              {sh.handling_description}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {itemsOpen && (
-            <div className="p-6">
-              {waybill.items.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Name</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Description</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Quantity</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Unit of Measure</th>
-                        <th className="py-3 px-4 text-left font-medium text-gray-700">Special Handling</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {waybill.items.map((item, index) => (
-                        <tr
-                          key={item.id}
-                          className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100 transition duration-200`}
-                        >
-                          <td className="py-3 px-4 text-gray-900">{item.name}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.description || "N/A"}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.quantity}</td>
-                          <td className="py-3 px-4 text-gray-900">{item.unit_of_measure}</td>
-                          <td className="py-3 px-4 text-gray-900">
-                            {item.special_handles.length > 0 ? (
-                              <div className="flex flex-col gap-2">
-                                {item.special_handles.map((sh, shIndex) => (
-                                  <div key={sh.id} className="relative group">
-                                    <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                                      Handling Description: {sh.handling_description}
-                                    </span>
-                                    <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                                      Created: {formatDateTime(sh.created_at).relative}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              "N/A"
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-600 text-center font-medium">No items available.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="p-6 flex justify-end space-x-4">
-          {jobTitle === "logistics manager" && (
-            <button
-              onClick={handleSendOffer}
-              disabled={modalLoading}
-              className="bg-black text-white py-2 px-6 rounded-md hover:bg-gray-700 transition duration-200 shadow-md disabled:opacity-50"
-            >
-              {modalLoading ? "Processing..." : "Send Offer"}
-            </button>
-          )}
-          {canCreateWaybill && (
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="bg-red-600 text-white py-2 px-6 rounded-md hover:bg-red-700 transition duration-200 shadow-md"
-            >
-              <Trash2 className="w-5 h-5 mr-2 inline" />
-              Delete Waybill
-            </button>
-          )}
-        </div>
-
-        {/* Delete Modal */}
-        {showDeleteModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 transition-opacity duration-200">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full border border-gray-200 shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-medium text-gray-900">Delete Waybill</h2>
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <p className="text-gray-600 mb-6 font-medium">
-                Are you sure you want to delete the waybill "{waybill.title}" ({waybill.ref_num})? This action cannot be undone.
-              </p>
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteWaybill}
-                  disabled={deleteLoading}
-                  className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 flex items-center disabled:opacity-50"
-                >
-                  {deleteLoading ? (
-                    <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                  ) : (
-                    <Trash2 className="w-5 h-5 mr-2" />
-                  )}
-                  {deleteLoading ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </div>
-          </div>
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No items available.
+          </p>
         )}
-      </div>
+      </Section>
+
+      {/* Delete confirmation */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="font-montserrat sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete waybill</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-foreground">
+                {waybill.title}
+              </span>{" "}
+              ({waybill.ref_num})? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleDeleteWaybill}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

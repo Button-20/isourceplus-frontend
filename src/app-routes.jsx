@@ -38,7 +38,6 @@ import TransporterPage from "./pages/transporters/TransporterPage";
 import EditTransporter from "./pages/transporters/EditTransporter";
 
 // branches
-import AddBranch from "./pages/branches/AddBranch";
 import AllBranches from "./pages/branches/AllBranches";
 import BranchDetails from "./pages/branches/BranchDetails";
 import EditBranch from "./pages/branches/EditBranch";
@@ -61,7 +60,6 @@ import RFxDetailPage from "./pages/rfx/RFxDetailPage";
 
 // tenders
 import TenderPage from "./pages/tenders/TenderPage";
-import TenderCreationPage from "./pages/tenders/TenderCreationPage";
 import TenderDetailPage from "./pages/tenders/TenderDetailPage";
 
 // proforma invoices
@@ -150,7 +148,6 @@ export const appRoutes = createBrowserRouter([
       { path: "company/add-business-docs", element: <AddBusinessDocs /> },
       { path: "employee/new", element: <AddNewEmployeePage /> },
       { path: "employee/existing", element: <AddExistingEmployeePage /> },
-      { path: "branches/new", element: <AddBranch /> },
       { path: "branches", element: <AllBranches /> },
       { path: "branches/:id", element: <BranchDetails /> },
       { path: "branches/:id/edit", element: <EditBranch /> },
@@ -166,7 +163,6 @@ export const appRoutes = createBrowserRouter([
       { path: "waybills/issued", element: <IssuedWaybillsPage /> },
       { path: "waybills/:refNum", element: <WaybillDetailPage /> },
       { path: "tenders", element: <TenderPage /> },
-      { path: "tenders/new", element: <TenderCreationPage /> },
       { path: "tenders/issued", element: <TenderPage /> },
       { path: "tenders/:refNum", element: <TenderDetailPage /> },
       { path: "proforma-invoices", element: <ProformaInvoicesPage /> },

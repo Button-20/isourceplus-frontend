@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, FileText, ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { format, formatDistanceToNow } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
+import { Loader2, ReceiptText, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  format,
+  formatDistanceToNow,
+} from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 import Pagination from "@/components/Pagination";
 
 const ProformaInvoicesPage = () => {
-  const { authAxios, jobTitle } = useAuth();
-  const navigate = useNavigate();
+  const { authAxios } = useAuth();
   const [proformaInvoices, setProformaInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -20,10 +22,10 @@ const ProformaInvoicesPage = () => {
 
   useEffect(() => {
     const fetchProformaInvoices = async () => {
+      setLoading(true);
       try {
         const response = await authAxios.get(`proforma-invoices/?page=${page}`);
-        console.log("ProformaInvoicesPage: Fetched proforma invoices:", response.data.results);
-        setProformaInvoices(response.data.results || response.data);
+        setProformaInvoices(response.data.results || response.data || []);
         setPagination({
           count: response.data.count || 0,
           next: response.data.next || null,
@@ -41,108 +43,111 @@ const ProformaInvoicesPage = () => {
   }, [authAxios, page]);
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return { formatted: "N/A", relative: "" };
     const date = new Date(dateString);
     return {
-      formatted: format(date, "dd MMM yyyy, HH:mm:ss"),
+      formatted: format(date, "dd MMM yyyy, HH:mm"),
       relative: formatDistanceToNow(date, { addSuffix: true }),
     };
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-12 w-12 text-indigo-600" />
-        <p className="mt-4 text-lg text-gray-700 font-medium">Loading Proforma Invoices...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto p-8 max-w-6xl">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-semibold text-gray-900 flex items-center">
-          <FileText className="w-8 h-8 mr-2 text-indigo-600" />
-          Proforma Invoices
-        </h1>
+    <div className="mx-auto max-w-6xl space-y-8 font-montserrat">
+      {/* Branded header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+            <ReceiptText className="h-3.5 w-3.5" /> Proforma invoices
+          </span>
+          <h1 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
+            Proforma invoices
+          </h1>
+          <p className="mt-2 max-w-lg text-sm text-white/85">
+            Review the proforma invoices you&apos;ve received from suppliers.
+          </p>
+        </div>
       </div>
-      <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reference Number
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Title
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Issuing Company
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created At
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {Array.isArray(proformaInvoices) && proformaInvoices.length > 0 ? (
-              proformaInvoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {invoice.ref_num}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {invoice.title}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {invoice.issuing_company_name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        invoice.status === "draft"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {invoice.status === "draft" ? "Open" : "Closed"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="relative group">
-                      <span className="text-gray-900 bg-gray-100 px-2 py-1 rounded-md">
-                        {formatDateTime(invoice.created_at).formatted}
-                      </span>
-                      <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 mt-1 z-10">
-                        {formatDateTime(invoice.created_at).relative}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <Link
-                      to={`/dashboard/proforma-invoices/${invoice.ref_num}`}
-                      className="text-indigo-600 hover:text-indigo-800"
-                    >
-                      View Details
-                    </Link>
-                  </td>
+
+      {/* Table card */}
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+        {loading ? (
+          <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin text-brand" /> Loading
+            proforma invoices…
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 font-medium">Reference</th>
+                  <th className="px-5 py-3 font-medium">Title</th>
+                  <th className="px-5 py-3 font-medium">Issuing company</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Created</th>
+                  <th className="px-5 py-3 font-medium" />
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="px-6 py-4 text-sm text-gray-900 text-center">
-                  No proforma invoices found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {Array.isArray(proformaInvoices) &&
+                proformaInvoices.length > 0 ? (
+                  proformaInvoices.map((invoice) => {
+                    const created = formatDateTime(invoice.created_at);
+                    return (
+                      <tr
+                        key={invoice.id || invoice.ref_num}
+                        className="transition-colors hover:bg-muted/30"
+                      >
+                        <td className="whitespace-nowrap px-5 py-3 font-medium">
+                          {invoice.ref_num}
+                        </td>
+                        <td className="px-5 py-3">{invoice.title}</td>
+                        <td className="px-5 py-3 text-muted-foreground">
+                          {invoice.issuing_company_name || "N/A"}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              invoice.status === "draft"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {invoice.status === "draft" ? "Open" : "Closed"}
+                          </span>
+                        </td>
+                        <td
+                          className="whitespace-nowrap px-5 py-3 text-muted-foreground"
+                          title={created.relative}
+                        >
+                          {created.formatted}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3 text-right">
+                          <Link
+                            to={`/dashboard/proforma-invoices/${invoice.ref_num}`}
+                            className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+                          >
+                            View <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-5 py-16 text-center text-muted-foreground"
+                    >
+                      No proforma invoices found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
         <Pagination
           count={pagination.count}
           page={page}

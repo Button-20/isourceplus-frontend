@@ -1,67 +1,42 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, UserPlus, Users, Mail, ArrowRight, ShieldCheck } from "lucide-react";
+import { Loader2, ArrowLeft, UserPlus, Users, ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/app.context";
-import { getCookie } from "@/utility/getCookie";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 export default function AddExistingEmployeePage() {
-  const {
-    authAxios,
-    user,
-    token,
-    jobTitle,
-    profileLoading,
-    loading,
-    setLoading,
-  } = useAuth();
-
+  const { authAxios, user, token, jobTitle, profileLoading, loading, setLoading } =
+    useAuth();
   const [email, setEmail] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email.trim()) {
-      toast.error("Email is required");
-      return;
-    }
-
+    if (!email.trim()) return toast.error("Email is required");
     setLoading(true);
     try {
-      const csrfToken = getCookie("csrftoken");
-
-      await authAxios.post(
-        "/add-employee/",
-        { email: email.trim() },
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            "X-CSRFToken": csrfToken,
-          },
-        }
-      );
-      toast.success("✅ Existing user added as employee!");
+      await authAxios.post("/add-employee/", { email: email.trim() });
+      toast.success("Existing user added as employee!");
       setEmail("");
     } catch (err) {
       const data = err.response?.data || {};
-      const message =
-        data.error ||
-        data.detail ||
-        data.email?.[0] ||
-        "Failed to add existing user";
-      toast.error(message);
+      toast.error(
+        data.error || data.detail || data.email?.[0] || "Failed to add existing user",
+      );
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-   if (profileLoading) {
+  if (profileLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-900 to-gray-800">
-        <div className="flex flex-col items-center">
-          <Loader2 className="animate-spin h-10 w-10 text-white mb-4" />
-          <span className="text-white font-medium">Loading dashboard...</span>
-        </div>
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     );
   }
@@ -70,90 +45,82 @@ export default function AddExistingEmployeePage() {
     return <Navigate to="/login" replace />;
   }
 
-   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border border-gray-100 relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-100 rounded-full opacity-20"></div>
-        <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-gray-100 rounded-full opacity-20"></div>
-        
-        <div className="relative z-10">
-          <button
-            onClick={() => window.history.back()}
-            className="flex items-center text-gray-600 hover:text-black mb-6 transition-colors duration-200"
-          >
-            <ArrowLeft className="w-5 h-5 mr-1" /> Back to Dashboard
-          </button>
-
-          <div className="flex items-center mb-6">
-            <div className="p-3 bg-blue-100 rounded-lg mr-4">
-              <Users className="w-6 h-6 text-blue-600" />
-            </div>
+  return (
+    <div className="mx-auto max-w-xl space-y-6 font-montserrat">
+      {/* Branded header */}
+      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15">
+              <Users className="h-6 w-6" />
+            </span>
             <div>
-              <h2 className="text-2xl font-medium text-gray-800">Add Existing Employee</h2>
-              <p className="text-sm text-gray-500">Invite current users to your team</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
-            <div className="space-y-1">
-              <div className="flex items-center">
-                <Mail className="w-4 h-4 text-gray-500 mr-2" />
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Employee Email
-                </label>
-              </div>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="team.member@company.com"
-                className="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-all duration-200 shadow-xs"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                User must already have an account in the system
+              <h1 className="font-display text-2xl font-bold">
+                Add existing employee
+              </h1>
+              <p className="mt-1 text-sm text-white/85">
+                Invite a current iSource+ user to your team.
               </p>
             </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-linear-to-r from-blue-600 to-gray-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="animate-spin h-5 w-5 mr-2" />
-                  Adding Employee...
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-5 h-5 mr-2" />
-                  Add to Team
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
-            <Link 
-              to="/dashboard/employee/new/" 
-              className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200"
-            >
-              <ArrowRight className="w-4 h-4 mr-1" />
-              Create new employee instead
-            </Link>
-            
-            <div className="flex items-center text-xs text-gray-500">
-              <ShieldCheck className="w-3 h-3 mr-1" />
-              Admin access required
-            </div>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => window.history.back()}
+            className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
+          >
+            <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
+          </Button>
         </div>
       </div>
+
+      {/* Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-5 rounded-2xl border border-border/70 bg-card p-6"
+      >
+        <div>
+          <label className={labelClass}>Employee email</label>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="team.member@company.com"
+            required
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            User must already have an account in the system.
+          </p>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-brand-gradient text-brand-foreground hover:opacity-90"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding…
+            </>
+          ) : (
+            <>
+              <UserPlus className="mr-2 h-4 w-4" /> Add to team
+            </>
+          )}
+        </Button>
+
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <Link
+            to="/dashboard/employee/new"
+            className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+          >
+            <ArrowRight className="h-4 w-4" /> Create new employee instead
+          </Link>
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <ShieldCheck className="h-3 w-3" /> Admin access required
+          </span>
+        </div>
+      </form>
     </div>
   );
 }
