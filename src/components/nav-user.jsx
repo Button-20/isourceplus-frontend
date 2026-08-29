@@ -1,4 +1,4 @@
-import { Bell, ChevronsUpDown, LogOut, Settings2 } from "lucide-react";
+import { Bell, ChevronsUpDown, LogOut, Settings2, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   SidebarMenu,
@@ -32,6 +32,7 @@ export function NavUser({ user }) {
   const { isMobile } = useSidebar();
   const { logout } = useAuth();
   const [logoutDialog, setLogoutDialog] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const navigate = useNavigate()
 
@@ -53,8 +54,13 @@ export function NavUser({ user }) {
   ).toUpperCase();
 
   const handleLogout = async () => {
-    await logout();
-    setLogoutDialog(false);
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+      setLogoutDialog(false);
+    }
   };
 
   return (
@@ -138,39 +144,53 @@ export function NavUser({ user }) {
       </SidebarMenu>
 
       <Dialog open={logoutDialog} onOpenChange={setLogoutDialog}>
-        <DialogContent className="w-full max-w-[320px] rounded-2xl p-0">
-          <div className="p-6">
-            <div
-              className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-50"
-              style={{ borderRadius: "55% 45% 48% 52% / 58% 43% 57% 42% " }}
-            >
-              <LogOut className="h-6 w-6 text-red-500" />
+        <DialogContent className="w-full max-w-sm overflow-hidden rounded-2xl p-0 font-montserrat">
+          {/* Branded banner */}
+          <div className="relative overflow-hidden bg-brand-gradient px-6 pb-8 pt-7 text-center text-brand-foreground">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+            <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
+              <LogOut className="h-7 w-7" />
             </div>
-            <DialogHeader className="space-y-2 text-center">
-              <DialogTitle className="text-xl font-semibold text-center">
-                Logout
-              </DialogTitle>
-              <DialogDescription className="text-base text-muted-foreground text-center">
-                Are you sure you want to logout?
-              </DialogDescription>
-            </DialogHeader>
+          </div>
 
-            <div className="flex w-full gap-3 mt-4">
-              <Button
-                variant="outline"
-                className="flex-1"
-                size="lg"
-                onClick={() => setLogoutDialog(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-red-500 hover:bg-red-600"
-                size="lg"
-                onClick={handleLogout}
-              >
-                Yes, logout
-              </Button>
+          <div className="px-6 pb-6 -mt-4">
+            <div className="rounded-2xl bg-card p-5 text-center">
+              <DialogHeader className="space-y-2">
+                <DialogTitle className="text-center font-display text-lg font-bold">
+                  Log out
+                </DialogTitle>
+                <DialogDescription className="text-center text-sm text-muted-foreground">
+                  You&apos;ll be signed out of your iSource+ workspace. You can
+                  sign back in anytime.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="mt-5 flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setLogoutDialog(false)}
+                  disabled={loggingOut}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-brand-gradient text-brand-foreground hover:opacity-90"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                >
+                  {loggingOut ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Logging
+                      out…
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="mr-2 h-4 w-4" /> Log out
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
