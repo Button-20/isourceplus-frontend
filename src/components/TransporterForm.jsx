@@ -1,16 +1,10 @@
+import { Loader2, Plus, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Upload, X, Plus } from "lucide-react";
 
-import { useAuth } from "@/services/context/app.context";
-import {
-  createTransporter as createTransporterRequest,
-  updateTransporter as updateTransporterRequest,
-} from "@/services/api/transporters.service";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -18,7 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  createTransporter as createTransporterRequest,
+  getTransporterTypeChoices,
+  getTransportMeansChoices,
+  getTransportModeChoices,
+  updateTransporter as updateTransporterRequest,
+} from "@/services/api/transporters.service";
+import { useAuth } from "@/services/context/app.context";
 import { compressImage } from "@/utils/compress-image";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
@@ -28,31 +31,58 @@ const EMPTY_VALUES = {
   type: "",
   bio: "",
   email: "",
+  transport_mode: [],
+  transport_means: [],
   office_line: "",
   office_line_2: "",
   web_address: "",
 };
 const VALUE_KEYS = Object.keys(EMPTY_VALUES);
 
-const TRANSPORT_MODES = ["air", "land", "sea"];
-const TRANSPORT_MEANS = ["car", "truck", "bicycle", "motor-cycle"];
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 // The backend caps the whole request at ~1MB; keep the combined upload under it.
 const MAX_TOTAL_UPLOAD = 900 * 1024;
-const MAX_BIO = 255; // Backend caps the description/bio at 255 characters.
-
-const titleCase = (s) =>
-  s
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+const MAX_BIO = 225; // Backend caps the description/bio at 225 characters.
 
 const validateStoredData = (data, expectedKeys) =>
   data &&
   typeof data === "object" &&
-  expectedKeys.every((key) =>
-    Object.prototype.hasOwnProperty.call(data, key),
-  );
+  expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(data, key));
+
+// Normalize a choices response into { value, label }[]. The exact shape isn't
+// guaranteed, so handle strings, [value, label] tuples, and objects.
+function normalizeChoices(data) {
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.results)
+      ? data.results
+      : Array.isArray(data?.choices)
+        ? data.choices
+        : [];
+  return list
+    .map((item) => {
+      if (typeof item === "string")
+        return { value: item, label: prettify(item) };
+      if (Array.isArray(item))
+        return {
+          value: String(item[0]),
+          label: String(item[1] ?? prettify(item[0])),
+        };
+      if (item && typeof item === "object") {
+        const value = item.value ?? item.id ?? item.key ?? item.name ?? "";
+        const label =
+          item.label ?? item.display_name ?? item.name ?? prettify(value);
+        return { value: String(value), label: String(label) };
+      }
+      return null;
+    })
+    .filter((c) => c && c.value !== "");
+}
+
+const prettify = (s) =>
+  String(s)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
 // Branded dashed-border upload tile with preview + remove.
 function UploadTile({ label, name, preview, onChange, onRemove }) {
@@ -103,7 +133,10 @@ const TransporterForm = () => {
   const navigate = useNavigate();
 
   const [values, setValues] = useState(EMPTY_VALUES);
-  const [lists, setLists] = useState({ transport_mode: [], transport_means: [] });
+  const [lists, setLists] = useState({
+    transport_mode: [],
+    transport_means: [],
+  });
   const [files, setFiles] = useState({ logo: null, vehicle_images: [] });
   const [filePreviews, setFilePreviews] = useState({
     logo: null,
@@ -111,13 +144,22 @@ const TransporterForm = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  const [typeChoices, setTypeChoices] = useState([]);
+  const [typeLoading, setTypeLoading] = useState(false);
+  const [modeChoices, setModeChoices] = useState([]);
+  const [modeLoading, setModeLoading] = useState(false);
+  const [meansChoices, setMeansChoices] = useState([]);
+  const [meansLoading, setMeansLoading] = useState(false);
+
   // Restore any in-progress draft once on mount. (Files themselves can't be
   // persisted, so their previews are restored but the File objects reset.)
   useEffect(() => {
     try {
       const storedValues = localStorage.getItem("transporterFormValues");
       const storedLists = localStorage.getItem("transporterFormLists");
-      const storedPreviews = localStorage.getItem("transporterFormFilePreviews");
+      const storedPreviews = localStorage.getItem(
+        "transporterFormFilePreviews",
+      );
 
       if (storedValues) {
         const parsed = JSON.parse(storedValues);
@@ -145,6 +187,72 @@ const TransporterForm = () => {
     } catch (err) {
       console.error("Failed to load form data from localStorage:", err);
     }
+  }, []);
+
+  // Type options are fetched from the backend because they may change over time
+  useEffect(() => {
+    let cancelled = false;
+    setTypeLoading(true);
+    getTransporterTypeChoices()
+      .then((data) => {
+        if (!cancelled) setTypeChoices(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTypeChoices([]);
+          toast.error("Couldn't load types.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setTypeLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Mode options are fetched from the backend because they may change over time
+  useEffect(() => {
+    let cancelled = false;
+    setModeLoading(true);
+    getTransportModeChoices()
+      .then((data) => {
+        if (!cancelled) setModeChoices(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setModeChoices([]);
+          toast.error("Couldn't load modes.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setModeLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Means options are fetched from the backend because they may change over time
+  useEffect(() => {
+    let cancelled = false;
+    setMeansLoading(true);
+    getTransportMeansChoices()
+      .then((data) => {
+        if (!cancelled) setMeansChoices(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMeansChoices([]);
+          toast.error("Couldn't load means.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setMeansLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const persist = (key, value) => {
@@ -358,8 +466,22 @@ const TransporterForm = () => {
                 <SelectValue placeholder="Select a type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="individual">Individual</SelectItem>
-                <SelectItem value="organisation">Organization</SelectItem>
+                {typeLoading ? (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading…
+                  </div>
+                ) : typeChoices.length ? (
+                  typeChoices.map((choice) => (
+                    <SelectItem key={choice.value} value={choice.value}>
+                      {choice.label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="py-2 text-center text-sm text-muted-foreground">
+                    No types available
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -372,7 +494,7 @@ const TransporterForm = () => {
               <span
                 className={cn(
                   "text-xs",
-                  values.bio.length >= MAX_BIO
+                  values.bio.length > MAX_BIO
                     ? "text-destructive"
                     : "text-muted-foreground",
                 )}
@@ -458,25 +580,37 @@ const TransporterForm = () => {
               Transport modes <span className="text-destructive">*</span>
             </label>
             <div className="flex flex-wrap gap-2">
-              {TRANSPORT_MODES.map((mode) => {
-                const active = lists.transport_mode.includes(mode);
-                return (
-                  <button
-                    type="button"
-                    key={mode}
-                    aria-pressed={active}
-                    onClick={() => toggleListItem("transport_mode", mode)}
-                    className={cn(
-                      "rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-colors",
-                      active
-                        ? "border-brand bg-brand/10 text-brand"
-                        : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
-                    )}
-                  >
-                    {mode}
-                  </button>
-                );
-              })}
+              {modeLoading ? (
+                <div className="flex items-center justify-center py-2">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading…
+                </div>
+              ) : modeChoices.length ? (
+                modeChoices.map((mode) => {
+                  const active = lists.transport_mode.includes(mode.value);
+                  return (
+                    <button
+                      type="button"
+                      key={mode.value}
+                      aria-pressed={active}
+                      onClick={() => toggleListItem("transport_mode", mode.value)}
+                      className={cn(
+                        "rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-colors",
+                        active
+                          ? "border-brand bg-brand/10 text-brand"
+                          : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
+                      )}
+                    >
+                      {mode.label}
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="flex items-center justify-center py-2">
+                  <X className="mr-2 h-4 w-4" />
+                  No transport modes available.
+                </div>
+              )}
             </div>
           </div>
           <div>
@@ -484,25 +618,37 @@ const TransporterForm = () => {
               Transport means <span className="text-destructive">*</span>
             </label>
             <div className="flex flex-wrap gap-2">
-              {TRANSPORT_MEANS.map((means) => {
-                const active = lists.transport_means.includes(means);
-                return (
-                  <button
-                    type="button"
-                    key={means}
-                    aria-pressed={active}
-                    onClick={() => toggleListItem("transport_means", means)}
-                    className={cn(
-                      "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                      active
-                        ? "border-brand bg-brand/10 text-brand"
-                        : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
-                    )}
-                  >
-                    {titleCase(means)}
-                  </button>
-                );
-              })}
+              {meansLoading ? (
+                <div className="flex items-center justify-center py-2">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading…
+                </div>
+              ) : meansChoices.length ? (
+                meansChoices.map((means) => {
+                  const active = lists.transport_means.includes(means.value);
+                  return (
+                    <button
+                      type="button"
+                      key={means.value}
+                      aria-pressed={active}
+                      onClick={() => toggleListItem("transport_means", means.value)}
+                      className={cn(
+                        "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+                        active
+                          ? "border-brand bg-brand/10 text-brand"
+                          : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
+                      )}
+                    >
+                      {means.label}
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="flex items-center justify-center py-2">
+                  <X className="mr-2 h-4 w-4" />
+                  No transport means available.
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -32,3 +32,21 @@ export async function updateTransporter(uuid, payload) {
   const { data } = await http.patch(`transporters/${uuid}/`, payload);
   return data;
 }
+
+// GET the type choices for a transporter.
+export async function getTransporterTypeChoices() {
+  const { data } = await http.get("transporter-type-choices/");
+  return data;
+}
+
+// GET the transport mode choices for a transporter.
+export async function getTransportModeChoices() {
+  const { data } = await http.get("transport-mode-choices/");
+  return data;
+}
+
+// GET the transport means choices for a transporter.
+export async function getTransportMeansChoices() {
+  const { data } = await http.get("transport-means-choices/");
+  return data;
+}
