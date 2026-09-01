@@ -10,12 +10,14 @@ import { toast } from "sonner";
 
 import http, { registerLogoutHandler } from "@/services/lib/http";
 import { authStorage } from "@/services/lib/auth";
+import { storage } from "@/services/lib/storage";
 import { ENV } from "@/services/lib/env";
 import { ensureCsrfToken, clearCsrfToken } from "@/services/lib/csrf";
 import {
   loginRequest,
   signupRequest,
   logoutRequest,
+  logoutAllRequest,
   refreshSession,
 } from "@/services/api/auth.service";
 import {
@@ -56,7 +58,7 @@ export const AppProvider = ({ children }) => {
   // Global buyer/supplier view mode. Null until the user (or the job-title
   // default below) picks one; persisted so it survives reloads.
   const [viewMode, setViewModeState] = useState(
-    () => localStorage.getItem("view_mode") || null,
+    () => storage.get("view_mode") || null,
   );
   const [sidebarLoading, setSidebarLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -77,11 +79,7 @@ export const AppProvider = ({ children }) => {
     setCompanyId(null);
     setTransporterId(null);
     setViewModeState(null);
-    try {
-      localStorage.removeItem("view_mode");
-    } catch {
-      /* ignore */
-    }
+    storage.remove("view_mode");
     authStorage.clear();
     clearCsrfToken();
   };
@@ -89,11 +87,7 @@ export const AppProvider = ({ children }) => {
   // Switch the global buyer/supplier view and remember the choice.
   const setViewMode = (mode) => {
     setViewModeState(mode);
-    try {
-      localStorage.setItem("view_mode", mode);
-    } catch {
-      /* ignore */
-    }
+    storage.set("view_mode", mode);
   };
 
   // Fetch the CSRF token as soon as the app mounts.
@@ -251,6 +245,21 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Log out of every device/session for this account.
+  const logoutAll = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await logoutAllRequest();
+    } catch {
+      /* clear locally regardless of network outcome */
+    } finally {
+      clearSession();
+      setLoading(false);
+      toast.success("Logged out of all devices.");
+    }
+  };
+
   const fetchProfileInfo = async () => {
     if (!userProfileId) return;
     try {
@@ -285,6 +294,7 @@ export const AppProvider = ({ children }) => {
         login,
         googleLogin,
         logout,
+        logoutAll,
         error,
         setError,
         currentCompany,

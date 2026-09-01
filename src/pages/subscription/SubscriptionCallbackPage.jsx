@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, Check } from "lucide-react";
+import { storage } from "@/services/lib/storage";
 
 export function SubscriptionCallbackPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,7 +21,7 @@ export function SubscriptionCallbackPage() {
         }
 
         // Retrieve stored subscription data
-        const subscriptionData = JSON.parse(localStorage.getItem("subscriptionData") || "{}");
+        const subscriptionData = storage.getJSON("subscriptionData", {});
         const { plan_code, start_date, authorization_url, plan_name, plan_type } = subscriptionData;
 
         if (!plan_code || !authorization_url) {
@@ -73,7 +74,7 @@ export function SubscriptionCallbackPage() {
             description: `You are now subscribed to the ${plan_name} (${plan_type}) plan.`,
           });
           // Clear stored data
-          localStorage.removeItem("subscriptionData");
+          storage.remove("subscriptionData");
           setTimeout(() => navigate("/dashboard"), 2000); // Delay redirect for toast visibility
         } else {
           console.error("Subscription creation failed:", createResponse.data);

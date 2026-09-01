@@ -1,5 +1,5 @@
 import { Loader2, Plus, Upload, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -22,7 +22,9 @@ import {
   updateTransporter as updateTransporterRequest,
 } from "@/services/api/transporters.service";
 import { useAuth } from "@/services/context/app.context";
+import { storage } from "@/services/lib/storage";
 import { compressImage } from "@/utils/compress-image";
+import { normalizeChoices, prettify } from "@/utils/choices";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -48,41 +50,6 @@ const validateStoredData = (data, expectedKeys) =>
   data &&
   typeof data === "object" &&
   expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(data, key));
-
-// Normalize a choices response into { value, label }[]. The exact shape isn't
-// guaranteed, so handle strings, [value, label] tuples, and objects.
-function normalizeChoices(data) {
-  const list = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.results)
-      ? data.results
-      : Array.isArray(data?.choices)
-        ? data.choices
-        : [];
-  return list
-    .map((item) => {
-      if (typeof item === "string")
-        return { value: item, label: prettify(item) };
-      if (Array.isArray(item))
-        return {
-          value: String(item[0]),
-          label: String(item[1] ?? prettify(item[0])),
-        };
-      if (item && typeof item === "object") {
-        const value = item.value ?? item.id ?? item.key ?? item.name ?? "";
-        const label =
-          item.label ?? item.display_name ?? item.name ?? prettify(value);
-        return { value: String(value), label: String(label) };
-      }
-      return null;
-    })
-    .filter((c) => c && c.value !== "");
-}
-
-const prettify = (s) =>
-  String(s)
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
 
 // Branded dashed-border upload tile with preview + remove.
 function UploadTile({ label, name, preview, onChange, onRemove }) {
@@ -154,38 +121,28 @@ const TransporterForm = () => {
   // Restore any in-progress draft once on mount. (Files themselves can't be
   // persisted, so their previews are restored but the File objects reset.)
   useEffect(() => {
-    try {
-      const storedValues = localStorage.getItem("transporterFormValues");
-      const storedLists = localStorage.getItem("transporterFormLists");
-      const storedPreviews = localStorage.getItem(
-        "transporterFormFilePreviews",
-      );
-
-      if (storedValues) {
-        const parsed = JSON.parse(storedValues);
-        if (validateStoredData(parsed, VALUE_KEYS)) {
-          setValues(parsed);
-          toast.info("Form data restored from previous session.");
-        }
-      }
-      if (storedLists) {
-        const parsed = JSON.parse(storedLists);
-        if (validateStoredData(parsed, ["transport_mode", "transport_means"])) {
-          setLists(parsed);
-        }
-      }
-      if (storedPreviews) {
-        const parsed = JSON.parse(storedPreviews);
-        if (validateStoredData(parsed, ["logo", "vehicle_images"])) {
-          setFilePreviews(parsed);
-          setFiles((prev) => ({
-            ...prev,
-            vehicle_images: parsed.vehicle_images.map(() => null),
-          }));
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load form data from localStorage:", err);
+    const parsedValues = storage.getJSON("transporterFormValues");
+    if (parsedValues && validateStoredData(parsedValues, VALUE_KEYS)) {
+      setValues(parsedValues);
+      toast.info("Form data restored from previous session.");
+    }
+    const parsedLists = storage.getJSON("transporterFormLists");
+    if (
+      parsedLists &&
+      validateStoredData(parsedLists, ["transport_mode", "transport_means"])
+    ) {
+      setLists(parsedLists);
+    }
+    const parsedPreviews = storage.getJSON("transporterFormFilePreviews");
+    if (
+      parsedPreviews &&
+      validateStoredData(parsedPreviews, ["logo", "vehicle_images"])
+    ) {
+      setFilePreviews(parsedPreviews);
+      setFiles((prev) => ({
+        ...prev,
+        vehicle_images: parsedPreviews.vehicle_images.map(() => null),
+      }));
     }
   }, []);
 
@@ -255,13 +212,17 @@ const TransporterForm = () => {
     };
   }, []);
 
-  const persist = (key, value) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (err) {
-      console.error(`Failed to save ${key}:`, err);
+  // Guarantee the currently-selected type always has a matching option, even
+  // before the async choices resolve — otherwise a restored draft value has no
+  // <SelectItem> to match and the trigger falls back to the placeholder.
+  const typeOptions = useMemo(() => {
+    if (values.type && !typeChoices.some((c) => c.value === values.type)) {
+      return [...typeChoices, { value: values.type, label: prettify(values.type) }];
     }
-  };
+    return typeChoices;
+  }, [typeChoices, values.type]);
+
+  const persist = (key, value) => storage.setJSON(key, value);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -360,14 +321,10 @@ const TransporterForm = () => {
     setLists({ transport_mode: [], transport_means: [] });
     setFiles({ logo: null, vehicle_images: [] });
     setFilePreviews({ logo: null, vehicle_images: [] });
-    try {
-      localStorage.removeItem("transporterFormValues");
-      localStorage.removeItem("transporterFormLists");
-      localStorage.removeItem("transporterFormFilePreviews");
-      toast.success("Form reset successfully.");
-    } catch (err) {
-      console.error("Failed to clear localStorage:", err);
-    }
+    storage.remove("transporterFormValues");
+    storage.remove("transporterFormLists");
+    storage.remove("transporterFormFilePreviews");
+    toast.success("Form reset successfully.");
   };
 
   const handleSubmit = async (e) => {
@@ -402,7 +359,7 @@ const TransporterForm = () => {
       });
       const created = await createTransporterRequest(payload);
       setTransporterId(created.id);
-      localStorage.setItem("transporter_id", created.id);
+      storage.set("transporter_id", created.id);
 
       // Attach the logo / vehicle images in a follow-up multipart PATCH.
       if (files.logo || files.vehicle_images.some(Boolean)) {
@@ -415,9 +372,9 @@ const TransporterForm = () => {
       }
 
       toast.success("Transporter registered successfully!");
-      localStorage.removeItem("transporterFormValues");
-      localStorage.removeItem("transporterFormLists");
-      localStorage.removeItem("transporterFormFilePreviews");
+      storage.remove("transporterFormValues");
+      storage.remove("transporterFormLists");
+      storage.remove("transporterFormFilePreviews");
       navigate("/dashboard/transporter/edit");
     } catch (err) {
       console.error("Registration failed", err);
@@ -455,6 +412,10 @@ const TransporterForm = () => {
             <Select
               value={values.type || undefined}
               onValueChange={(value) => {
+                // Radix can emit an empty value while the async options
+                // reconcile on load — ignore it so it never clobbers a
+                // restored/selected type.
+                if (!value) return;
                 setValues((v) => {
                   const next = { ...v, type: value };
                   persist("transporterFormValues", next);
@@ -466,13 +427,13 @@ const TransporterForm = () => {
                 <SelectValue placeholder="Select a type" />
               </SelectTrigger>
               <SelectContent>
-                {typeLoading ? (
+                {typeLoading && !typeOptions.length ? (
                   <div className="flex items-center justify-center py-2">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Loading…
                   </div>
-                ) : typeChoices.length ? (
-                  typeChoices.map((choice) => (
+                ) : typeOptions.length ? (
+                  typeOptions.map((choice) => (
                     <SelectItem key={choice.value} value={choice.value}>
                       {choice.label}
                     </SelectItem>

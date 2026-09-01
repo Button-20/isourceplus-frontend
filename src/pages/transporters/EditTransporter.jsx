@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -15,18 +15,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { normalizeChoices, prettify } from "@/utils/choices";
+import {
+  getTransporterTypeChoices,
+  getTransportModeChoices,
+  getTransportMeansChoices,
+} from "@/services/api/transporters.service";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
-
-const TRANSPORT_MODES = ["air", "land", "sea"];
-const TRANSPORT_MEANS = ["car", "truck", "bicycle", "motor-cycle"];
 const MAX_BIO = 255;
-
-const titleCase = (s) =>
-  s
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
 
 // Branded dashed-border upload tile with preview + remove.
 function UploadTile({ label, name, preview, onChange, onRemove }) {
@@ -97,6 +94,60 @@ export default function EditTransporter() {
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const [typeChoices, setTypeChoices] = useState([]);
+  const [modeChoices, setModeChoices] = useState([]);
+  const [meansChoices, setMeansChoices] = useState([]);
+
+  // Type/mode/means options come from the backend (same source as the create
+  // form) so the saved values match an option and display correctly.
+  useEffect(() => {
+    let cancelled = false;
+    getTransporterTypeChoices()
+      .then((d) => !cancelled && setTypeChoices(normalizeChoices(d)))
+      .catch(() => {});
+    getTransportModeChoices()
+      .then((d) => !cancelled && setModeChoices(normalizeChoices(d)))
+      .catch(() => {});
+    getTransportMeansChoices()
+      .then((d) => !cancelled && setMeansChoices(normalizeChoices(d)))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Always include the current type as an option so a loaded value shows even
+  // before the async choices resolve (or if it isn't in the returned set).
+  const typeOptions = useMemo(() => {
+    if (values.type && !typeChoices.some((c) => c.value === values.type)) {
+      return [
+        ...typeChoices,
+        { value: values.type, label: prettify(values.type) },
+      ];
+    }
+    return typeChoices;
+  }, [typeChoices, values.type]);
+
+  // Merge fetched mode/means options with any already-saved values, so a saved
+  // selection still renders (and stays toggled) even if it's not in the list.
+  const modeOptions = useMemo(() => {
+    const merged = [...modeChoices];
+    lists.transport_mode.forEach((v) => {
+      if (!merged.some((c) => c.value === v))
+        merged.push({ value: v, label: prettify(v) });
+    });
+    return merged;
+  }, [modeChoices, lists.transport_mode]);
+
+  const meansOptions = useMemo(() => {
+    const merged = [...meansChoices];
+    lists.transport_means.forEach((v) => {
+      if (!merged.some((c) => c.value === v))
+        merged.push({ value: v, label: prettify(v) });
+    });
+    return merged;
+  }, [meansChoices, lists.transport_means]);
 
   // Resolve the transporter id from the current user if it isn't in context yet.
   useEffect(() => {
@@ -360,15 +411,27 @@ export default function EditTransporter() {
             <div>
               <label className={labelClass}>Type</label>
               <Select
-                value={values.type}
-                onValueChange={(v) => setValues((prev) => ({ ...prev, type: v }))}
+                value={values.type || undefined}
+                onValueChange={(v) => {
+                  if (!v) return;
+                  setValues((prev) => ({ ...prev, type: v }));
+                }}
               >
                 <SelectTrigger className="h-10 w-full">
                   <SelectValue placeholder="Select a type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="individual">Individual</SelectItem>
-                  <SelectItem value="organisation">Organization</SelectItem>
+                  {typeOptions.length ? (
+                    typeOptions.map((choice) => (
+                      <SelectItem key={choice.value} value={choice.value}>
+                        {choice.label}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="py-2 text-center text-sm text-muted-foreground">
+                      No types available
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -464,49 +527,63 @@ export default function EditTransporter() {
             <div>
               <label className={labelClass}>Transport modes</label>
               <div className="flex flex-wrap gap-2">
-                {TRANSPORT_MODES.map((mode) => {
-                  const active = lists.transport_mode.includes(mode);
-                  return (
-                    <button
-                      type="button"
-                      key={mode}
-                      aria-pressed={active}
-                      onClick={() => toggleListItem("transport_mode", mode)}
-                      className={cn(
-                        "rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-colors",
-                        active
-                          ? "border-brand bg-brand/10 text-brand"
-                          : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
-                      )}
-                    >
-                      {mode}
-                    </button>
-                  );
-                })}
+                {modeOptions.length ? (
+                  modeOptions.map((mode) => {
+                    const active = lists.transport_mode.includes(mode.value);
+                    return (
+                      <button
+                        type="button"
+                        key={mode.value}
+                        aria-pressed={active}
+                        onClick={() => toggleListItem("transport_mode", mode.value)}
+                        className={cn(
+                          "rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-colors",
+                          active
+                            ? "border-brand bg-brand/10 text-brand"
+                            : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
+                        )}
+                      >
+                        {mode.label}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    No transport modes available.
+                  </span>
+                )}
               </div>
             </div>
             <div>
               <label className={labelClass}>Transport means</label>
               <div className="flex flex-wrap gap-2">
-                {TRANSPORT_MEANS.map((means) => {
-                  const active = lists.transport_means.includes(means);
-                  return (
-                    <button
-                      type="button"
-                      key={means}
-                      aria-pressed={active}
-                      onClick={() => toggleListItem("transport_means", means)}
-                      className={cn(
-                        "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                        active
-                          ? "border-brand bg-brand/10 text-brand"
-                          : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
-                      )}
-                    >
-                      {titleCase(means)}
-                    </button>
-                  );
-                })}
+                {meansOptions.length ? (
+                  meansOptions.map((means) => {
+                    const active = lists.transport_means.includes(means.value);
+                    return (
+                      <button
+                        type="button"
+                        key={means.value}
+                        aria-pressed={active}
+                        onClick={() =>
+                          toggleListItem("transport_means", means.value)
+                        }
+                        className={cn(
+                          "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+                          active
+                            ? "border-brand bg-brand/10 text-brand"
+                            : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
+                        )}
+                      >
+                        {means.label}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    No transport means available.
+                  </span>
+                )}
               </div>
             </div>
           </div>

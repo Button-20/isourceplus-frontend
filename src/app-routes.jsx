@@ -52,6 +52,7 @@ import AllTransporterEmployees from "./pages/employees/TransporterEmployees";
 // verification docs
 import AddBusinessDocs from "./pages/verification-docs/AddBusinessDocs";
 import ManageUserVerificationDocs from "./pages/verification-docs/ManageUserVerificationDocs";
+import ReviewsPage from "./pages/reviews/ReviewsPage";
 
 // rfx
 import RFxPage from "./pages/rfx/RFxPage";
@@ -114,7 +115,8 @@ export const appRoutes = createBrowserRouter([
           { path: "/signup", element: <SignUpPage /> },
           { path: "/forgot-password", element: <ForgotPasswordPage /> },
           {
-            path: "/password/reset/confirm/:uid/:token",
+            // Matches the link the backend emails: /reset-password/{uid}/{token}
+            path: "/reset-password/:uid/:token",
             element: <ResetPasswordConfirmPage />,
           },
         ],
@@ -156,6 +158,7 @@ export const appRoutes = createBrowserRouter([
       { path: "transporter/employees", element: <AllTransporterEmployees /> },
       { path: "company/employees", element: <CompanyEmployees /> },
       { path: "user/verification-docs", element: <ManageUserVerificationDocs /> },
+      { path: "reviews", element: <ReviewsPage /> },
       { path: "rfxs", element: <RFxPage /> },
       { path: "rfxs/issued", element: <RFxIssuedPage /> },
       { path: "rfxs/:refNum", element: <RFxDetailPage /> },

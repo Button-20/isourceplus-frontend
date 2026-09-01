@@ -423,15 +423,21 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                   maxLength={500}
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                <input
-                  type="checkbox"
-                  checked={values.is_approved}
-                  onChange={(e) => set({ is_approved: e.target.checked })}
-                  className="h-4 w-4 accent-[hsl(var(--brand))]"
-                />
-                Mark as approved
-              </label>
+              <div className="sm:col-span-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={values.is_approved}
+                    onChange={(e) => set({ is_approved: e.target.checked })}
+                    className="h-4 w-4 accent-[hsl(var(--brand))]"
+                  />
+                  Mark as approved
+                </label>
+                <p className="mt-1 pl-6 text-xs text-muted-foreground">
+                  Only admins can approve — this may still require admin
+                  confirmation.
+                </p>
+              </div>
             </div>
           )}
 

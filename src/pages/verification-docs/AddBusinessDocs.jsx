@@ -25,8 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { storage } from "@/services/lib/storage";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
+const DRAFT_KEY = "addBusinessDocsFormValues";
 
 // Mapping of docType to allowed orientation values.
 const orientationOptions = {
@@ -62,33 +64,25 @@ export default function AddBusinessDocs() {
   const [deleteDocId, setDeleteDocId] = useState(null);
   const [deleteDocType, setDeleteDocType] = useState("");
 
-  // Load form data from localStorage on mount.
+  // Load form data from storage on mount.
   useEffect(() => {
-    try {
-      const storedValues = localStorage.getItem("addBusinessDocsFormValues");
-      if (storedValues) {
-        const parsedValues = JSON.parse(storedValues);
-        const expectedKeys = [
-          "docType",
-          "viewMode",
-          "orientations",
-          "names",
-          "filePreviews",
-        ];
-        if (validateStoredData(parsedValues, expectedKeys)) {
-          setDocType(parsedValues.docType);
-          setViewMode(parsedValues.viewMode);
-          setOrientations(parsedValues.orientations);
-          setNames(parsedValues.names);
-          setFilePreviews(parsedValues.filePreviews.map(() => null));
-          toast.info("Form data restored from previous session.");
-        } else {
-          console.warn("Invalid stored values in localStorage, skipping load.");
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load form data from localStorage:", err);
-      toast.error("Unable to restore form data. Local storage may be disabled.");
+    const parsedValues = storage.getJSON(DRAFT_KEY);
+    if (
+      parsedValues &&
+      validateStoredData(parsedValues, [
+        "docType",
+        "viewMode",
+        "orientations",
+        "names",
+        "filePreviews",
+      ])
+    ) {
+      setDocType(parsedValues.docType);
+      setViewMode(parsedValues.viewMode);
+      setOrientations(parsedValues.orientations);
+      setNames(parsedValues.names);
+      setFilePreviews(parsedValues.filePreviews.map(() => null));
+      toast.info("Form data restored from previous session.");
     }
   }, []);
 
@@ -140,22 +134,14 @@ export default function AddBusinessDocs() {
   }, [authAxios, entityId, entityType]);
 
   const persist = (patch) => {
-    try {
-      localStorage.setItem(
-        "addBusinessDocsFormValues",
-        JSON.stringify({
-          docType,
-          viewMode,
-          orientations,
-          names,
-          filePreviews: filePreviews.map((p) => p || null),
-          ...patch,
-        }),
-      );
-    } catch (err) {
-      console.error("Failed to save to localStorage:", err);
-      toast.error("Unable to save form data. Local storage may be disabled.");
-    }
+    storage.setJSON(DRAFT_KEY, {
+      docType,
+      viewMode,
+      orientations,
+      names,
+      filePreviews: filePreviews.map((p) => p || null),
+      ...patch,
+    });
   };
 
   const handleDocTypeChange = (value) => {
@@ -237,20 +223,13 @@ export default function AddBusinessDocs() {
     setFiles([]);
     setRemovedFileIds([]);
     setViewMode("edit");
-    try {
-      localStorage.setItem(
-        "addBusinessDocsFormValues",
-        JSON.stringify({
-          docType: doc.doc_type,
-          viewMode: "edit",
-          orientations: nextOrientations,
-          names: nextNames,
-          filePreviews: doc.upload_files.map((file) => file.file),
-        }),
-      );
-    } catch (err) {
-      console.error("Failed to save edit mode data to localStorage:", err);
-    }
+    storage.setJSON(DRAFT_KEY, {
+      docType: doc.doc_type,
+      viewMode: "edit",
+      orientations: nextOrientations,
+      names: nextNames,
+      filePreviews: doc.upload_files.map((file) => file.file),
+    });
   };
 
   const addFileInput = () => {
@@ -298,12 +277,8 @@ export default function AddBusinessDocs() {
 
   const handleReset = () => {
     clearForm();
-    try {
-      localStorage.removeItem("addBusinessDocsFormValues");
-      toast.success("Form reset successfully.");
-    } catch (err) {
-      console.error("Failed to clear localStorage:", err);
-    }
+    storage.remove(DRAFT_KEY);
+    toast.success("Form reset successfully.");
   };
 
   const startAdd = () => {
@@ -312,20 +287,13 @@ export default function AddBusinessDocs() {
     setFilePreviews([null]);
     setOrientations(["document"]);
     setNames([""]);
-    try {
-      localStorage.setItem(
-        "addBusinessDocsFormValues",
-        JSON.stringify({
-          docType: "business",
-          viewMode: "add",
-          orientations: ["document"],
-          names: [""],
-          filePreviews: [null],
-        }),
-      );
-    } catch (err) {
-      console.error("Failed to save initial form data to localStorage:", err);
-    }
+    storage.setJSON(DRAFT_KEY, {
+      docType: "business",
+      viewMode: "add",
+      orientations: ["document"],
+      names: [""],
+      filePreviews: [null],
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -424,11 +392,7 @@ export default function AddBusinessDocs() {
       }
       setDocuments(newDocs);
       clearForm();
-      try {
-        localStorage.removeItem("addBusinessDocsFormValues");
-      } catch (err) {
-        console.error("Failed to clear localStorage:", err);
-      }
+      storage.remove(DRAFT_KEY);
     } catch (err) {
       console.error("Submit error:", err);
       toast.error(

@@ -14,6 +14,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 import { useAuth } from "@/services/context/app.context";
+import { storage } from "@/services/lib/storage";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -165,21 +166,18 @@ export function PricingPage({ embedded = false }) {
       const { authorization_url, reference } =
         response.data.data.paystack_transaction_data.data;
 
-      localStorage.setItem(
-        "subscriptionData",
-        JSON.stringify({
-          plan_code:
-            response.data.data.plan_code ||
-            `${activeTab.toUpperCase()}_${planName}_${backendPlanInterval.toUpperCase()}`,
-          plan_name: planName,
-          plan_type: planType,
-          plan_interval: backendPlanInterval,
-          is_trial: isTrial,
-          start_date: startDate,
-          reference,
-          authorization_url,
-        }),
-      );
+      storage.setJSON("subscriptionData", {
+        plan_code:
+          response.data.data.plan_code ||
+          `${activeTab.toUpperCase()}_${planName}_${backendPlanInterval.toUpperCase()}`,
+        plan_name: planName,
+        plan_type: planType,
+        plan_interval: backendPlanInterval,
+        is_trial: isTrial,
+        start_date: startDate,
+        reference,
+        authorization_url,
+      });
 
       window.open(authorization_url, "_blank");
       setIsModalOpen(false);

@@ -30,9 +30,10 @@ import { useNavigate } from "react-router";
 
 export function NavUser({ user }) {
   const { isMobile } = useSidebar();
-  const { logout } = useAuth();
+  const { logout, logoutAll } = useAuth();
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [loggingOutAll, setLoggingOutAll] = useState(false);
 
   const navigate = useNavigate()
 
@@ -59,6 +60,16 @@ export function NavUser({ user }) {
       await logout();
     } finally {
       setLoggingOut(false);
+      setLogoutDialog(false);
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    setLoggingOutAll(true);
+    try {
+      await logoutAll();
+    } finally {
+      setLoggingOutAll(false);
       setLogoutDialog(false);
     }
   };
@@ -191,6 +202,22 @@ export function NavUser({ user }) {
                   )}
                 </Button>
               </div>
+
+              <button
+                type="button"
+                onClick={handleLogoutAll}
+                disabled={loggingOut || loggingOutAll}
+                className="mt-4 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-destructive disabled:opacity-60"
+              >
+                {loggingOutAll ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Signing out
+                    everywhere…
+                  </>
+                ) : (
+                  "Log out of all devices"
+                )}
+              </button>
             </div>
           </div>
         </DialogContent>

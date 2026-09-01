@@ -14,8 +14,10 @@ import { useAuth } from "@/contexts/app.context";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { storage } from "@/services/lib/storage";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
+const DRAFT_KEY = "addEmployeeFormValues";
 
 const validateStoredData = (data, expectedKeys) => {
   if (!data || typeof data !== "object") return false;
@@ -36,40 +38,26 @@ export default function AddNewEmployeePage() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
-    try {
-      const storedValues = localStorage.getItem("addEmployeeFormValues");
-      if (storedValues) {
-        const parsedValues = JSON.parse(storedValues);
-        if (validateStoredData(parsedValues, ["email", "password", "confirm"])) {
-          setEmail(parsedValues.email);
-          setPassword(parsedValues.password);
-          setConfirm(parsedValues.confirm);
-          toast.info("Form data restored from previous session.");
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load form data from localStorage:", err);
+    const parsedValues = storage.getJSON(DRAFT_KEY);
+    if (
+      parsedValues &&
+      validateStoredData(parsedValues, ["email", "password", "confirm"])
+    ) {
+      setEmail(parsedValues.email);
+      setPassword(parsedValues.password);
+      setConfirm(parsedValues.confirm);
+      toast.info("Form data restored from previous session.");
     }
   }, []);
 
-  const persist = (next) => {
-    try {
-      localStorage.setItem("addEmployeeFormValues", JSON.stringify(next));
-    } catch (err) {
-      console.error("Failed to save form data to localStorage:", err);
-    }
-  };
+  const persist = (next) => storage.setJSON(DRAFT_KEY, next);
 
   const handleReset = () => {
     setEmail("");
     setPassword("");
     setConfirm("");
-    try {
-      localStorage.removeItem("addEmployeeFormValues");
-      toast.success("Form reset successfully.");
-    } catch (err) {
-      console.error("Failed to clear localStorage:", err);
-    }
+    storage.remove(DRAFT_KEY);
+    toast.success("Form reset successfully.");
   };
 
   const handleSubmit = async (e) => {
@@ -86,11 +74,7 @@ export default function AddNewEmployeePage() {
         confirm_password: confirm,
       });
       toast.success(response.data.message || "New employee created!");
-      try {
-        localStorage.removeItem("addEmployeeFormValues");
-      } catch (err) {
-        console.error("Failed to clear localStorage:", err);
-      }
+      storage.remove(DRAFT_KEY);
       setEmail("");
       setPassword("");
       setConfirm("");

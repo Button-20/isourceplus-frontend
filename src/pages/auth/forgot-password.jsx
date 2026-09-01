@@ -1,159 +1,137 @@
-import { useAuth } from "@/contexts/app.context";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getCookie } from "@/utility/getCookie";
-import axios from "axios";
+import { Loader2, ArrowLeft, Mail, MailCheck } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Logo from "@/components/common/Logo";
+import { passwordResetRequest } from "@/services/api/auth.service";
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const { BASE_URL } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const sendResetLink = async () => {
+    if (!email.trim()) {
+      toast.error("Please enter your email");
+      return;
+    }
     setLoading(true);
-    setError(null);
-
     try {
-      // Get CSRF token from cookies
-      let csrfToken = getCookie("csrftoken");
-
-      const response = await axios.post(
-        `${BASE_URL}account_auth/password/reset/`,
-        {
-          email: email.trim(),
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(csrfToken && { "X-CSRFToken": csrfToken }),
-          },
-          withCredentials: true,
-        }
-      );
-
-      if (response.status === 200) {
-        setSuccess(true);
-        toast.success("Password reset link sent to your email");
-      }
+      await passwordResetRequest(email);
+      setSuccess(true);
+      toast.success("Password reset link sent to your email");
     } catch (error) {
-      console.error("Error sending password reset link:", error);
-      const errorMessage =
+      toast.error(
         error.response?.data?.email?.[0] ||
-        error.response?.data?.detail ||
-        "Failed to send reset link. Please try again.";
-      setError(errorMessage);
-      toast.error(errorMessage);
+          error.response?.data?.detail ||
+          "Failed to send reset link. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendLink = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      let csrfToken = getCookie("csrftoken");
-      const response = await axios.post(
-        `${BASE_URL}account_auth/registration/resend-email/`,
-        {
-          email: email.trim(),
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(csrfToken && { "X-CSRFToken": csrfToken }),
-          },
-          withCredentials: true,
-        }
-      );
-
-      if (response.status === 200) {
-        setSuccess(true);
-        toast.success("Password reset link sent to your email");
-      }
-    } catch (error) {
-      console.error("Error resending password reset link:", error);
-      const errorMessage =
-        error.response?.data?.email?.[0] ||
-        error.response?.data?.detail ||
-        "Failed to resend reset link. Please try again.";
-      setError(errorMessage);
-      toast.error(errorMessage);
-    }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    sendResetLink();
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full space-y-6 text-center">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold">Check your email</h1>
-            <p className="text-gray-600">
-              We've sent a password reset link to {email}. Please check your
-              inbox and follow the instructions.
-            </p>
-          </div>
-          <Button
-            onClick={() => navigate("/login")}
-            className="w-full bg-black text-white hover:bg-gray-800"
-          >
-            Return to login
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Forgot password</h1>
-          <p className="text-gray-600">
-            Enter your email and we'll send you a link to reset your password.
-          </p>
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4 font-montserrat">
+      <div className="w-full max-w-md">
+        <div className="mb-6 flex justify-center">
+          <Logo imgClassName="h-8" />
         </div>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <Input
-            required
-            type="email"
-            name="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@example.com"
-          />
-          <Button
-            disabled={loading}
-            type="submit"
-            className="w-full bg-black text-white hover:bg-gray-800"
-          >
-            {loading ? "Sending..." : "Send reset link"}
-          </Button>
-        </form>
-        {/* resend link */}
-        <p className="text-sm text-gray-500 text-center">
-          Didn't receive the email?{" "}
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="text-black hover:underline"
-          >
-            Resend link
-          </button>
-        </p>
-        {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-        <div className="text-center text-sm">
-          <Link to="/login" className="font-medium text-black hover:underline">
-            Back to login
-          </Link>
+        <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-sm sm:p-8">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand/10 blur-2xl" />
+
+          {success ? (
+            <div className="relative text-center">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-gradient text-brand-foreground">
+                <MailCheck className="h-7 w-7" />
+              </div>
+              <h1 className="font-display text-xl font-bold sm:text-2xl">
+                Check your email
+              </h1>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+                We&apos;ve sent a password reset link to{" "}
+                <span className="font-medium text-foreground">{email}</span>.
+                Follow the instructions in the email to reset your password.
+              </p>
+              <div className="mt-6 space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={sendResetLink}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resending…
+                    </>
+                  ) : (
+                    "Resend link"
+                  )}
+                </Button>
+                <Button
+                  className="w-full bg-brand-gradient text-brand-foreground hover:opacity-90"
+                  onClick={() => navigate("/login")}
+                >
+                  Return to login
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-gradient text-brand-foreground">
+                <Mail className="h-7 w-7" />
+              </div>
+              <h1 className="text-center font-display text-xl font-bold sm:text-2xl">
+                Forgot password
+              </h1>
+              <p className="mx-auto mt-2 max-w-sm text-center text-sm text-muted-foreground">
+                Enter your email and we&apos;ll send you a link to reset your
+                password.
+              </p>
+
+              <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+                <Input
+                  required
+                  type="email"
+                  name="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                />
+                <Button
+                  disabled={loading}
+                  type="submit"
+                  className="w-full bg-brand-gradient text-brand-foreground hover:opacity-90"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending…
+                    </>
+                  ) : (
+                    "Send reset link"
+                  )}
+                </Button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back to login
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

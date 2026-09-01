@@ -61,6 +61,39 @@ export async function refreshSession() {
   return true;
 }
 
+// Log out of every device/session for the current account.
+export async function logoutAllRequest() {
+  await ensureCsrfToken();
+  return http.post("account_auth/logout-all/", {}, { _retry: true });
+}
+
+// Step 1 of the reset flow: ask the backend to email a reset link.
+export async function passwordResetRequest(email) {
+  await ensureCsrfToken();
+  const { data } = await http.post("account_auth/password/reset/", {
+    email: email.trim(),
+  });
+  return data;
+}
+
+// Step 4 of the reset flow: submit the new password with the uid + token that
+// were embedded in the emailed link.
+export async function passwordResetConfirm({
+  new_password1,
+  new_password2,
+  uid,
+  token,
+}) {
+  await ensureCsrfToken();
+  const { data } = await http.post("account_auth/password/reset/confirm/", {
+    new_password1,
+    new_password2,
+    uid,
+    token,
+  });
+  return data;
+}
+
 export async function logoutRequest() {
   await ensureCsrfToken();
   // The logout endpoint requires the refresh token in the body (it returns

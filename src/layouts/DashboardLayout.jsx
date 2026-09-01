@@ -15,6 +15,7 @@ import {
   Gavel,
   ReceiptText,
   Wallet,
+  Star,
 } from "lucide-react";
 import { assets } from "@/assets/assets";
 import { useEffect, useState } from "react";
@@ -207,6 +208,7 @@ export function DashboardLayout() {
       icon: MdOutlineDocumentScanner,
       url: "/dashboard/user/verification-docs",
     },
+    { title: "Reviews", icon: Star, url: "/dashboard/reviews" },
   ];
 
   // Exception (hidden) routes per view/role. A transporter follows its own set;

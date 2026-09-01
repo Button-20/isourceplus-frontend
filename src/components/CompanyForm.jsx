@@ -19,6 +19,7 @@ import {
   getIndustryChoices,
 } from "@/services/api/companies.service";
 import { useAuth } from "@/services/context/app.context";
+import { storage } from "@/services/lib/storage";
 import { compressImage } from "@/utils/compress-image";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
@@ -149,25 +150,17 @@ const CompanyForm = () => {
 
   // Restore any in-progress draft from a previous session.
   useEffect(() => {
-    try {
-      const storedValues = localStorage.getItem("companyFormValues");
-      const storedPreviews = localStorage.getItem("companyFormFilePreviews");
-
-      if (storedValues) {
-        const parsed = JSON.parse(storedValues);
-        if (validateStoredData(parsed, VALUE_KEYS)) {
-          setValues(parsed);
-          toast.info("Form data restored from previous session.");
-        }
-      }
-      if (storedPreviews) {
-        const parsed = JSON.parse(storedPreviews);
-        if (validateStoredData(parsed, ["logo", "image_front_view"])) {
-          setFilePreviews(parsed);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load form data from localStorage:", err);
+    const parsedValues = storage.getJSON("companyFormValues");
+    if (parsedValues && validateStoredData(parsedValues, VALUE_KEYS)) {
+      setValues(parsedValues);
+      toast.info("Form data restored from previous session.");
+    }
+    const parsedPreviews = storage.getJSON("companyFormFilePreviews");
+    if (
+      parsedPreviews &&
+      validateStoredData(parsedPreviews, ["logo", "image_front_view"])
+    ) {
+      setFilePreviews(parsedPreviews);
     }
   }, []);
 
@@ -225,13 +218,7 @@ const CompanyForm = () => {
     };
   }, [isSupplier, values.category]);
 
-  const persistValues = (next) => {
-    try {
-      localStorage.setItem("companyFormValues", JSON.stringify(next));
-    } catch (err) {
-      console.error("Failed to save form values:", err);
-    }
-  };
+  const persistValues = (next) => storage.setJSON("companyFormValues", next);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -298,11 +285,7 @@ const CompanyForm = () => {
     setFiles((f) => ({ ...f, [name]: file }));
     setFilePreviews((p) => {
       const next = { ...p, [name]: URL.createObjectURL(file) };
-      try {
-        localStorage.setItem("companyFormFilePreviews", JSON.stringify(next));
-      } catch (err) {
-        console.error("Failed to save file previews:", err);
-      }
+      storage.setJSON("companyFormFilePreviews", next);
       return next;
     });
   };
@@ -311,11 +294,7 @@ const CompanyForm = () => {
     setFiles((f) => ({ ...f, [name]: null }));
     setFilePreviews((p) => {
       const next = { ...p, [name]: null };
-      try {
-        localStorage.setItem("companyFormFilePreviews", JSON.stringify(next));
-      } catch (err) {
-        console.error("Failed to save file previews:", err);
-      }
+      storage.setJSON("companyFormFilePreviews", next);
       return next;
     });
   };
@@ -325,13 +304,9 @@ const CompanyForm = () => {
     setValues(EMPTY_VALUES);
     setFiles({ logo: null, image_front_view: null });
     setFilePreviews({ logo: null, image_front_view: null });
-    try {
-      localStorage.removeItem("companyFormValues");
-      localStorage.removeItem("companyFormFilePreviews");
-      toast.success("Form reset successfully.");
-    } catch (err) {
-      console.error("Failed to clear localStorage:", err);
-    }
+    storage.remove("companyFormValues");
+    storage.remove("companyFormFilePreviews");
+    toast.success("Form reset successfully.");
   };
 
   const handleSubmit = async (e) => {
@@ -365,9 +340,9 @@ const CompanyForm = () => {
 
       toast.success("Company registered successfully!");
       setCompanyId(data.id);
-      localStorage.setItem("company_id", data.id);
-      localStorage.removeItem("companyFormValues");
-      localStorage.removeItem("companyFormFilePreviews");
+      storage.set("company_id", data.id);
+      storage.remove("companyFormValues");
+      storage.remove("companyFormFilePreviews");
       setValues(EMPTY_VALUES);
       setFiles({ logo: null, image_front_view: null });
       setFilePreviews({ logo: null, image_front_view: null });
