@@ -12,7 +12,7 @@ const About = () => {
   const navigate = useNavigate();
 
   const Btn =
-    "bg-black text-gray-500 font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-4 md:px-8 rounded-md hover:scale-110! duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[1.2rem]";
+    "bg-brand-gradient text-white font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-4 md:px-8 rounded-md hover:scale-110! duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[1.2rem]";
 
   return (
     <section className=" pb-16 lg:py-20 font-montserrat">
@@ -22,12 +22,12 @@ const About = () => {
           variants={SlideLeft(0.2)}
           initial="hidden"
           whileInView="visible"
-          className="text-center lg:text-left  text-6xl lg:text-7xl  text-black "
+          className="text-center lg:text-left  text-6xl lg:text-7xl  text-foreground "
         >
           <AnimatedHeading
             text={"Discover "}
             text2={"iSource Plus"}
-            text2class_name={"text-indigo-600"}
+            text2class_name={"text-brand"}
             size="text-5xl font-medium"
             class_name=" pt-10"
           />
@@ -41,13 +41,13 @@ const About = () => {
               variants={SlideRight(0.2)}
               initial="hidden"
               whileInView="visible"
-              className="text-2xl lg:text-3xl text-gray-800 leading-relaxed xl:leading-normal"
+              className="text-2xl lg:text-3xl text-foreground leading-relaxed xl:leading-normal"
             >
               iSource Plus is a platform designed to simplify the buying and
               selling process for businesses. It connects buyers with reliable
               suppliers and offers smooth, secure payment options.
             </motion.p>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-muted-foreground">
               The platform offers two main features: buyers can compare prices
               from different suppliers, while suppliers can bid for projects.
               iSource Plus helps businesses save time, reduce costs, and find
@@ -72,7 +72,7 @@ const About = () => {
         <div className="text-center mt-12 flex justify-center gap-4">
           {/* <button
           onClick={() => navigate("/signup")}
-          className={`${Btn} text-white py-3 px-8 rounded-full font-semibold text-xl transition-all hover:bg-indigo-700 hover:shadow-lg`}
+          className={`${Btn} text-white py-3 px-8 rounded-full font-semibold text-xl transition-all hover:opacity-90 hover:shadow-lg`}
           >
           Register now
           </button> */}
@@ -80,7 +80,7 @@ const About = () => {
             onClick={() => {
               navigate("/marketplace"), scrollTo(0, 0);
             }}
-            className={`${Btn} bg-black text-white py-3 px-8 rounded-full font-semibold text-xl transition-all  hover:shadow-lg`}
+            className={`${Btn} bg-brand-gradient text-white py-3 px-8 rounded-full font-semibold text-xl transition-all  hover:shadow-lg`}
           >
             View Marketplace
           </button>

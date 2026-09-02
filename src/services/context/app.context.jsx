@@ -65,10 +65,10 @@ export const AppProvider = ({ children }) => {
 
   // Design tokens still consumed by a few components.
   const tailwindValues = { secondary: "gray-600", primary: "indigo-600" };
-  const primaryBg = "bg-indigo-600";
-  const primaryText = "text-indigo-600";
+  const primaryBg = "bg-brand";
+  const primaryText = "text-brand";
   const primaryBtn =
-    "bg-white text-gray-500 font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-4 md:px-8 rounded-md hover:scale-110! duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[1.2rem]";
+    "bg-card text-muted-foreground font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-4 md:px-8 rounded-md hover:scale-110! duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[1.2rem]";
 
   const clearSession = () => {
     setBaseData(null);

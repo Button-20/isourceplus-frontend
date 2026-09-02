@@ -91,12 +91,12 @@ const CompanyChoices = () => {
   const isTransportDisabled = !transportAllowed.includes(jobTitle);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12 grow">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Choose Your Account Type</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Select between a standard company account or a transport company
             account to get started with iSourcePlus.
           </p>
@@ -114,8 +114,8 @@ const CompanyChoices = () => {
       }
       ${
         selectedChoice === "company"
-          ? "border-black bg-gray-50 shadow-lg"
-          : "border-gray-200 hover:border-gray-400"
+          ? "border-brand bg-brand/10 shadow-lg"
+          : "border-border hover:border-brand/50"
       }
     `}
             onClick={() => {
@@ -126,15 +126,15 @@ const CompanyChoices = () => {
               <div
                 className={`p-4 rounded-full ${
                   selectedChoice === "company"
-                    ? "bg-black text-white"
-                    : "bg-gray-100 text-gray-800"
+                    ? "bg-brand-gradient text-white"
+                    : "bg-muted text-foreground"
                 }`}
               >
                 <FaBuilding className="text-3xl" />
               </div>
             </div>
             <h2 className="text-2xl font-bold text-center mb-4">Company</h2>
-            <p className="text-gray-600 mb-6 text-center">
+            <p className="text-muted-foreground mb-6 text-center">
               Ideal for businesses looking to manage their supply chain,
               inventory, and procurement processes.
             </p>
@@ -143,8 +143,8 @@ const CompanyChoices = () => {
                 <span
                   className={`rounded-full p-1 mr-2 ${
                     selectedChoice === "company"
-                      ? "bg-black text-white"
-                      : "bg-gray-200 text-gray-800"
+                      ? "bg-brand text-white"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   ✓
@@ -155,8 +155,8 @@ const CompanyChoices = () => {
                 <span
                   className={`rounded-full p-1 mr-2 ${
                     selectedChoice === "company"
-                      ? "bg-black text-white"
-                      : "bg-gray-200 text-gray-800"
+                      ? "bg-brand text-white"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   ✓
@@ -167,8 +167,8 @@ const CompanyChoices = () => {
                 <span
                   className={`rounded-full p-1 mr-2 ${
                     selectedChoice === "company"
-                      ? "bg-black text-white"
-                      : "bg-gray-200 text-gray-800"
+                      ? "bg-brand text-white"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   ✓
@@ -189,8 +189,8 @@ const CompanyChoices = () => {
       }
       ${
         selectedChoice === "transport"
-          ? "border-black bg-gray-50 shadow-lg"
-          : "border-gray-200 hover:border-gray-400"
+          ? "border-brand bg-brand/10 shadow-lg"
+          : "border-border hover:border-brand/50"
       }
     `}
             onClick={() => {
@@ -201,15 +201,15 @@ const CompanyChoices = () => {
               <div
                 className={`p-4 rounded-full ${
                   selectedChoice === "transport"
-                    ? "bg-black text-white"
-                    : "bg-gray-100 text-gray-800"
+                    ? "bg-brand-gradient text-white"
+                    : "bg-muted text-foreground"
                 }`}
               >
                 <FaTruck className="text-3xl" />
               </div>
             </div>
             <h2 className="text-2xl font-bold text-center mb-4">Transporter</h2>
-            <p className="text-gray-600 mb-6 text-center">
+            <p className="text-muted-foreground mb-6 text-center">
               Designed for logistics providers offering transportation services
               within the supply chain network.
             </p>
@@ -218,8 +218,8 @@ const CompanyChoices = () => {
                 <span
                   className={`rounded-full p-1 mr-2 ${
                     selectedChoice === "transport"
-                      ? "bg-black text-white"
-                      : "bg-gray-200 text-gray-800"
+                      ? "bg-brand text-white"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   ✓
@@ -230,8 +230,8 @@ const CompanyChoices = () => {
                 <span
                   className={`rounded-full p-1 mr-2 ${
                     selectedChoice === "transport"
-                      ? "bg-black text-white"
-                      : "bg-gray-200 text-gray-800"
+                      ? "bg-brand text-white"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   ✓
@@ -242,8 +242,8 @@ const CompanyChoices = () => {
                 <span
                   className={`rounded-full p-1 mr-2 ${
                     selectedChoice === "transport"
-                      ? "bg-black text-white"
-                      : "bg-gray-200 text-gray-800"
+                      ? "bg-brand text-white"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   ✓
@@ -261,8 +261,8 @@ const CompanyChoices = () => {
             disabled={loading}
             className={`flex items-center px-6 py-3 rounded-md font-medium transition-colors ${
               // selectedChoice
-                "bg-black text-white hover:bg-gray-800"
-                // : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                "bg-brand-gradient text-white hover:opacity-90"
+                // : "bg-muted text-muted-foreground cursor-not-allowed"
             }`}
           >
             Continue <FaChevronRight className="ml-2" />
@@ -271,7 +271,7 @@ const CompanyChoices = () => {
       </main>
 
       {/* Simple Footer */}
-      <footer className="bg-black text-white p-6 text-center">
+      <footer className="bg-card text-muted-foreground border-t border-border p-6 text-center">
         <p>© 2025 iSourcePlus. All rights reserved.</p>
       </footer>
     </div>

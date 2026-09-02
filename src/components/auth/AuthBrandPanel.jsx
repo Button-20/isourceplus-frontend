@@ -26,7 +26,7 @@ export default function AuthBrandPanel({ title, subtitle }) {
       <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
 
-      <div className="relative mb-5">
+      <div className="relative mb-5 flex flex-col items-center text-center">
         <Logo onDark imgClassName="h-8" />
         <p className="mt-3 text-sm font-medium uppercase tracking-[0.25em] text-white/80">
           Connect - Source - Pay

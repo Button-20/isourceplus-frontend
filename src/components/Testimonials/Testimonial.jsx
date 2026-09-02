@@ -43,13 +43,13 @@ const Testimonial = () => {
   };
 
   return (
-    <div className="bg-gray-50 py-16 lg:py-24 font-montserrat">
+    <div className="bg-background py-16 lg:py-24 font-montserrat">
       <div className="container mx-auto px-6 lg:px-12">
         {/* Header Section */}
         <div className="text-center mb-12">
           <AnimatedHeading
             text={"What People Say About Us"}
-            class_name="text-4xl lg:text-5xl font-medium text-gray-800"
+            class_name="text-4xl lg:text-5xl font-medium text-foreground"
           />
         </div>
 
@@ -58,23 +58,23 @@ const Testimonial = () => {
           <Slider {...settings}>
             {testimonials.map((item, id) => (
               <div key={id} className="px-4 ">
-                <div className="bg-white shadow-lg rounded-lg p-6 flex flex-col  items-center space-y-4 text-center">
+                <div className="bg-card shadow-lg rounded-lg p-6 flex flex-col  items-center space-y-4 text-center">
                   {/* Avatar */}
                   <img
                     src={item.image}
                     alt={`Testimonial from ${item.name}`}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-indigo-500"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-brand"
                   />
                   {/* Name */}
-                  <h3 className="text-lg font-medium text-gray-700">
+                  <h3 className="text-lg font-medium text-foreground">
                     {item.name}
                   </h3>
                   {/* Role */}
-                  <p className="text-sm text-indigo-500">{item.position}</p>
+                  <p className="text-sm text-brand">{item.position}</p>
                   {/* rating */}
                   <p>{item.rating}</p>
                   {/* Testimonial */}
-                  <p className="text-sm text-gray-600 italic leading-relaxed ">
+                  <p className="text-sm text-muted-foreground italic leading-relaxed ">
                     "{item.quote}"
                   </p>
                 </div>

@@ -12,18 +12,18 @@ const PricingCard = ({
     <div
       className={`relative rounded-lg p-6 shadow-lg transition-transform transform hover:scale-105 font-montserrat ${
         isSelected
-          ? " bg-indigo-600 text-white"
-          : "bg-white border border-gray-200"
+          ? " bg-brand text-white"
+          : "bg-card border border-border"
       }`}
     >
       {isPopular && (
-        <div className="absolute -top-3 -right-3 bg-yellow-300 text-black font-bold text-xs py-1 px-3 rounded-full">
+        <div className="absolute -top-3 -right-3 bg-yellow-300 text-foreground font-bold text-xs py-1 px-3 rounded-full">
           Popular
         </div>
       )}
       <h2
         className={`text-2xl font-medium mb-4 ${
-          isSelected ? "text-white" : "text-gray-800"
+          isSelected ? "text-white" : "text-foreground"
         }`}
       >
         {title}
@@ -54,8 +54,8 @@ const PricingCard = ({
       <button
         className={`w-full py-3 rounded-lg font-bold text-lg ${
           isSelected
-            ? "bg-white text-indigo-600 hover:bg-indigo-100"
-            : "bg-indigo-600 text-white hover:bg-indigo-700"
+            ? "bg-card text-brand hover:bg-brand/10"
+            : "bg-brand text-white hover:opacity-90"
         } transition duration-300`}
       >
         {isSelected ? "Selected" : "Choose Plan"}

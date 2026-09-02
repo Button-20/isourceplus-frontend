@@ -100,21 +100,21 @@ export function SubscriptionCallbackPage() {
   }, [authAxios, navigate, searchParams]);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 max-w-md w-full text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="bg-card rounded-xl p-6 shadow-lg border border-border max-w-md w-full text-center">
         {isLoading ? (
           <>
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
             <h2 className="text-xl font-bold">Processing your subscription...</h2>
-            <p className="text-gray-600">Please wait while we verify your payment.</p>
+            <p className="text-muted-foreground">Please wait while we verify your payment.</p>
           </>
         ) : error ? (
           <>
             <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold">Subscription Error</h2>
-            <p className="text-gray-600">{error}</p>
+            <p className="text-muted-foreground">{error}</p>
             <button
-              className="mt-4 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+              className="mt-4 px-4 py-2 bg-brand-gradient text-white rounded-md hover:opacity-90"
               onClick={() => navigate("/dashboard")}
             >
               Return to Dashboard
@@ -124,7 +124,7 @@ export function SubscriptionCallbackPage() {
           <>
             <Check className="w-8 h-8 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold">Subscription Successful</h2>
-            <p className="text-gray-600">You will be redirected to your dashboard shortly.</p>
+            <p className="text-muted-foreground">You will be redirected to your dashboard shortly.</p>
           </>
         )}
       </div>

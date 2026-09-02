@@ -23,7 +23,7 @@ const NavBar = () => {
       return (
         <AnchorLink
           href={item.link}
-          className={`inline-block p-3 text-sm hover:bg-gray-300 rounded-lg font-medium`}
+          className={`inline-block p-3 text-sm hover:bg-muted rounded-lg font-medium`}
         >
           {item.title}
         </AnchorLink>
@@ -32,7 +32,7 @@ const NavBar = () => {
       return (
         <Link
           to={item.link}
-          className={`inline-block p-3 text-sm hover:bg-gray-300 rounded-lg font-medium`}
+          className={`inline-block p-3 text-sm hover:bg-muted rounded-lg font-medium`}
         >
           {item.title}
         </Link>
@@ -54,7 +54,7 @@ const NavBar = () => {
           </div>
           {/* menu section */}
           <div className="hidden xl:block">
-            <ul className="flex items-center space-x-5 text-gray-600 ">
+            <ul className="flex items-center space-x-5 text-muted-foreground ">
                 {NavBarMenu.map((item) => (
                 <li key={item.id}>
                   <a onClick={() => setMenu(item.title)}>
@@ -70,14 +70,14 @@ const NavBar = () => {
           {token ? (
             <Link
               to={"/dashboard"}
-              className={`px-5  py-3 bg-black hover:bg-black/50 text-white rounded-md text-sm font-medium hidden lg:block `}
+              className={`px-5  py-3 bg-brand-gradient hover:opacity-90 text-white rounded-md text-sm font-medium hidden lg:block `}
             >
               Dashboard
             </Link>
           ) : (
             <Link
               to={"/signup"}
-              className={`px-5  py-3 bg-black hover:bg-black/50 text-white rounded-md text-sm font-medium hidden xl:block `}
+              className={`px-5  py-3 bg-brand-gradient hover:opacity-90 text-white rounded-md text-sm font-medium hidden xl:block `}
             >
               Sign In / Register
             </Link>

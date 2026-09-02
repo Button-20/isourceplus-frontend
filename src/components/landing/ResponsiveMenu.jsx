@@ -35,7 +35,7 @@ const ResponsiveMenu = ({ open, setOpen }) => {
                 {NavBarMenu.map((item) => (
                   <li
                   key={item.id}
-                  className={`cursor-pointer hover:text-indigo-600`}
+                  className={`cursor-pointer hover:text-brand`}
                   onClick={() => setOpen(false)}
                   >
                   {renderNavLink(item)}
@@ -46,7 +46,7 @@ const ResponsiveMenu = ({ open, setOpen }) => {
                   <div>
                     <Link
                       to={"/dashboard"}
-                      className={`px-5  py-3 bg-indigo-600 hover:bg-white/50 text-white rounded-md text-sm font-medium  `}
+                      className={`px-5  py-3 bg-brand hover:bg-white/50 text-white rounded-md text-sm font-medium  `}
                     >
                       Dashboard
                     </Link>

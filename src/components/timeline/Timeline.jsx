@@ -83,10 +83,10 @@ const Timeline = () => {
               : "lg:rightcont lg:left-[50%] lg:w-[50%]"
           } w-full`}
         >
-          <div className="bg-white mx-auto lg:mx-10 rounded-lg shadow-md">
+          <div className="bg-card mx-auto lg:mx-10 rounded-lg shadow-md">
             {/* icon */}
             <motion.div
-              className={`lg:absolute inline-block m-4 lg:m-0 text-white bg-indigo-600 p-2 rounded-full text-[30px] lg:text-[40px] top-[20px] lg:top-[32px] z-10 ${
+              className={`lg:absolute inline-block m-4 lg:m-0 text-white bg-brand p-2 rounded-full text-[30px] lg:text-[40px] top-[20px] lg:top-[32px] z-10 ${
                 index % 2 === 0 ? "lg:right-[-20px]" : "lg:left-[-20px]"
               }`}
               whileHover={{ scale: 1.2 }}
@@ -96,7 +96,7 @@ const Timeline = () => {
             {/* textbox */}
             <div className="textbox shadow-lg px-6 py-6 lg:px-8 lg:py-8 relative rounded-md text-[15px]">
               <h2 className="font-medium text-lg">{step.title}</h2>
-              <p className="mt-3 text-sm text-gray-600">{step.description}</p>
+              <p className="mt-3 text-sm text-muted-foreground">{step.description}</p>
               <span
                 className={`hidden lg:block ${
                   index % 2 === 0

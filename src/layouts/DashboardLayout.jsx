@@ -219,8 +219,20 @@ export function DashboardLayout() {
     supplier: ["rfx", "tenders", "purchase-orders"],
     transporter: ["rfx", "tenders", "purchase-orders", "waybills"],
   };
+  const normalizedJob = (jobTitle || "")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   const isTransporter =
-    Boolean(transporterId) || jobTitle === "logistics manager";
+    Boolean(transporterId) || normalizedJob === "logistics manager";
+  const isSupplierRole = normalizedJob === "sales manager";
+  // Buyer/Supplier view toggle visibility:
+  //   - Transporters never see it.
+  //   - Suppliers (sales managers) always see it.
+  //   - Buyers only see it once they've registered a company (buyer or seller).
+  const showViewToggle =
+    !isTransporter && (isSupplierRole || Boolean(companyId));
   const hidden = new Set(
     isTransporter
       ? HIDDEN_KEYS.transporter
@@ -240,7 +252,7 @@ export function DashboardLayout() {
   if (profileVerified === null) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+        <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
       </div>
     );
   }
@@ -285,12 +297,12 @@ export function DashboardLayout() {
       <main style={{ width: "100%" }}>
         <div className="m-5 mb-0 flex items-center justify-between gap-3">
           <SidebarTrigger />
-          <ViewModeToggle />
+          {showViewToggle && <ViewModeToggle />}
         </div>
         <div className="p-5 pt-5">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+              <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
             </div>
           ) : (
             <Outlet />

@@ -9,10 +9,10 @@ import Lottie from "lottie-react";
 
 const Hero = () => {
 
-  const primaryText = "text-indigo-600";
+  const primaryText = "text-brand";
 
   const primaryBtn =
-    "bg-black text-white font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-4 md:px-8 rounded-md hover:scale-110! duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[0.9rem]";
+    "bg-brand-gradient text-white font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-4 md:px-8 rounded-md hover:scale-110! duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[0.9rem]";
 
   const navigate = useNavigate();
 
@@ -36,7 +36,7 @@ const Hero = () => {
                 variants={SlideRight(1.2)}
                 initial="hidden"
                 animate="visible"
-                className="text-gray-600 xl:max-w-[500px] text-center lg:text-left"
+                className="text-muted-foreground xl:max-w-[500px] text-center lg:text-left"
               >
                 Connecting Buyers and Suppliers Seamlessly for Efficient
                 Sourcing, Tenders, and Transactions

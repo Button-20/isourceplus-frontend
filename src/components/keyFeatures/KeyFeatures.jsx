@@ -9,7 +9,7 @@ import AnimatedHeading from "../animated_heading.components";
 const SecurityFeatures = () => {
 
   
-  const primaryBg = "bg-indigo-600";
+  const primaryBg = "bg-brand";
 
   const fallbackData = [
     {
@@ -29,7 +29,7 @@ const SecurityFeatures = () => {
           <AnimatedHeading
             text={"Your"}
             text2={"Security"}
-            text2class_name={"text-indigo-600"}
+            text2class_name={"text-brand"}
             size="text-4xl"
             class_name="font-montserrat font-medium pt-8 sm:pt-10 lg:pt-12"
           />
@@ -48,7 +48,7 @@ const SecurityFeatures = () => {
                   <img
                     src={item.image}
                     alt=""
-                    className="lg:w-14 w-14 mx-auto bg-white p-2 rounded-lg"
+                    className="lg:w-14 w-14 mx-auto bg-card p-2 rounded-lg"
                   />
                   <p className="text-xl font-medium text-center">
                     {item.title}

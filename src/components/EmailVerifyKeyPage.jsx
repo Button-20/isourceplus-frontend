@@ -39,11 +39,11 @@ const EmailVerifyKeyPage = () => {
   }, [authAxios, key, navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white p-8 rounded-lg shadow-xs w-full max-w-md text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="bg-card p-8 rounded-lg shadow-xs w-full max-w-md text-center">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-black mb-6"
+          className="flex items-center text-muted-foreground hover:text-foreground mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back
@@ -52,7 +52,7 @@ const EmailVerifyKeyPage = () => {
         {loading ? (
           <div className="flex flex-col items-center">
             <Loader2 className="animate-spin h-6 w-6 mb-4" />
-            <p className="text-gray-700">Verifying your email…</p>
+            <p className="text-foreground">Verifying your email…</p>
           </div>
         ) : (
           <p className="text-red-600">

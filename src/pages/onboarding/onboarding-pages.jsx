@@ -123,19 +123,19 @@ export function OnBoardingOrgRolePage() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-white">
+    <div className="min-h-screen p-4 md:p-8 bg-background text-foreground">
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 space-y-4 text-center">
           <div className="inline-block rounded-full bg-purple-100 p-2">
             <Users className="h-6 w-6" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Welcome to
             <br />
             I-Source-Plus
           </h1>
 
-          <p className="mx-auto max-w-2xl text-base text-gray-600">
+          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
             Lorem ipsum dolor sit amet consectetur adipisicing elit. Distinctio,
             ullam minima sint dolore autem corporis aut sequi, accusantium
             eveniet, sit quaerat praesentium odio.
@@ -174,7 +174,7 @@ export function OnBoardingOrgRolePage() {
           </div>
 
           <div className="flex-1">
-            <div className="relative overflow-hidden rounded-lg bg-white shadow-lg">
+            <div className="relative overflow-hidden rounded-lg bg-card shadow-lg">
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="mb-2">
                   <h2 className="text-2xl font-semibold tracking-tight">
@@ -302,19 +302,19 @@ export function OnBoardingOrgDetailsPage() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-white">
+    <div className="min-h-screen p-4 md:p-8 bg-background text-foreground">
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 space-y-4 text-center">
           <div className="inline-block rounded-full bg-purple-100 p-2">
             <Users className="h-6 w-6" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Welcome to
             <br />
             I-Source-Plus
           </h1>
 
-          <p className="mx-auto max-w-2xl text-base text-gray-600">
+          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
             Lorem ipsum dolor sit amet consectetur adipisicing elit. Distinctio,
             ullam minima sint dolore autem corporis aut sequi, accusantium
             eveniet, sit quaerat praesentium odio.
@@ -353,7 +353,7 @@ export function OnBoardingOrgDetailsPage() {
           </div>
 
           <div className="flex-1">
-            <div className="relative overflow-hidden rounded-lg bg-white shadow-lg">
+            <div className="relative overflow-hidden rounded-lg bg-card shadow-lg">
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="mb-2">
                   <h2 className="text-2xl font-semibold tracking-tight">
@@ -827,19 +827,19 @@ export function OnBoardingOrgVerificationPage() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-white">
+    <div className="min-h-screen p-4 md:p-8 bg-background text-foreground">
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 space-y-4 text-center">
           <div className="inline-block rounded-full bg-purple-100 p-2">
             <Users className="h-6 w-6" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Welcome to
             <br />
             I-Source-Plus
           </h1>
 
-          <p className="mx-auto max-w-2xl text-base text-gray-600">
+          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
             Lorem ipsum dolor sit amet consectetur adipisicing elit. Distinctio,
             ullam minima sint dolore autem corporis aut sequi, accusantium
             eveniet, sit quaerat praesentium odio.
@@ -878,7 +878,7 @@ export function OnBoardingOrgVerificationPage() {
           </div>
 
           <div className="flex-1">
-            <div className="relative overflow-hidden rounded-lg bg-white shadow-lg">
+            <div className="relative overflow-hidden rounded-lg bg-card shadow-lg">
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="mb-2">
                   <h2 className="text-2xl font-semibold tracking-tight">
@@ -910,14 +910,14 @@ export function OnBoardingOrgVerificationPage() {
                                 className="outline-dashed outline-1 outline-slate-500"
                               >
                                 <div className="flex items-center justify-center flex-col p-8 w-full ">
-                                  <CloudUpload className="text-gray-500 w-10 h-10" />
-                                  <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
+                                  <CloudUpload className="text-muted-foreground w-10 h-10" />
+                                  <p className="mb-1 text-sm text-muted-foreground">
                                     <span className="font-semibold">
                                       Click to upload
                                     </span>
                                     &nbsp; or drag and drop
                                   </p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  <p className="text-xs text-muted-foreground">
                                     PNG, JPG or PDF
                                   </p>
                                 </div>
@@ -1004,19 +1004,19 @@ export function OnBoardingOrgSubscriptionPlanPage() {
   const plans = userRole === "supplier" ? supplierPlans : buyerPlans;
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-white">
+    <div className="min-h-screen p-4 md:p-8 bg-background text-foreground">
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 space-y-4 text-center">
           <div className="inline-block rounded-full bg-purple-100 p-2">
             <Users className="h-6 w-6" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Welcome to
             <br />
             I-Source-Plus
           </h1>
 
-          <p className="mx-auto max-w-2xl text-base text-gray-600">
+          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
             Lorem ipsum dolor sit amet consectetur adipisicing elit. Distinctio,
             ullam minima sint dolore autem corporis aut sequi, accusantium
             eveniet, sit quaerat praesentium odio.
@@ -1055,7 +1055,7 @@ export function OnBoardingOrgSubscriptionPlanPage() {
           </div>
 
           <div className="flex-1">
-            <div className="relative overflow-hidden rounded-lg bg-white shadow-lg">
+            <div className="relative overflow-hidden rounded-lg bg-card shadow-lg">
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="mb-2">
                   <h2 className="text-2xl font-semibold tracking-tight">
@@ -1206,19 +1206,19 @@ export function OnBoardingOrgAdminAccountPage() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-white">
+    <div className="min-h-screen p-4 md:p-8 bg-background text-foreground">
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 space-y-4 text-center">
           <div className="inline-block rounded-full bg-purple-100 p-2">
             <Users className="h-6 w-6" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Welcome to
             <br />
             I-Source-Plus
           </h1>
 
-          <p className="mx-auto max-w-2xl text-base text-gray-600">
+          <p className="mx-auto max-w-2xl text-base text-muted-foreground">
             Lorem ipsum dolor sit amet consectetur adipisicing elit. Distinctio,
             ullam minima sint dolore autem corporis aut sequi, accusantium
             eveniet, sit quaerat praesentium odio.
@@ -1257,7 +1257,7 @@ export function OnBoardingOrgAdminAccountPage() {
           </div>
 
           <div className="flex-1">
-            <div className="relative overflow-hidden rounded-lg bg-white shadow-lg">
+            <div className="relative overflow-hidden rounded-lg bg-card shadow-lg">
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="mb-2">
                   <h2 className="text-2xl font-semibold tracking-tight">

@@ -43,8 +43,8 @@ const EmailVerificationPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white p-8 rounded-lg shadow-xs w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="bg-card p-8 rounded-lg shadow-xs w-full max-w-md">
         <h1 className="text-2xl font-bold mb-4">Verify Your Email</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -57,7 +57,7 @@ const EmailVerificationPage = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-black focus:border-black"
+              className="block w-full border border-border rounded-md p-2 focus:ring-black focus:border-black"
               placeholder="you@example.com"
             />
           </div>
@@ -65,7 +65,7 @@ const EmailVerificationPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-black text-white py-2.5 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+            className="w-full bg-brand-gradient text-white py-2.5 rounded-md font-medium hover:opacity-90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loading ? (
               <>

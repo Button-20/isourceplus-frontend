@@ -25,17 +25,17 @@ const Features = () => {
               variants={index % 2 === 0 ? SlideRight(0.2) : SlideLeft(0.4)}
               initial="hidden"
               whileInView="visible"
-              className="flex flex-col items-center text-center bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+              className="flex flex-col items-center text-center bg-card p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <img
                 src={item.icon}
                 alt="Descriptive alt text"
-                className="w-20 h-20 mb-4 object-cover  border-2 border-indigo-600 rounded-full"
+                className="w-20 h-20 mb-4 object-cover  border-2 border-brand rounded-full"
               />
-              <h1 className="text-2xl font-medium text-indigo-700 mb-4">
+              <h1 className="text-2xl font-medium text-brand mb-4">
                 {item.title}
               </h1>
-              <p className="text-gray-700 text-base leading-relaxed">
+              <p className="text-foreground text-base leading-relaxed">
                 {item.description}
               </p>
             </motion.div>

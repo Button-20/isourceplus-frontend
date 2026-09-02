@@ -111,7 +111,7 @@ const Store = () => {
         placeholder="Search services..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-hidden focus:border-indigo-600"
+        className="w-full p-3 border border-border rounded-lg focus:outline-hidden focus:border-brand"
       />
       {/* Categories */}
       <div className="space-y-2">
@@ -121,8 +121,8 @@ const Store = () => {
             onClick={() => setSelectedCategory(category)}
             className={`w-full px-4 py-2 border rounded-lg transition-colors whitespace-nowrap ${
               selectedCategory === category
-                ? "bg-black text-white border-indigo-600"
-                : "bg-white text-gray-600 border-gray-300"
+                ? "bg-brand-gradient text-white border-brand"
+                : "bg-card text-muted-foreground border-border"
             }`}
           >
             {category}
@@ -133,7 +133,7 @@ const Store = () => {
   );
 
   return (
-    <div className="bg-gray-100 min-h-screen font-montserrat">
+    <div className="bg-background min-h-screen font-montserrat">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-8">
@@ -142,13 +142,13 @@ const Store = () => {
             {/* On mobile, show a button to open the sidebar */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden  p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="md:hidden  p-3 bg-brand text-white rounded-lg hover:opacity-90 transition-colors"
             >
               <Menu className="w-5 h-5" />
             </button>
             <button
               onClick={handleAddService}
-              className=" p-3 bg-black text-white rounded-lg hover:bg-green-700 transition-colors"
+              className=" p-3 bg-brand-gradient text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -157,20 +157,20 @@ const Store = () => {
 
         <div className="flex">
           {/* Sidebar for md and up */}
-          <div className="hidden md:block md:w-1/4 bg-white rounded-lg shadow-lg mr-8">
+          <div className="hidden md:block md:w-1/4 bg-card rounded-lg shadow-lg mr-8">
             <SidebarContent />
           </div>
 
           {/* Main Content */}
           <div className="flex-1">
             {filteredServices.length === 0 ? (
-              <p className="text-center text-gray-600">No services found.</p>
+              <p className="text-center text-muted-foreground">No services found.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filteredServices.map((service) => (
                   <div
                     key={service.id}
-                    className="bg-white rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105"
+                    className="bg-card rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105"
                   >
                     <img
                       src={service.image}
@@ -181,7 +181,7 @@ const Store = () => {
                       <h3 className="text-xl font-medium mb-2">
                         {service.name}
                       </h3>
-                      <p className="text-gray-600 mb-4">
+                      <p className="text-muted-foreground mb-4">
                         {service.description}
                       </p>
                       <ul className="space-y-2 mb-6">
@@ -228,15 +228,15 @@ const Store = () => {
         {sidebarOpen && (
           <>
             <div
-              className="fixed inset-0 z-40 bg-gray-800 bg-opacity-50"
+              className="fixed inset-0 z-40 bg-black/50"
               onClick={() => setSidebarOpen(false)}
             ></div>
-            <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg overflow-y-auto">
+            <div className="fixed inset-y-0 left-0 z-50 w-64 bg-card shadow-lg overflow-y-auto">
               <div className="flex items-center justify-between p-4 border-b">
                 <h2 className="text-xl font-medium">Filters</h2>
                 <button
                   onClick={() => setSidebarOpen(false)}
-                  className="text-gray-600"
+                  className="text-muted-foreground"
                 >
                   <X className="w-5 h-5" />
                 </button>

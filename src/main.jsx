@@ -1,4 +1,3 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { appRoutes } from "./app-routes";
@@ -13,16 +12,18 @@ import SmoothScroll from "./components/common/SmoothScroll";
 // CSRF and credentials are handled centrally in the shared HTTP client
 // (src/services/lib/http.js + csrf.js) — no global axios defaults needed here.
 
+// NOTE: React.StrictMode is intentionally omitted. In development it
+// double-invokes effects, which caused effect-fired toasts (e.g. data-load
+// errors) to appear twice. Production never double-invokes, so this only
+// affects the dev experience.
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <AppProvider>
-      <SmoothScroll>
-        <div className="font-montserrat">
-          <ScrollToTop />
-          <RouterProvider router={appRoutes} />
-        </div>
-      </SmoothScroll>
-      <Toaster position="top-right" richColors />
-    </AppProvider>
-  </StrictMode>
+  <AppProvider>
+    <SmoothScroll>
+      <div className="font-montserrat">
+        <ScrollToTop />
+        <RouterProvider router={appRoutes} />
+      </div>
+    </SmoothScroll>
+    <Toaster position="top-right" richColors theme="dark" />
+  </AppProvider>
 );

@@ -6,19 +6,19 @@ const WatchNow = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4 py-8">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-8">
       {/* Header Section */}
       <header className="w-full max-w-6xl mb-8">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition text-lg"
+          className="flex items-center gap-2 text-foreground hover:text-foreground transition text-lg"
         >
           <FaArrowLeft /> Back
         </button>
       </header>
 
       {/* Video Section */}
-      <div className="w-full max-w-4xl bg-white shadow-md rounded-lg overflow-hidden">
+      <div className="w-full max-w-4xl bg-card shadow-md rounded-lg overflow-hidden">
         <div className="relative w-full pb-[56.25%] bg-black">
           <iframe
             src="https://www.youtube.com/embed/dQw4w9WgXcQ"
@@ -31,10 +31,10 @@ const WatchNow = () => {
         </div>
 
         <div className="p-6">
-          <h2 className="text-2xl font-semibold text-gray-800">
+          <h2 className="text-2xl font-semibold text-foreground">
             Watch Our Demo
           </h2>
-          <p className="text-gray-600 mt-4">
+          <p className="text-muted-foreground mt-4">
             Explore how <span className="font-medium">I-Source Plus</span> can
             revolutionize your procurement workflow. This demo video showcases
             the platform's features and benefits.

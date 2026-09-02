@@ -30,7 +30,7 @@ const Footer = () => {
         <div className="flex flex-col items-center md:items-start text-center">
           <img src={assets.ISlogo} alt="" className="w-32" />
 
-          <p className="text-gray-400 text-sm sm:mr-10">
+          <p className="text-muted-foreground text-sm sm:mr-10">
             The most Comprehensive Suppliers' and Buyers' Network
           </p>
         </div>
@@ -40,22 +40,22 @@ const Footer = () => {
           <h2 className="text-lg font-semibold mb-4">Quick Links</h2>
           <ul className="space-y-2">
             <li className="hover:underline">
-              <a href="#" className="text-gray-400">
+              <a href="#" className="text-muted-foreground">
                 Terms and Conditions
               </a>
             </li>
             <li className="hover:underline">
-              <a href="#" className="text-gray-400">
+              <a href="#" className="text-muted-foreground">
                 Privacy Policy
               </a>
             </li>
             <li className="hover:underline">
-              <a href="#" className="text-gray-400">
+              <a href="#" className="text-muted-foreground">
                 FAQs
               </a>
             </li>
             <li className="hover:underline">
-              <a href="#" className="text-gray-400">
+              <a href="#" className="text-muted-foreground">
                 Contact Us
               </a>
             </li>
@@ -65,12 +65,12 @@ const Footer = () => {
         {/* Contact Info Section */}
         <div className="text-center md:text-right">
           <h2 className="text-lg font-semibold mb-4">Contact Info</h2>
-          <p className="text-gray-400 text-sm">123 Main Street, Accra, Ghana</p>
-          <p className="text-gray-400 text-sm">+233 111 1111</p>
-          <p className="text-gray-400 text-sm">support@example.com</p>
+          <p className="text-muted-foreground text-sm">123 Main Street, Accra, Ghana</p>
+          <p className="text-muted-foreground text-sm">+233 111 1111</p>
+          <p className="text-muted-foreground text-sm">support@example.com</p>
           <button
             onClick={handleScrollToTop}
-            className="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-gray-300 rounded hover:bg-gray-400"
+            className="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-muted rounded hover:bg-muted/80"
           >
             Back to Top
           </button>
@@ -78,7 +78,7 @@ const Footer = () => {
       </div>
 
       {/* Bottom Section: Social Links and Copyright */}
-      <div className="border-t border-gray-700 mt-8 pt-6">
+      <div className="border-t border-white/15 mt-8 pt-6">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between">
           {/* Social Links */}
           <div className="flex gap-3 mb-4 md:mb-0">
@@ -86,7 +86,7 @@ const Footer = () => {
               <a
                 key={index}
                 href={href}
-                className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-800 hover:bg-gray-700"
+                className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10 hover:bg-white/20"
                 aria-label={label}
                 title={label}
               >
@@ -96,7 +96,7 @@ const Footer = () => {
           </div>
 
           {/* Copyright Text */}
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-muted-foreground">
             &copy; {currentYear} iSourcePlus. All rights reserved.
           </p>
         </div>

@@ -158,12 +158,12 @@ const Marketplace = () => {
   });
 
   return (
-    <div className="bg-gray-100 py-16 font-montserrat">
+    <div className="bg-background py-16 font-montserrat">
       <div className="container mx-auto px-4">
         <h1 className="text-4xl font-medium text-center mb-4">
           Connecting Buyers & Suppliers Seamlessly
         </h1>
-        <p className="text-center text-gray-600 mb-12">
+        <p className="text-center text-muted-foreground mb-12">
           Efficient sourcing, tenders, and transactions for everyday services.
         </p>
 
@@ -171,7 +171,7 @@ const Marketplace = () => {
         <div className="flex justify-end mb-4">
           <button
             onClick={() => setShowFilters((prev) => !prev)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-brand text-white rounded-lg hover:opacity-90 transition-colors"
           >
             {showFilters ? "Hide Filters" : "Filter"}
           </button>
@@ -189,8 +189,8 @@ const Marketplace = () => {
                     onClick={() => setSelectedCategory(category)}
                     className={`px-4 py-2 border rounded-lg transition-colors whitespace-nowrap ${
                       selectedCategory === category
-                        ? "bg-indigo-600 text-white border-indigo-600"
-                        : "bg-white text-gray-600 border-gray-300"
+                        ? "bg-brand text-white border-brand"
+                        : "bg-card text-muted-foreground border-border"
                     }`}
                   >
                     {category}
@@ -206,7 +206,7 @@ const Marketplace = () => {
                 placeholder="Search services..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:outline-hidden focus:border-indigo-600"
+                className="w-full md:w-1/2 p-3 border border-border rounded-lg focus:outline-hidden focus:border-brand"
               />
             </div>
           </div>
@@ -217,7 +217,7 @@ const Marketplace = () => {
           {filteredServices.map((service) => (
             <div
               key={service.id}
-              className="bg-white rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105"
+              className="bg-card rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105"
             >
               <img
                 src={service.image}
@@ -226,7 +226,7 @@ const Marketplace = () => {
               />
               <div className="p-6">
                 <h3 className="text-xl font-medium mb-2">{service.name}</h3>
-                <p className="text-gray-600 mb-4">{service.description}</p>
+                <p className="text-muted-foreground mb-4">{service.description}</p>
                 <ul className="space-y-2 mb-6">
                   {service.features.map((feature, index) => (
                     <li key={index} className="flex items-center">
@@ -245,14 +245,14 @@ const Marketplace = () => {
                     </li>
                   ))}
                 </ul>
-                <button className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
+                <button className="w-full bg-brand text-white py-2 px-4 rounded-lg hover:opacity-90 transition-colors">
                   Learn More
                 </button>
               </div>
             </div>
           ))}
           {filteredServices.length === 0 && (
-            <p className="col-span-full text-center text-gray-600">
+            <p className="col-span-full text-center text-muted-foreground">
               No services found.
             </p>
           )}
