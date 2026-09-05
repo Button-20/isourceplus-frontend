@@ -347,17 +347,22 @@ const TransporterForm = () => {
     }
     setSubmitting(true);
     try {
-      // Create with a JSON body so the transport lists are sent as real arrays.
-      // (Multipart form-encoding flattened them to strings, which the API
-      // rejected with "Expected a list of items but got type str".)
-      const payload = {
-        transport_mode: lists.transport_mode,
-        transport_means: lists.transport_means,
-      };
+      // The API only accepts multipart/form-data (a JSON body is rejected with
+      // 415). The backend reads the plain `transport_mode` field as a single
+      // value and expects it to be a JSON-encoded array: repeated keys came
+      // back "got type str" (scalar read) and indexed keys came back "required"
+      // (plain key not found), while a JSON body historically accepted a real
+      // list. So send each list as a JSON string in one field.
+      const fd = new FormData();
       Object.entries(values).forEach(([k, v]) => {
-        if (v) payload[k] = v;
+        // The real selections live in `lists`; skip the vestigial (empty) copies
+        // that `values` still carries so they can't blank out the arrays below.
+        if (k === "transport_mode" || k === "transport_means") return;
+        if (v) fd.append(k, v);
       });
-      const created = await createTransporterRequest(payload);
+      fd.append("transport_mode", JSON.stringify(lists.transport_mode));
+      fd.append("transport_means", JSON.stringify(lists.transport_means));
+      const created = await createTransporterRequest(fd);
       setTransporterId(created.id);
       storage.set("transporter_id", created.id);
 

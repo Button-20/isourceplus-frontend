@@ -106,15 +106,28 @@ export function DashboardLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileVerified, user, token]);
 
+  // Role / organization flags. A transporter follows its own experience;
+  // company users (buyers/suppliers) follow the Buyer/Supplier view toggle.
+  const normalizedJob = (jobTitle || "")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const isTransporter =
+    Boolean(transporterId) || normalizedJob === "logistics manager";
+  const isSupplierRole = normalizedJob === "sales manager";
+
   // Sidebar navigation — always fully populated. Backend permissions still
   // guard the actual routes, so showing the full workspace is safe and gives
-  // every role a complete sidebar.
+  // every role a complete sidebar. A company only gets "Edit Company"; a
+  // transporter only gets "Edit Transporter" — never both.
   const companiesSubmenu = [
     ...(!companyId && !transporterId
       ? [{ title: "Account Type", url: "/dashboard/companies" }]
       : []),
-    { title: "Edit Company", url: "/dashboard/company/edit" },
-    { title: "Edit Transporter", url: "/dashboard/transporter/edit" },
+    ...(isTransporter
+      ? [{ title: "Edit Transporter", url: "/dashboard/transporter/edit" }]
+      : [{ title: "Edit Company", url: "/dashboard/company/edit" }]),
   ];
 
   // A single Employees entry that points at the company or transporter roster
@@ -219,20 +232,9 @@ export function DashboardLayout() {
     supplier: ["rfx", "tenders", "purchase-orders"],
     transporter: ["rfx", "tenders", "purchase-orders", "waybills"],
   };
-  const normalizedJob = (jobTitle || "")
-    .toLowerCase()
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const isTransporter =
-    Boolean(transporterId) || normalizedJob === "logistics manager";
-  const isSupplierRole = normalizedJob === "sales manager";
-  // Buyer/Supplier view toggle visibility:
-  //   - Transporters never see it.
-  //   - Suppliers (sales managers) always see it.
-  //   - Buyers only see it once they've registered a company (buyer or seller).
-  const showViewToggle =
-    !isTransporter && (isSupplierRole || Boolean(companyId));
+  // Buyer/Supplier view toggle visibility: only suppliers (sales managers) see
+  // it. Buyers and transporters never do.
+  const showViewToggle = !isTransporter && isSupplierRole;
   const hidden = new Set(
     isTransporter
       ? HIDDEN_KEYS.transporter

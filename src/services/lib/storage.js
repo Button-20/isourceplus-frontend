@@ -56,6 +56,23 @@ export const storage = {
     }
   },
 
+  /**
+   * Wipe ALL client-side state — the in-memory fallback plus localStorage and
+   * sessionStorage. Used on logout so no data from the previous user (session,
+   * form drafts, cached ids, view mode, …) can leak into the next session.
+   */
+  clear() {
+    memory.clear();
+    try {
+      if (canUse) {
+        window.localStorage.clear();
+        window.sessionStorage?.clear();
+      }
+    } catch {
+      /* ignore */
+    }
+  },
+
   /** Parse a JSON value, returning `fallback` if missing or malformed. */
   getJSON(key, fallback = null) {
     const raw = storage.get(key);

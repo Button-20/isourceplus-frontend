@@ -165,7 +165,7 @@ export function NavUser({ user }) {
           </div>
 
           <div className="px-6 pb-6 -mt-4">
-            <div className="rounded-2xl bg-card p-5 text-center">
+            <div className="rounded-2xl bg-card p-5 text-center mt-7">
               <DialogHeader className="space-y-2">
                 <DialogTitle className="text-center font-display text-lg font-bold">
                   Log out

@@ -78,9 +78,12 @@ export const AppProvider = ({ children }) => {
     setUserProfileId(null);
     setCompanyId(null);
     setTransporterId(null);
+    setJobTitle(null);
     setViewModeState(null);
-    storage.remove("view_mode");
-    authStorage.clear();
+    // Wipe EVERYTHING persisted client-side (session, form drafts, cached ids,
+    // view mode, …) so none of the logged-out user's data survives into the
+    // next session. storage.clear() also covers the authStorage keys.
+    storage.clear();
     clearCsrfToken();
   };
 

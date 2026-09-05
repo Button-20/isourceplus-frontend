@@ -291,11 +291,16 @@ export default function EditTransporter() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await authAxios.patch(`transporters/${transporterId}/`, {
-        ...values,
-        transport_mode: lists.transport_mode,
-        transport_means: lists.transport_means,
+      // The API only accepts multipart/form-data (a JSON body is rejected with
+      // 415). The backend reads the plain `transport_mode` field as a single
+      // value and expects it to be a JSON-encoded array (see TransporterForm).
+      const fieldData = new FormData();
+      Object.entries(values).forEach(([k, v]) => {
+        if (v) fieldData.append(k, v);
       });
+      fieldData.append("transport_mode", JSON.stringify(lists.transport_mode));
+      fieldData.append("transport_means", JSON.stringify(lists.transport_means));
+      await authAxios.patch(`transporters/${transporterId}/`, fieldData);
       const formData = new FormData();
       if (files.logo) formData.append("logo", files.logo);
       files.vehicle_images.forEach((file, index) => {

@@ -18,7 +18,7 @@ export async function getAllReviews() {
 // GET organizations matching a name, to choose one to review.
 export async function searchOrganizationsToReview(query) {
   const { data } = await http.get("reviews/search-organisation-to-review/", {
-    params: query ? { search: query } : undefined,
+    params: query ? { name: query } : undefined,
   });
   return data;
 }

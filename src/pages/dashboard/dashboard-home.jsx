@@ -135,7 +135,7 @@ function StatCard({ resource, count, loading }) {
 }
 
 export function DashBoardHome() {
-  const { user, token, jobTitle, companyId, transporterId, viewMode } =
+  const { user, token, jobTitle, companyId, transporterId, viewMode, sidebarLoading } =
     useAuth();
   const location = useLocation();
   const [counts, setCounts] = useState({});
@@ -213,8 +213,10 @@ export function DashBoardHome() {
         </div>
       </div>
 
-      {/* Onboarding nudge */}
-      {!hasOrg && (
+      {/* Onboarding nudge — only once org data has resolved, so it never
+          flashes for a user who actually has a company/transporter (companyId
+          and transporterId are derived asynchronously and start null). */}
+      {!sidebarLoading && !hasOrg && (
         <Card className="border-amber-300/60 bg-amber-50">
           <CardContent className="flex items-center gap-3 p-4">
             <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
