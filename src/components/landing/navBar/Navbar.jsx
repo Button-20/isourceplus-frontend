@@ -50,7 +50,7 @@ const NavBar = () => {
             className={`text-2xl flex items-center gap-2 cursor-pointer font-bold uppercase`}
           >
             {/* <Users /> */}
-            <img src={assets.ISlogo} alt="" className="w-32" />
+            <img src={assets.ISlogo} alt="iSource+" className="w-44" />
           </div>
           {/* menu section */}
           <div className="hidden xl:block">

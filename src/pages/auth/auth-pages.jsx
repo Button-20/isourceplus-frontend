@@ -66,7 +66,7 @@ export function LoginPage() {
       <div className="flex flex-col p-6 sm:p-10">
         <div className="flex items-center justify-between">
           <div className="lg:hidden">
-            <Logo imgClassName="h-8" />
+            <Logo imgClassName="h-12" />
             <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
               Connect - Source - Pay
             </p>
@@ -177,7 +177,7 @@ export function SignUpPage() {
       <div className="flex flex-col p-6 sm:p-10">
         <div className="flex items-center justify-between">
           <div className="lg:hidden">
-            <Logo imgClassName="h-8" />
+            <Logo imgClassName="h-12" />
             <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
               Connect - Source - Pay
             </p>

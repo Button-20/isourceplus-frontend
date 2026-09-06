@@ -143,7 +143,7 @@ const AccountTypePage = () => {
         {/* Top bar — only outside the dashboard shell, which has its own. */}
         {!embedded && (
           <div className="flex items-center justify-between">
-            <Logo imgClassName="h-8" />
+            <Logo imgClassName="h-12" />
             <Button variant="ghost" size="sm" onClick={() => logout()}>
               Log out
             </Button>

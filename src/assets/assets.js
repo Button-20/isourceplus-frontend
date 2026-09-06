@@ -24,7 +24,6 @@ import id_card from "./id-card.png";
 import envelope from "./envelope.png";
 import data_protection from "./data-protection.png";
 import ISlogo from "./ISlogo.png";
-import IS from "./IS.png";
 import heroImageOG from "./heroImageOG.png";
 import animationHero from "./Animation - 1736512676896.json";
 
@@ -40,7 +39,6 @@ export const assets = {
   aboutIMG,
   aboutIMG2,
   ISlogo,
-  IS,
   heroImageOG,
   exchange,
   animationHero,

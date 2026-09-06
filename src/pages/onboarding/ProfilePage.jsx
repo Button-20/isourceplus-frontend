@@ -24,7 +24,7 @@ const ProfilePage = () => {
       <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
         {/* Top bar */}
         <div className="flex items-center justify-between">
-          <Logo imgClassName="h-8" />
+          <Logo imgClassName="h-12" />
           <Button variant="ghost" size="sm" onClick={() => logout()}>
             Log out
           </Button>

@@ -281,7 +281,7 @@ export function DashboardLayout() {
                   <img
                     src={assets.ISlogo}
                     alt="iSource+"
-                    className="h-6 w-auto group-data-[collapsible=icon]:hidden"
+                    className="h-8 w-auto group-data-[collapsible=icon]:hidden"
                   />
                 </Link>
               </SidebarMenuButton>

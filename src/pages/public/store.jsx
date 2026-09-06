@@ -205,7 +205,7 @@ const Store = () => {
                       <div className="flex gap-4">
                         <button
                           onClick={() => handleEdit(service.id)}
-                          className="flex-1 flex items-center justify-center p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="flex-1 flex items-center justify-center p-3 bg-brand text-white rounded-lg hover:opacity-90 transition-colors"
                         >
                           <Edit className="w-4 h-4" />
                         </button>

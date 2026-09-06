@@ -18,7 +18,9 @@ export default function LandingNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-lg">
       <nav className="container flex h-16 items-center justify-between">
-        <Logo imgClassName="h-9" />
+        {/* onDark renders a white mark, so it needs no chip and sits cleanly
+            inside the h-16 bar. */}
+        <Logo onDark imgClassName="h-12" />
 
         <div className="hidden items-center gap-8 md:flex">
           {links.map((l) => (

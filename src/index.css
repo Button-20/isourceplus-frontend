@@ -107,23 +107,18 @@ layer(base);
   filter: drop-shadow(-6px 8px 15px rgba(0, 0, 0, 0.2));
 }
 
+/*
+  Design reference: potrise.com — flat, saturated brand blocks on a dark base,
+  no gradients or glassy blur. These utilities keep their historical names (they
+  are used across the whole app) but now resolve to SOLID brand blue, so every
+  hero, button and panel flattens without touching components.
+*/
 @utility bg-brand-gradient {
-  background-image: linear-gradient(
-    120deg,
-    hsl(var(--brand)) 0%,
-    hsl(var(--brand-2)) 100%
-  );
+  background-color: hsl(var(--brand));
 }
 
 @utility text-brand-gradient {
-  background-image: linear-gradient(
-    120deg,
-    hsl(var(--brand)) 0%,
-    hsl(var(--brand-2)) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: hsl(var(--brand));
 }
 
 @utility bg-grid-faint {
@@ -189,7 +184,7 @@ layer(base);
     --card-foreground: 210 20% 96%;
     --popover: 222 22% 10%;
     --popover-foreground: 210 20% 96%;
-    --primary: 243 75% 62%;
+    --primary: 226 78% 58%;
     --primary-foreground: 0 0% 100%;
     --secondary: 222 16% 17%;
     --secondary-foreground: 210 20% 96%;
@@ -201,10 +196,11 @@ layer(base);
     --destructive-foreground: 0 0% 100%;
     --border: 222 16% 20%;
     --input: 222 16% 20%;
-    --ring: 243 75% 62%;
-    /* iSource+ brand: refined indigo → violet (brightened for dark) */
-    --brand: 243 75% 62%;
-    --brand-2: 262 83% 64%;
+    --ring: 226 78% 58%;
+    /* iSource+ brand: royal blue ("i-Source") → maroon/crimson ("plus+"),
+       matching the logo and brightened so both pop on the dark shell. */
+    --brand: 226 78% 58%;
+    --brand-2: 349 65% 47%;
     --brand-foreground: 0 0% 100%;
     --chart-1: 220 70% 55%;
     --chart-2: 160 60% 48%;
@@ -214,12 +210,12 @@ layer(base);
     --radius: 0.5rem;
     --sidebar-background: 222 24% 9%;
     --sidebar-foreground: 215 16% 75%;
-    --sidebar-primary: 243 75% 62%;
+    --sidebar-primary: 226 78% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 16% 16%;
     --sidebar-accent-foreground: 210 20% 96%;
     --sidebar-border: 222 16% 18%;
-    --sidebar-ring: 243 75% 62%;
+    --sidebar-ring: 226 78% 58%;
   }
 }
 

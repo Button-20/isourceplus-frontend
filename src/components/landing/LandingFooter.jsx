@@ -62,11 +62,11 @@ const footerLinks = {
 
 export default function LandingFooter() {
   return (
-    <footer className="border-t border-white/10 bg-neutral-950 text-neutral-300">
+    <footer className="border-t border-border bg-background text-neutral-300">
       <div className="container py-14">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Logo onDark imgClassName="h-8" />
+            <Logo onDark imgClassName="h-16" />
             <p className="mt-4 max-w-sm text-sm text-neutral-400">
               The most comprehensive suppliers&apos; and buyers&apos; network —
               connecting businesses across Ghana and beyond.

@@ -8,7 +8,7 @@ import {
   CiPhone,
   CiTwitter,
 } from "react-icons/ci";
-import { assets } from "@/assets/assets";
+import Logo from "@/components/common/Logo";
 
 const socialLinks = [
   { icon: CiInstagram, href: "#", label: "Instagram" },
@@ -28,7 +28,9 @@ const Footer = () => {
       <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Logo and Description Section */}
         <div className="flex flex-col items-center md:items-start text-center">
-          <img src={assets.ISlogo} alt="" className="w-32" />
+          {/* Same ISlogo.png as everywhere else, on the white chip so the
+              coloured wordmark stays legible against the dark footer. */}
+          <Logo onDark imgClassName="h-16" />
 
           <p className="text-muted-foreground text-sm sm:mr-10">
             The most Comprehensive Suppliers' and Buyers' Network

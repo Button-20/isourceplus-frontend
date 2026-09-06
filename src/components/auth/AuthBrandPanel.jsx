@@ -23,14 +23,8 @@ const points = [
 export default function AuthBrandPanel({ title, subtitle }) {
   return (
     <div className="relative hidden overflow-hidden bg-brand-gradient p-10 text-white lg:flex lg:flex-col lg:justify-between">
-      <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-
-      <div className="relative mb-5 flex flex-col items-center text-center">
-        <Logo onDark imgClassName="h-8" />
-        <p className="mt-3 text-sm font-medium uppercase tracking-[0.25em] text-white/80">
-          Connect - Source - Pay
-        </p>
+      <div className="relative mb-5 flex justify-center">
+        <Logo onDark imgClassName="h-24" />
       </div>
 
       <div className="relative">

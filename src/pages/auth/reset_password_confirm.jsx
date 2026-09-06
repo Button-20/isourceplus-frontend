@@ -59,7 +59,7 @@ export function ResetPasswordConfirmPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4 font-montserrat">
       <div className="w-full max-w-md">
         <div className="mb-6 flex justify-center">
-          <Logo imgClassName="h-8" />
+          <Logo imgClassName="h-12" />
         </div>
         <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-sm sm:p-8">
           <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand/10 blur-2xl" />
