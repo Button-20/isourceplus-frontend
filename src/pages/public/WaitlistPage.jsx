@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, CheckCircle2, Loader2, PartyPopper } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import Logo from "@/components/common/Logo";
@@ -166,9 +167,9 @@ function Field({ label, required, children }) {
 
 export default function WaitlistPage() {
   const cd = useCountdown(PROMO_ENDS_AT);
+  const navigate = useNavigate();
   const [values, setValues] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
 
   const onInput = (name) => (e) =>
     setValues((v) => ({ ...v, [name]: e.target.value }));
@@ -192,8 +193,10 @@ export default function WaitlistPage() {
         ...values,
         company_institution: values.company_institution.trim(),
       });
-      setDone(true);
-      toast.success("You're on the waitlist!");
+      // Confirm, then send them to the homepage (the toast persists across
+      // navigation via sonner).
+      toast.success("You're on the waitlist! We'll be in touch before launch.");
+      navigate("/");
     } catch (err) {
       const data = err.response?.data;
       toast.error(
@@ -414,22 +417,7 @@ export default function WaitlistPage() {
           <IllustrationSignup className="mx-auto w-full max-w-md lg:order-1" />
 
           <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 lg:order-2">
-            {done ? (
-              <div className="flex flex-col items-center py-10 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand/10">
-                  <PartyPopper className="h-8 w-8 text-brand" />
-                </div>
-                <h3 className="mt-5 font-display text-2xl font-bold">
-                  You&apos;re on the list!
-                </h3>
-                <p className="mt-2 max-w-sm text-muted-foreground">
-                  We&apos;ve saved your spot. Your free 1-month Early Bird
-                  subscription takes effect immediately after the official
-                  launch on {LAUNCH_DATE_LABEL}.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <h3 className="font-display text-xl font-bold">
                     Reserve your spot
@@ -554,8 +542,7 @@ export default function WaitlistPage() {
                   Promo ends {PROMO_ENDS_LABEL}. Free subscription starts at
                   launch on {LAUNCH_DATE_LABEL}.
                 </p>
-              </form>
-            )}
+            </form>
           </div>
         </div>
       </section>

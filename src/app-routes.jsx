@@ -1,6 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
-import { ENV } from "./services/lib/env";
 import WaitlistPage from "./pages/public/WaitlistPage";
 
 import {
@@ -101,8 +100,9 @@ import WaybillDetailPage from "./pages/waybills/WaybillDetailPage";
 // subscription
 import { SubscriptionCallbackPage } from "./pages/subscription/SubscriptionCallbackPage";
 
-const siteRoutes = [
+export const appRoutes = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
+  { path: "/waitlist", element: <WaitlistPage /> },
   { path: "/pricing", element: <PricingPage /> },
   { path: "/marketplace", element: <MarketplacePage /> },
   { path: "/store", element: <Store /> },
@@ -194,12 +194,4 @@ const siteRoutes = [
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },
-];
-// Feature toggle. When VITE_WAITLIST_MODE=true the entire site is the waitlist
-// landing page (every path resolves to it). Flip it to false to serve the real
-// application. See ENV.WAITLIST_MODE in services/lib/env.js.
-const waitlistRoutes = [{ path: "*", element: <WaitlistPage /> }];
-
-export const appRoutes = createBrowserRouter(
-  ENV.WAITLIST_MODE ? waitlistRoutes : siteRoutes,
-);
+]);

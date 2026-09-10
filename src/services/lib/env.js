@@ -33,10 +33,6 @@ export const ENV = {
   // This is why login/refresh work locally: keep prod on the same relative
   // path and it stays first-party there too.
   API_BASE_URL: "/api/v1/",
-  // Pre-launch toggle: `true` serves the waitlist landing page on every path;
-  // `false` (default) serves the real application. Set VITE_WAITLIST_MODE in
-  // .env (and in the Render environment for production).
-  WAITLIST_MODE: raw.VITE_WAITLIST_MODE === "true",
 };
 
 export const getApiBaseUrl = () => ENV.API_BASE_URL;

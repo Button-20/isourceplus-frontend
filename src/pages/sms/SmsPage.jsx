@@ -47,6 +47,9 @@ const pick = (o, keys, fallback = null) => {
 };
 
 const num = (v) => {
+  // Treat missing values as null (not 0) — Number(null)/Number("") are 0, which
+  // otherwise makes an absent unit count render as "0" instead of "—".
+  if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
@@ -81,6 +84,7 @@ const readBalance = (d) =>
     : num(
         pick(d, [
           "balance",
+          "sms_count",
           "units",
           "sms_units",
           "sms_balance",
@@ -93,7 +97,8 @@ const readBalance = (d) =>
 const normalizePlan = (p) => ({
   id: pick(p, ["id", "plan_id", "uuid", "code"]),
   name: pick(p, ["name", "title", "plan_name"], "SMS plan"),
-  units: num(pick(p, ["units", "sms_units", "credits", "quantity", "number_of_sms"])),
+  units: num(pick(p, ["sms_count", "units", "sms_units", "credits", "quantity", "number_of_sms"])),
+  pricePerSms: pick(p, ["price_per_sms", "unit_price"]),
   price: pick(p, ["price", "amount", "cost"]),
   currency: pick(p, ["currency"], "GHS"),
   description: pick(p, ["description", "details"], ""),
@@ -103,7 +108,7 @@ const normalizeTransaction = (t) => ({
   id: pick(t, ["id", "reference", "transaction_id"]),
   date: pick(t, ["created_at", "created", "date", "timestamp"]),
   plan: pick(t, ["plan_name", "plan_title", "description"]) ?? pick(t?.plan, ["name", "title"]) ?? (typeof t?.plan === "string" ? t.plan : "—"),
-  units: num(pick(t, ["units", "sms_units", "credits", "quantity"])),
+  units: num(pick(t, ["sms_count", "units", "sms_units", "credits", "quantity"])),
   amount: pick(t, ["amount", "price", "total"]),
   currency: pick(t, ["currency"], "GHS"),
   status: pick(t, ["status", "state"], "—"),
@@ -119,7 +124,7 @@ const normalizeSent = (s) => {
     recipients,
     message: pick(s, ["message", "text", "body"], ""),
     status: pick(s, ["status", "state"], "—"),
-    units: num(pick(s, ["units", "units_used", "cost", "credits_used"])),
+    units: num(pick(s, ["sms_count", "units", "units_used", "cost", "credits_used"])),
   };
 };
 
@@ -276,7 +281,11 @@ export default function SmsPage() {
     setSending(true);
     try {
       const res = await sendSms({ message: message.trim(), recipients });
-      const sent = num(pick(res, ["sent", "sent_count", "count", "total_sent"])) ?? recipients.length;
+      // We submitted `recipients`, so that's the reliable count. Only override
+      // with an explicit POSITIVE sent-count from the response (avoid ambiguous
+      // "count", and never let a 0/absent field report "Sent to 0 recipients").
+      const reported = num(pick(res, ["sent", "sent_count", "total_sent", "recipient_count"]));
+      const sent = reported && reported > 0 ? reported : recipients.length;
       toast.success(
         `Sent to ${sent} recipient${sent === 1 ? "" : "s"}.`,
       );
@@ -381,10 +390,18 @@ export default function SmsPage() {
 
       <Tabs defaultValue="send">
         <TabsList className="h-auto flex-wrap rounded-full bg-muted/40 p-1">
-          <TabsTrigger value="send" className="rounded-full">Send</TabsTrigger>
-          <TabsTrigger value="plans" className="rounded-full">Buy units</TabsTrigger>
-          <TabsTrigger value="transactions" className="rounded-full">Transactions</TabsTrigger>
-          <TabsTrigger value="history" className="rounded-full">Sent history</TabsTrigger>
+          <TabsTrigger value="send" className="rounded-full">
+            Send
+          </TabsTrigger>
+          <TabsTrigger value="plans" className="rounded-full">
+            Buy units
+          </TabsTrigger>
+          <TabsTrigger value="transactions" className="rounded-full">
+            Transactions
+          </TabsTrigger>
+          <TabsTrigger value="history" className="rounded-full">
+            Sent history
+          </TabsTrigger>
         </TabsList>
 
         {/* ---------------------------------------------------------- send */}
@@ -425,8 +442,8 @@ export default function SmsPage() {
                   placeholder={"0555943014, 0594700610\n233241234567"}
                 />
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  One or many — separate with commas, spaces or new lines.
-                  Local numbers (0XX…) are converted to 233… automatically.
+                  One or many — separate with commas, spaces or new lines. Local
+                  numbers (0XX…) are converted to 233… automatically.
                 </p>
                 {recipients.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
@@ -484,15 +501,15 @@ export default function SmsPage() {
             <aside className="space-y-4 rounded-2xl border border-border bg-card p-6 text-sm">
               <p className="font-semibold">How units work</p>
               <ul className="space-y-2 text-muted-foreground">
-                <li>1 unit sends one 160-character segment to one recipient.</li>
+                <li>
+                  1 unit sends one 160-character segment to one recipient.
+                </li>
                 <li>Longer messages use more segments per recipient.</li>
                 <li>Bulk sends multiply by the number of recipients.</li>
               </ul>
               <p className="text-muted-foreground">
                 Running low?{" "}
-                <span className="font-medium text-foreground">
-                  Buy units
-                </span>{" "}
+                <span className="font-medium text-foreground">Buy units</span>{" "}
                 from a plan in the next tab.
               </p>
             </aside>
@@ -528,6 +545,11 @@ export default function SmsPage() {
                     <p className="mt-1 text-lg font-semibold">
                       {money(plan.price, plan.currency)}
                     </p>
+                    {num(plan.pricePerSms) !== null && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {money(plan.pricePerSms, plan.currency)} per SMS
+                      </p>
+                    )}
                     {plan.description && (
                       <p className="mt-2 text-sm text-muted-foreground">
                         {plan.description}
@@ -541,7 +563,8 @@ export default function SmsPage() {
                     >
                       {busy ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" /> Processing…
+                          <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                          Processing…
                         </>
                       ) : (
                         <>
@@ -575,22 +598,31 @@ export default function SmsPage() {
                     <th className="px-4 py-3">Plan</th>
                     <th className="px-4 py-3 text-right">Units</th>
                     <th className="px-4 py-3 text-right">Amount</th>
-                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Type</th>
                     <th className="px-4 py-3">Reference</th>
                   </tr>
                 </thead>
                 <tbody>
                   {transactions.map((t, i) => (
-                    <tr key={String(t.id ?? i)} className="border-t border-border">
-                      <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(t.date)}</td>
+                    <tr
+                      key={String(t.id ?? i)}
+                      className="border-t border-border"
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {formatDateTime(t.date)}
+                      </td>
                       <td className="px-4 py-3">{t.plan}</td>
                       <td className="px-4 py-3 text-right tabular-nums">
-                        {t.units === null ? "—" : t.units.toLocaleString()}
+                        {t.sms_count === null
+                          ? "—"
+                          : t.sms_count.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
                         {money(t.amount, t.currency)}
                       </td>
-                      <td className="px-4 py-3"><StatusPill value={t.status} /></td>
+                      <td className="px-4 py-3">
+                        <StatusPill value={t.transaction_type} />
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                         {String(t.reference)}
                       </td>
@@ -626,15 +658,21 @@ export default function SmsPage() {
                 </thead>
                 <tbody>
                   {history.map((s, i) => (
-                    <tr key={String(s.id ?? i)} className="border-t border-border align-top">
-                      <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(s.date)}</td>
+                    <tr
+                      key={String(s.id ?? i)}
+                      className="border-t border-border align-top"
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {formatDateTime(s.date)}
+                      </td>
                       <td className="px-4 py-3">
                         {s.recipients.length ? (
                           <span title={s.recipients.join(", ")}>
                             {s.recipients[0]}
                             {s.recipients.length > 1 && (
                               <span className="text-muted-foreground">
-                                {" "}+{s.recipients.length - 1} more
+                                {" "}
+                                +{s.recipients.length - 1} more
                               </span>
                             )}
                           </span>
@@ -650,7 +688,9 @@ export default function SmsPage() {
                       <td className="px-4 py-3 text-right tabular-nums">
                         {s.units === null ? "—" : s.units.toLocaleString()}
                       </td>
-                      <td className="px-4 py-3"><StatusPill value={s.status} /></td>
+                      <td className="px-4 py-3">
+                        <StatusPill value={s.status} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
