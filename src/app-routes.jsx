@@ -1,5 +1,8 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
+import { ENV } from "./services/lib/env";
+import WaitlistPage from "./pages/public/WaitlistPage";
+
 import {
   ProtectedAuthRoute,
   ProtectedOnBoardingRoute,
@@ -53,6 +56,7 @@ import AllTransporterEmployees from "./pages/employees/TransporterEmployees";
 import AddBusinessDocs from "./pages/verification-docs/AddBusinessDocs";
 import ManageUserVerificationDocs from "./pages/verification-docs/ManageUserVerificationDocs";
 import ReviewsPage from "./pages/reviews/ReviewsPage";
+import SmsPage from "./pages/sms/SmsPage";
 
 // rfx
 import RFxPage from "./pages/rfx/RFxPage";
@@ -97,7 +101,7 @@ import WaybillDetailPage from "./pages/waybills/WaybillDetailPage";
 // subscription
 import { SubscriptionCallbackPage } from "./pages/subscription/SubscriptionCallbackPage";
 
-export const appRoutes = createBrowserRouter([
+const siteRoutes = [
   { path: "/", element: <LandingPage /> },
   { path: "/pricing", element: <PricingPage /> },
   { path: "/marketplace", element: <MarketplacePage /> },
@@ -159,6 +163,7 @@ export const appRoutes = createBrowserRouter([
       { path: "company/employees", element: <CompanyEmployees /> },
       { path: "user/verification-docs", element: <ManageUserVerificationDocs /> },
       { path: "reviews", element: <ReviewsPage /> },
+      { path: "sms", element: <SmsPage /> },
       { path: "rfxs", element: <RFxPage /> },
       { path: "rfxs/issued", element: <RFxIssuedPage /> },
       { path: "rfxs/:refNum", element: <RFxDetailPage /> },
@@ -189,4 +194,12 @@ export const appRoutes = createBrowserRouter([
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },
-]);
+];
+// Feature toggle. When VITE_WAITLIST_MODE=true the entire site is the waitlist
+// landing page (every path resolves to it). Flip it to false to serve the real
+// application. See ENV.WAITLIST_MODE in services/lib/env.js.
+const waitlistRoutes = [{ path: "*", element: <WaitlistPage /> }];
+
+export const appRoutes = createBrowserRouter(
+  ENV.WAITLIST_MODE ? waitlistRoutes : siteRoutes,
+);

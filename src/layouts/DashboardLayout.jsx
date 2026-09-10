@@ -16,6 +16,7 @@ import {
   ReceiptText,
   Wallet,
   Star,
+  MessageSquare,
 } from "lucide-react";
 import { assets } from "@/assets/assets";
 import { useEffect, useState } from "react";
@@ -222,6 +223,7 @@ export function DashboardLayout() {
       url: "/dashboard/user/verification-docs",
     },
     { title: "Reviews", icon: Star, url: "/dashboard/reviews" },
+    { title: "SMS", icon: MessageSquare, url: "/dashboard/sms" },
   ];
 
   // Exception (hidden) routes per view/role. A transporter follows its own set;

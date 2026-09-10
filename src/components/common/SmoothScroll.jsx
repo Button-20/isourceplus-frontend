@@ -52,18 +52,24 @@ export default function SmoothScroll({ children }) {
     };
 
     const scrollToTarget = (target) => {
+      // Honour the section's own scroll-margin-top (e.g. `scroll-mt-24`) so it
+      // clears whatever sticky nav that page has; fall back to NAV_OFFSET.
+      // Lenis does NOT apply scroll-margin itself — it scrolls to the raw
+      // element top — so it must be passed explicitly as a negative offset.
+      const marginTop =
+        parseFloat(getComputedStyle(target).scrollMarginTop) || NAV_OFFSET;
       const isSmoothing =
         document.documentElement.classList.contains("lenis-smooth");
       if (isSmoothing) {
-        // Lenis honors the target's scroll-margin-top (scroll-mt-20).
         lenis.scrollTo(target, {
+          offset: -marginTop,
           duration: 1.2,
           easing: (t) => 1 - Math.pow(1 - t, 3),
           force: true,
         });
       } else {
         const top =
-          window.scrollY + target.getBoundingClientRect().top - NAV_OFFSET;
+          window.scrollY + target.getBoundingClientRect().top - marginTop;
         animateTo(Math.max(0, top));
       }
     };
