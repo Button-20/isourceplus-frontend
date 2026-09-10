@@ -17,7 +17,7 @@ export default defineConfig({
       // the HttpOnly auth cookies are stored/sent (cross-origin cookies from
       // localhost → isourceplus.net would be dropped by the browser).
       "/api": {
-        target: "https://isourceplus.net",
+        target: "https://app.isourceplus.net",
         changeOrigin: true,
         secure: false,
         // Make the backend's cookies host-only for localhost.

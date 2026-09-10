@@ -5,7 +5,7 @@
 
 const raw = import.meta.env;
 
-const DEFAULT_SERVER_URL = "https://isourceplus.net/";
+const DEFAULT_SERVER_URL = "https://app.isourceplus.net/";
 
 const withTrailingSlash = (url) => (url.endsWith("/") ? url : `${url}/`);
 

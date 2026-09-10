@@ -21,6 +21,6 @@ services:
     envVars:
       # Canonical backend origin the proxy forwards /api to.
       - key: API_TARGET
-        value: https://www.isourceplus.net
+        value: https://app.isourceplus.net
       - key: NODE_VERSION
         value: "20"
