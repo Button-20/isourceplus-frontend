@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 10000;
 // Canonical backend host. Override with the API_TARGET env var on Render.
-const API_TARGET = process.env.API_TARGET || "https://www.isourceplus.net";
+const API_TARGET = process.env.API_TARGET || "https://app.isourceplus.net";
 // The backend's HttpOnly refresh-token cookie, and the logout endpoint path.
 const REFRESH_COOKIE = "isource-plus-refresh-token";
 const LOGOUT_PATH = "/api/v1/account_auth/logout";
