@@ -107,13 +107,13 @@ const normalizePlan = (p) => ({
 const normalizeTransaction = (t) => ({
   id: pick(t, ["id", "reference", "transaction_id"]),
   date: pick(t, ["created_at", "created", "date", "timestamp"]),
-  plan: pick(t, ["plan_name", "plan_title", "description"]) ?? pick(t?.plan, ["name", "title"]) ?? (typeof t?.plan === "string" ? t.plan : "—"),
+  type: pick(t, ["transaction_type", "type"], ""),
+  description: pick(t, ["description", "detail", "note"], "—"),
   units: num(pick(t, ["sms_count", "units", "sms_units", "credits", "quantity"])),
-  amount: pick(t, ["amount", "price", "total"]),
-  currency: pick(t, ["currency"], "GHS"),
-  status: pick(t, ["status", "state"], "—"),
-  reference: pick(t, ["reference", "ref", "transaction_id", "id"], "—"),
 });
+
+// PURCHASE adds units (credit), everything else (SEND) consumes them (debit).
+const isCredit = (type) => /purchase|credit|top.?up|buy/i.test(type || "");
 
 const normalizeSent = (s) => {
   const rec = pick(s, ["recipients", "recipient", "to", "phone_numbers"], []);
@@ -150,8 +150,9 @@ const segmentsFor = (text) => (text.length ? Math.ceil(text.length / SEGMENT) : 
 
 const statusTone = (s) => {
   const v = String(s || "").toLowerCase();
-  if (/(success|paid|delivered|sent|complete|approved)/.test(v))
+  if (/(purchase|credit|success|paid|delivered|complete|approved)/.test(v))
     return "bg-emerald-500/10 text-emerald-400";
+  if (/(send|sent|debit)/.test(v)) return "bg-brand/10 text-brand";
   if (/(pend|process|queue)/.test(v)) return "bg-amber-500/10 text-amber-400";
   if (/(fail|error|declin|reject|cancel)/.test(v))
     return "bg-destructive/10 text-destructive";
@@ -373,7 +374,7 @@ export default function SmsPage() {
               <Skeleton className="mt-1 h-7 w-20 bg-white/30" />
             ) : (
               <p className="font-display text-2xl font-bold tabular-nums">
-                {balance === null ? "—" : balance.toLocaleString()}
+                {balance == null ? "—" : balance.toLocaleString()}
               </p>
             )}
           </div>
@@ -537,7 +538,7 @@ export default function SmsPage() {
                       {plan.name}
                     </p>
                     <p className="mt-3 font-display text-3xl font-bold tabular-nums">
-                      {plan.units === null ? "—" : plan.units.toLocaleString()}
+                      {plan.units == null ? "—" : plan.units.toLocaleString()}
                       <span className="ml-1.5 text-base font-medium text-muted-foreground">
                         units
                       </span>
@@ -595,39 +596,47 @@ export default function SmsPage() {
                 <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Plan</th>
-                    <th className="px-4 py-3 text-right">Units</th>
-                    <th className="px-4 py-3 text-right">Amount</th>
                     <th className="px-4 py-3">Type</th>
-                    <th className="px-4 py-3">Reference</th>
+                    <th className="px-4 py-3">Description</th>
+                    <th className="px-4 py-3 text-right">Units</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((t, i) => (
-                    <tr
-                      key={String(t.id ?? i)}
-                      className="border-t border-border"
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {formatDateTime(t.date)}
-                      </td>
-                      <td className="px-4 py-3">{t.plan}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {t.sms_count === null
-                          ? "—"
-                          : t.sms_count.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {money(t.amount, t.currency)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusPill value={t.transaction_type} />
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                        {String(t.reference)}
-                      </td>
-                    </tr>
-                  ))}
+                  {transactions.map((t, i) => {
+                    const credit = isCredit(t.type);
+                    const signed =
+                      t.units == null ? null : credit ? t.units : -t.units;
+                    return (
+                      <tr
+                        key={String(t.id ?? i)}
+                        className="border-t border-border"
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {formatDateTime(t.date)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusPill value={t.type} />
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {t.description}
+                        </td>
+                        <td
+                          className={cn(
+                            "px-4 py-3 text-right font-medium tabular-nums",
+                            signed == null
+                              ? ""
+                              : signed >= 0
+                                ? "text-emerald-400"
+                                : "text-foreground",
+                          )}
+                        >
+                          {signed == null
+                            ? "—"
+                            : `${signed > 0 ? "+" : ""}${signed.toLocaleString()}`}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -686,7 +695,7 @@ export default function SmsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
-                        {s.units === null ? "—" : s.units.toLocaleString()}
+                        {s.units == null ? "—" : s.units.toLocaleString()}
                       </td>
                       <td className="px-4 py-3">
                         <StatusPill value={s.status} />

@@ -23,8 +23,11 @@ const points = [
 export default function AuthBrandPanel({ title, subtitle }) {
   return (
     <div className="relative hidden overflow-hidden bg-brand-gradient p-10 text-white lg:flex lg:flex-col lg:justify-between">
-      <div className="relative mb-5 flex justify-center">
+      <div className="relative mb-5 flex flex-col items-center text-center">
         <Logo onDark imgClassName="h-24" />
+        <p className="mt-4 max-w-sm font-display text-lg font-semibold text-white/90">
+          Ghana&apos;s No.1 Biggest &amp; Most Reliable Sourcing Platform.
+        </p>
       </div>
 
       <div className="relative">
