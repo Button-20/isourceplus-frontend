@@ -18,7 +18,7 @@ import {
   Star,
   MessageSquare,
 } from "lucide-react";
-import { assets } from "@/assets/assets";
+import Logo from "@/components/common/Logo";
 import { useEffect, useState } from "react";
 import {
   Sidebar,
@@ -280,10 +280,15 @@ export function DashboardLayout() {
                   <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
                     iS
                   </div>
-                  <img
-                    src={assets.ISlogo}
-                    alt="iSource+"
-                    className="h-8 w-auto group-data-[collapsible=icon]:hidden"
+                  {/* White wordmark (onDark) for the dark sidebar, at 2x the
+                      previous size. to={null} avoids nesting an <a> in the
+                      surrounding Link; hidden when the rail collapses to icons,
+                      leaving the "iS" tile as the mark. */}
+                  <Logo
+                    onDark
+                    to={null}
+                    imgClassName="h-16 w-auto"
+                    className="group-data-[collapsible=icon]:hidden"
                   />
                 </Link>
               </SidebarMenuButton>
