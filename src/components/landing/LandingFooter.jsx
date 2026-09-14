@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { FaLinkedin, FaXTwitter, FaFacebook } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/common/Logo";
+import { ENV } from "@/services/lib/env";
 
 export function CtaBanner() {
   return (
@@ -23,18 +24,21 @@ export function CtaBanner() {
               asChild
               className="bg-white text-brand hover:bg-white/90"
             >
-              <Link to="/signup">
-                Create free account <ArrowRight className="ml-2 h-4 w-4" />
+              <Link to={ENV.PRELAUNCH ? "/waitlist" : "/signup"}>
+                {ENV.PRELAUNCH ? "Join the waitlist" : "Create free account"}{" "}
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              asChild
-              className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
-            >
-              <Link to="/login">Sign in</Link>
-            </Button>
+            {!ENV.PRELAUNCH && (
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
+              >
+                <Link to="/login">Sign in</Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -42,23 +46,35 @@ export function CtaBanner() {
   );
 }
 
-const footerLinks = {
-  Product: [
-    { label: "Features", href: "#features" },
-    { label: "How it works", href: "#how-it-works" },
-    { label: "Security", href: "#security" },
-    { label: "Pricing", href: "#pricing" },
-  ],
-  Company: [
-    { label: "About", to: "/about" },
-    { label: "Marketplace", to: "/marketplace" },
-    { label: "Store", to: "/store" },
-  ],
-  Account: [
-    { label: "Sign in", to: "/login" },
-    { label: "Get started", to: "/signup" },
-  ],
-};
+// Pre-launch, the only reachable destinations are the landing page (its own
+// anchor links) and the waitlist — the other pages redirect home, so drop them.
+const footerLinks = ENV.PRELAUNCH
+  ? {
+      Product: [
+        { label: "Features", href: "#features" },
+        { label: "How it works", href: "#how-it-works" },
+        { label: "Security", href: "#security" },
+        { label: "Pricing", href: "#pricing" },
+      ],
+      Account: [{ label: "Join the waitlist", to: "/waitlist" }],
+    }
+  : {
+      Product: [
+        { label: "Features", href: "#features" },
+        { label: "How it works", href: "#how-it-works" },
+        { label: "Security", href: "#security" },
+        { label: "Pricing", href: "#pricing" },
+      ],
+      Company: [
+        { label: "About", to: "/about" },
+        { label: "Marketplace", to: "/marketplace" },
+        { label: "Store", to: "/store" },
+      ],
+      Account: [
+        { label: "Sign in", to: "/login" },
+        { label: "Get started", to: "/signup" },
+      ],
+    };
 
 export default function LandingFooter() {
   return (

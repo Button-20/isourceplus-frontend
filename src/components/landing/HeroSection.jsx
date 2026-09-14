@@ -2,6 +2,11 @@ import { Link } from "react-router-dom";
 import { ArrowRight, PlayCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductMockup from "@/components/landing/ProductMockup";
+import { ENV } from "@/services/lib/env";
+
+// Pre-launch: the primary CTA leads to the waitlist, not signup.
+const CTA_TO = ENV.PRELAUNCH ? "/waitlist" : "/signup";
+const CTA_LABEL = ENV.PRELAUNCH ? "Join the waitlist" : "Get Started";
 
 const stats = [
   { value: "10,000+", label: "Buyers & suppliers" },
@@ -40,8 +45,8 @@ export default function HeroSection() {
               asChild
               className="bg-brand-gradient text-brand-foreground shadow-lg shadow-brand/25 hover:opacity-90"
             >
-              <Link to="/signup">
-                Get Started <ArrowRight className="ml-2 h-4 w-4" />
+              <Link to={CTA_TO}>
+                {CTA_LABEL} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>

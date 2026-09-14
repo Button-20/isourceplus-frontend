@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
+import { ENV } from "./services/lib/env";
 import WaitlistPage from "./pages/public/WaitlistPage";
 
 import {
@@ -100,7 +101,7 @@ import WaybillDetailPage from "./pages/waybills/WaybillDetailPage";
 // subscription
 import { SubscriptionCallbackPage } from "./pages/subscription/SubscriptionCallbackPage";
 
-export const appRoutes = createBrowserRouter([
+const fullRoutes = [
   { path: "/", element: <LandingPage /> },
   { path: "/waitlist", element: <WaitlistPage /> },
   { path: "/pricing", element: <PricingPage /> },
@@ -194,4 +195,18 @@ export const appRoutes = createBrowserRouter([
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },
-]);
+];
+
+// Pre-launch lockdown (see ENV.PRELAUNCH): expose ONLY the landing page and the
+// waitlist; every other path — login, signup, onboarding, dashboard, the other
+// public pages — redirects to the landing page so users can't reach the app
+// before launch.
+const prelaunchRoutes = [
+  { path: "/", element: <LandingPage /> },
+  { path: "/waitlist", element: <WaitlistPage /> },
+  { path: "*", element: <Navigate to="/" replace /> },
+];
+
+export const appRoutes = createBrowserRouter(
+  ENV.PRELAUNCH ? prelaunchRoutes : fullRoutes,
+);

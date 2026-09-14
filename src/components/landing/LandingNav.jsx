@@ -3,6 +3,12 @@ import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/common/Logo";
+import { ENV } from "@/services/lib/env";
+
+// Before launch there's no login, so the CTAs point at the waitlist instead of
+// signup and "Sign in" is hidden.
+const CTA_TO = ENV.PRELAUNCH ? "/waitlist" : "/signup";
+const CTA_LABEL = ENV.PRELAUNCH ? "Join the waitlist" : "Get Started";
 
 const links = [
   { label: "Features", href: "#features" },
@@ -35,14 +41,16 @@ export default function LandingNav() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" asChild>
-            <Link to="/login">Sign in</Link>
-          </Button>
+          {!ENV.PRELAUNCH && (
+            <Button variant="ghost" asChild>
+              <Link to="/login">Sign in</Link>
+            </Button>
+          )}
           <Button
             asChild
             className="bg-brand-gradient text-brand-foreground shadow-lg shadow-brand/25 hover:opacity-90"
           >
-            <Link to="/signup">Get Started</Link>
+            <Link to={CTA_TO}>{CTA_LABEL}</Link>
           </Button>
         </div>
 
@@ -69,14 +77,16 @@ export default function LandingNav() {
               </a>
             ))}
             <div className="mt-3 flex flex-col gap-2">
-              <Button variant="outline" asChild>
-                <Link to="/login">Sign in</Link>
-              </Button>
+              {!ENV.PRELAUNCH && (
+                <Button variant="outline" asChild>
+                  <Link to="/login">Sign in</Link>
+                </Button>
+              )}
               <Button
                 asChild
                 className="bg-brand-gradient text-brand-foreground"
               >
-                <Link to="/signup">Get Started</Link>
+                <Link to={CTA_TO}>{CTA_LABEL}</Link>
               </Button>
             </div>
           </div>

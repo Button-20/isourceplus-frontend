@@ -33,6 +33,14 @@ export const ENV = {
   // This is why login/refresh work locally: keep prod on the same relative
   // path and it stays first-party there too.
   API_BASE_URL: "/api/v1/",
+  // Pre-launch lockdown. When on, ONLY the landing page (`/`) and the waitlist
+  // (`/waitlist`) are reachable — login, signup, onboarding, the dashboard and
+  // every other route redirect to the landing page. On by default in production
+  // builds; set VITE_PRELAUNCH=false (in the Render env) to open the full app at
+  // launch, or VITE_PRELAUNCH=true in dev to preview the locked-down site.
+  PRELAUNCH:
+    raw.VITE_PRELAUNCH === "true" ||
+    (Boolean(raw.PROD) && raw.VITE_PRELAUNCH !== "false"),
 };
 
 export const getApiBaseUrl = () => ENV.API_BASE_URL;
