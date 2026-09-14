@@ -1,22 +1,11 @@
-import { Star } from "lucide-react";
-import { testimonials } from "@/assets/assets";
+import { ShieldCheck } from "lucide-react";
 
-function Stars({ count }) {
-  return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          className={
-            i < count
-              ? "h-4 w-4 fill-amber-400 text-amber-400"
-              : "h-4 w-4 text-muted-foreground/30"
-          }
-        />
-      ))}
-    </div>
-  );
-}
+// Genuine credibility, not fabricated customer quotes. iSourceplus is pre-launch
+// (no live customers to quote yet), so this section shows the real institutional
+// endorsements from the company's strategic plan instead of invented reviews.
+// Acronyms only — the source lists these without full names, so don't guess at
+// expansions. When real testimonials exist, swap this block for a quote grid.
+const ENDORSERS = ["GUTA", "GRA", "GIPS", "DPA"];
 
 export default function TestimonialsSection() {
   return (
@@ -24,40 +13,32 @@ export default function TestimonialsSection() {
       <div className="container">
         <div className="mx-auto max-w-2xl text-center">
           <span className="text-sm font-semibold uppercase tracking-wider text-brand">
-            Loved by procurement teams
+            Trusted &amp; endorsed
           </span>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            Trusted by buyers and suppliers alike
+            Backed by Ghana&apos;s leading institutions
           </h2>
+          <p className="mt-4 text-muted-foreground">
+            iSourceplus is endorsed by the bodies that shape trade, tax and
+            data protection in Ghana.
+          </p>
         </div>
 
-        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {testimonials.map((t) => (
-            <figure
-              key={t.name}
-              className="flex flex-col rounded-2xl border border-border/70 bg-card p-6"
+        <div className="mx-auto mt-14 grid max-w-4xl gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {ENDORSERS.map((e) => (
+            <div
+              key={e}
+              className="flex flex-col items-center rounded-2xl border border-border/70 bg-card p-6 text-center"
             >
-              <Stars count={(t.rating || "").length || 4} />
-              <blockquote className="mt-4 flex-1 text-sm text-muted-foreground">
-                “{t.quote}”
-              </blockquote>
-              <figcaption className="mt-5 flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
-                  {t.name.charAt(0)}
-                </span>
-                <span>
-                  <span className="block text-sm font-semibold">{t.name}</span>
-                  <span className="block text-xs text-muted-foreground">
-                    {t.position}
-                  </span>
-                </span>
-              </figcaption>
-            </figure>
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand/10 text-brand">
+                <ShieldCheck className="h-6 w-6" />
+              </span>
+              <span className="mt-4 font-display text-xl font-bold tracking-wide">
+                {e}
+              </span>
+            </div>
           ))}
         </div>
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Sample testimonials shown for illustration.
-        </p>
       </div>
     </section>
   );
