@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Gift, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -335,6 +335,13 @@ export default function WaitlistPage() {
           <div className="lg:order-1">
             <SectionHeading eyebrow="Benefits" title="Why join the waitlist" />
             <ul className="mt-6 space-y-4">
+              {/* Early-bird offer — highlighted above the platform benefits. */}
+              <li className="flex items-start gap-3 rounded-xl border border-brand/30 bg-brand/10 p-4">
+                <Gift className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+                <span className="text-sm font-semibold text-foreground sm:text-base">
+                  Free 1-month package + GHC 30.00 payment for 3 months.
+                </span>
+              </li>
               {BENEFITS.map((b) => (
                 <li key={b} className="flex items-start gap-3">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
