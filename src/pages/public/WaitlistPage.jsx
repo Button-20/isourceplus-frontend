@@ -39,23 +39,25 @@ export const PROMO_ENDS_AT = new Date("2026-10-31T23:59:59Z");
 export const PROMO_ENDS_LABEL = "31st October, 2026";
 export const LAUNCH_DATE_LABEL = "1st November, 2026";
 
+// The API `region` is an enum; values sent as snake_case slugs to match the
+// spec's example ("greater_accra"). Exact enum set is TBD server-side — confirm.
 const GHANA_REGIONS = [
-  "Greater Accra",
-  "Ashanti",
-  "Volta",
-  "Upper East",
-  "Savannah",
-  "Bono",
-  "Upper West",
-  "Western North",
-  "Western",
-  "Eastern",
-  "Northern",
-  "Central",
-  "Ahafo",
-  "Oti",
-  "North East",
-  "Bono East",
+  { value: "greater_accra", label: "Greater Accra" },
+  { value: "ashanti", label: "Ashanti" },
+  { value: "volta", label: "Volta" },
+  { value: "upper_east", label: "Upper East" },
+  { value: "savannah", label: "Savannah" },
+  { value: "bono", label: "Bono" },
+  { value: "upper_west", label: "Upper West" },
+  { value: "western_north", label: "Western North" },
+  { value: "western", label: "Western" },
+  { value: "eastern", label: "Eastern" },
+  { value: "northern", label: "Northern" },
+  { value: "central", label: "Central" },
+  { value: "ahafo", label: "Ahafo" },
+  { value: "oti", label: "Oti" },
+  { value: "north_east", label: "North East" },
+  { value: "bono_east", label: "Bono East" },
 ];
 
 const CATEGORIES = [
@@ -189,10 +191,21 @@ export default function WaitlistPage() {
 
     setSubmitting(true);
     try {
-      await joinWaitlist({
-        ...values,
-        company_institution: values.company_institution.trim(),
-      });
+      // Map the form state to the API's field names (spec: contact_whatsapp,
+      // company_or_institution). contact_2 is the only optional field.
+      const payload = {
+        first_name: values.first_name.trim(),
+        last_name: values.last_name.trim(),
+        email: values.email.trim(),
+        contact_whatsapp: values.whatsapp.trim(),
+        company_or_institution: values.company_institution.trim(),
+        company_email: values.company_email.trim(),
+        region: values.region,
+        category: values.category,
+      };
+      const contact2 = values.contact_2.trim();
+      if (contact2) payload.contact_2 = contact2;
+      await joinWaitlist(payload);
       // Confirm, then send them to the homepage (the toast persists across
       // navigation via sonner).
       toast.success("You're on the waitlist! We'll be in touch before launch.");
@@ -479,17 +492,19 @@ export default function WaitlistPage() {
                       placeholder="+233 …"
                     />
                   </Field>
-                  <Field label="Company / Institution">
+                  <Field label="Company / Institution" required>
                     <Input
+                      required
                       value={values.company_institution}
                       onChange={onInput("company_institution")}
                       placeholder="Your company or institution"
                       autoComplete="organization"
                     />
                   </Field>
-                  <Field label="Company email">
+                  <Field label="Company email" required>
                     <Input
                       type="email"
+                      required
                       value={values.company_email}
                       onChange={onInput("company_email")}
                       placeholder="name@company.com"
@@ -505,8 +520,8 @@ export default function WaitlistPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {GHANA_REGIONS.map((r) => (
-                          <SelectItem key={r} value={r}>
-                            {r}
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.label}
                           </SelectItem>
                         ))}
                       </SelectContent>

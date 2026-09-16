@@ -1,10 +1,6 @@
-// Transporters domain service.
+// Transporters domain service (Cargo Transporters API, OpenAPI v1).
 // Endpoints under /api/v1/ (base URL resolved by the shared http client).
-//
-// NOTE: per the provided API spec the DETAIL endpoint is SINGULAR
-// (`transporter/{uuid}/`) while list/create are PLURAL (`transporters/`).
-// Kept exactly as specified — if a detail lookup 404s, that singular path is
-// the first thing to verify against the backend.
+// Create/update are multipart/form-data (image uploads) — pass a FormData.
 
 import http from "@/services/lib/http";
 
@@ -14,20 +10,19 @@ export async function listTransporters() {
   return data;
 }
 
-// GET a single transporter by its UUID (singular path, per spec).
+// GET a single transporter by its UUID (GET /transporters/{id}/).
 export async function getTransporter(uuid) {
-  const { data } = await http.get(`transporter/${uuid}/`);
+  const { data } = await http.get(`transporters/${uuid}/`);
   return data;
 }
 
-// POST create a transporter. Accepts a plain object or FormData.
+// POST /transporters/ — create a transporter. Pass a FormData (multipart).
 export async function createTransporter(payload) {
   const { data } = await http.post("transporters/", payload);
   return data;
 }
 
-// PATCH update a transporter (used to attach logo / vehicle images after
-// create). Uses the plural collection path, matching the create endpoint.
+// PATCH /transporters/{id}/ — partial update (multipart). Pass a FormData.
 export async function updateTransporter(uuid, payload) {
   const { data } = await http.patch(`transporters/${uuid}/`, payload);
   return data;

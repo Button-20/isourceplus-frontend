@@ -1,4 +1,4 @@
-import { Loader2, Plus, Upload, X } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -19,32 +19,63 @@ import {
   getTransporterTypeChoices,
   getTransportMeansChoices,
   getTransportModeChoices,
-  updateTransporter as updateTransporterRequest,
 } from "@/services/api/transporters.service";
 import { useAuth } from "@/services/context/app.context";
 import { storage } from "@/services/lib/storage";
 import { compressImage } from "@/utils/compress-image";
 import { normalizeChoices, prettify } from "@/utils/choices";
 
+// Create-transporter form. Matches the Cargo Transporters API (OpenAPI v1):
+// POST /transporters/ as multipart/form-data with required logo +
+// image_front_view images, a nested `location` (bracket notation) and
+// `transport_modes` / `transport_means` as repeated form keys (style=form,
+// explode=true). type/modes/means come from the backend choices endpoints;
+// region uses Ghana slugs; district & category are free-text pending their
+// (TBD) choice endpoints.
+
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_BIO = 225; // Backend caps the description/bio at 225 characters.
 
 const EMPTY_VALUES = {
   name: "",
   type: "",
+  category: "",
   bio: "",
   email: "",
-  transport_mode: [],
-  transport_means: [],
   office_line: "",
   office_line_2: "",
   web_address: "",
 };
+const EMPTY_LOCATION = {
+  region: "",
+  district: "",
+  popular_area_name: "",
+  gps: "",
+  street_address: "",
+};
 const VALUE_KEYS = Object.keys(EMPTY_VALUES);
+const LOCATION_KEYS = Object.keys(EMPTY_LOCATION);
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
-// The backend caps the whole request at ~1MB; keep the combined upload under it.
-const MAX_TOTAL_UPLOAD = 900 * 1024;
-const MAX_BIO = 225; // Backend caps the description/bio at 225 characters.
+// region is an enum server-side; slugs match the spec example ("greater_accra").
+const GHANA_REGIONS = [
+  { value: "greater_accra", label: "Greater Accra" },
+  { value: "ashanti", label: "Ashanti" },
+  { value: "volta", label: "Volta" },
+  { value: "upper_east", label: "Upper East" },
+  { value: "savannah", label: "Savannah" },
+  { value: "bono", label: "Bono" },
+  { value: "upper_west", label: "Upper West" },
+  { value: "western_north", label: "Western North" },
+  { value: "western", label: "Western" },
+  { value: "eastern", label: "Eastern" },
+  { value: "northern", label: "Northern" },
+  { value: "central", label: "Central" },
+  { value: "ahafo", label: "Ahafo" },
+  { value: "oti", label: "Oti" },
+  { value: "north_east", label: "North East" },
+  { value: "bono_east", label: "Bono East" },
+];
 
 const validateStoredData = (data, expectedKeys) =>
   data &&
@@ -52,10 +83,12 @@ const validateStoredData = (data, expectedKeys) =>
   expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(data, key));
 
 // Branded dashed-border upload tile with preview + remove.
-function UploadTile({ label, name, preview, onChange, onRemove }) {
+function UploadTile({ label, name, required, preview, onChange, onRemove }) {
   return (
     <div>
-      <label className={labelClass}>{label}</label>
+      <label className={labelClass}>
+        {label} {required && <span className="text-destructive">*</span>}
+      </label>
       <div className="flex items-center gap-3">
         <label className="relative flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-input bg-muted/30 text-center transition-colors hover:border-brand/50 hover:bg-brand/5">
           {preview ? (
@@ -75,7 +108,7 @@ function UploadTile({ label, name, preview, onChange, onRemove }) {
           <input
             type="file"
             name={name}
-            accept="image/*"
+            accept="image/png,image/jpeg"
             onChange={onChange}
             className="hidden"
           />
@@ -100,14 +133,15 @@ const TransporterForm = () => {
   const navigate = useNavigate();
 
   const [values, setValues] = useState(EMPTY_VALUES);
+  const [location, setLocation] = useState(EMPTY_LOCATION);
   const [lists, setLists] = useState({
-    transport_mode: [],
+    transport_modes: [],
     transport_means: [],
   });
-  const [files, setFiles] = useState({ logo: null, vehicle_images: [] });
+  const [files, setFiles] = useState({ logo: null, image_front_view: null });
   const [filePreviews, setFilePreviews] = useState({
     logo: null,
-    vehicle_images: [],
+    image_front_view: null,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -118,103 +152,72 @@ const TransporterForm = () => {
   const [meansChoices, setMeansChoices] = useState([]);
   const [meansLoading, setMeansLoading] = useState(false);
 
-  // Restore any in-progress draft once on mount. (Files themselves can't be
-  // persisted, so their previews are restored but the File objects reset.)
+  // Restore any in-progress draft once on mount. (File objects can't be
+  // persisted, so previews are restored but the files must be re-picked.)
   useEffect(() => {
     const parsedValues = storage.getJSON("transporterFormValues");
     if (parsedValues && validateStoredData(parsedValues, VALUE_KEYS)) {
       setValues(parsedValues);
       toast.info("Form data restored from previous session.");
     }
+    const parsedLocation = storage.getJSON("transporterFormLocation");
+    if (parsedLocation && validateStoredData(parsedLocation, LOCATION_KEYS)) {
+      setLocation(parsedLocation);
+    }
     const parsedLists = storage.getJSON("transporterFormLists");
     if (
       parsedLists &&
-      validateStoredData(parsedLists, ["transport_mode", "transport_means"])
+      validateStoredData(parsedLists, ["transport_modes", "transport_means"])
     ) {
       setLists(parsedLists);
     }
-    const parsedPreviews = storage.getJSON("transporterFormFilePreviews");
-    if (
-      parsedPreviews &&
-      validateStoredData(parsedPreviews, ["logo", "vehicle_images"])
-    ) {
-      setFilePreviews(parsedPreviews);
-      setFiles((prev) => ({
-        ...prev,
-        vehicle_images: parsedPreviews.vehicle_images.map(() => null),
-      }));
-    }
   }, []);
 
-  // Type options are fetched from the backend because they may change over time
-  useEffect(() => {
+  // type/mode/means options are fetched from the backend (they may change).
+  const loadChoices = (fetcher, setChoices, setLoading, label) => {
     let cancelled = false;
-    setTypeLoading(true);
-    getTransporterTypeChoices()
+    setLoading(true);
+    fetcher()
       .then((data) => {
-        if (!cancelled) setTypeChoices(normalizeChoices(data));
+        if (!cancelled) setChoices(normalizeChoices(data));
       })
       .catch(() => {
         if (!cancelled) {
-          setTypeChoices([]);
-          toast.error("Couldn't load types.");
+          setChoices([]);
+          toast.error(`Couldn't load ${label}.`);
         }
       })
       .finally(() => {
-        if (!cancelled) setTypeLoading(false);
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  };
 
-  // Mode options are fetched from the backend because they may change over time
-  useEffect(() => {
-    let cancelled = false;
-    setModeLoading(true);
-    getTransportModeChoices()
-      .then((data) => {
-        if (!cancelled) setModeChoices(normalizeChoices(data));
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setModeChoices([]);
-          toast.error("Couldn't load modes.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setModeLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useEffect(
+    () =>
+      loadChoices(getTransporterTypeChoices, setTypeChoices, setTypeLoading, "types"),
+    [],
+  );
+  useEffect(
+    () =>
+      loadChoices(getTransportModeChoices, setModeChoices, setModeLoading, "modes"),
+    [],
+  );
+  useEffect(
+    () =>
+      loadChoices(
+        getTransportMeansChoices,
+        setMeansChoices,
+        setMeansLoading,
+        "means",
+      ),
+    [],
+  );
 
-  // Means options are fetched from the backend because they may change over time
-  useEffect(() => {
-    let cancelled = false;
-    setMeansLoading(true);
-    getTransportMeansChoices()
-      .then((data) => {
-        if (!cancelled) setMeansChoices(normalizeChoices(data));
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setMeansChoices([]);
-          toast.error("Couldn't load means.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setMeansLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Guarantee the currently-selected type always has a matching option, even
-  // before the async choices resolve — otherwise a restored draft value has no
-  // <SelectItem> to match and the trigger falls back to the placeholder.
+  // Guarantee a restored type value always has a matching option before the
+  // async choices resolve, so the trigger doesn't fall back to the placeholder.
   const typeOptions = useMemo(() => {
     if (values.type && !typeChoices.some((c) => c.value === values.type)) {
       return [...typeChoices, { value: values.type, label: prettify(values.type) }];
@@ -233,6 +236,34 @@ const TransporterForm = () => {
     });
   };
 
+  const handleLocationChange = (e) => {
+    const { name, value } = e.target;
+    setLocation((l) => {
+      const next = { ...l, [name]: value };
+      persist("transporterFormLocation", next);
+      return next;
+    });
+  };
+
+  // Radix Select can emit "" while async options reconcile — guard against it
+  // clobbering a chosen value.
+  const setValue = (name, value) => {
+    if (!value) return;
+    setValues((v) => {
+      const next = { ...v, [name]: value };
+      persist("transporterFormValues", next);
+      return next;
+    });
+  };
+  const setRegion = (value) => {
+    if (!value) return;
+    setLocation((l) => {
+      const next = { ...l, region: value };
+      persist("transporterFormLocation", next);
+      return next;
+    });
+  };
+
   const toggleListItem = (name, value) => {
     setLists((prev) => {
       const set = new Set(prev[name]);
@@ -244,7 +275,7 @@ const TransporterForm = () => {
     });
   };
 
-  const handleFileChange = async (e, index = null) => {
+  const handleFileChange = async (e) => {
     const { name, files: fileList } = e.target;
     const picked = fileList[0];
     e.target.value = ""; // let the user re-pick the same file after an error
@@ -259,139 +290,137 @@ const TransporterForm = () => {
       toast.error("Image is too large. Please use a smaller image.");
       return;
     }
-    if (name === "logo") {
-      setFiles((f) => ({ ...f, logo: file }));
-      setFilePreviews((p) => {
-        const next = { ...p, logo: URL.createObjectURL(file) };
-        persist("transporterFormFilePreviews", next);
-        return next;
-      });
-    } else if (name === "vehicle_image" && index !== null) {
-      setFiles((f) => {
-        const images = [...f.vehicle_images];
-        images[index] = file;
-        return { ...f, vehicle_images: images };
-      });
-      setFilePreviews((p) => {
-        const previews = [...p.vehicle_images];
-        previews[index] = URL.createObjectURL(file);
-        const next = { ...p, vehicle_images: previews };
-        persist("transporterFormFilePreviews", next);
-        return next;
-      });
-    }
+    setFiles((f) => ({ ...f, [name]: file }));
+    setFilePreviews((p) => ({ ...p, [name]: URL.createObjectURL(file) }));
   };
 
-  const removeFile = (name, index = null) => {
-    if (name === "logo") {
-      setFiles((f) => ({ ...f, logo: null }));
-      setFilePreviews((p) => {
-        const next = { ...p, logo: null };
-        persist("transporterFormFilePreviews", next);
-        return next;
-      });
-    } else if (name === "vehicle_image" && index !== null) {
-      setFiles((f) => {
-        const images = [...f.vehicle_images];
-        images.splice(index, 1);
-        return { ...f, vehicle_images: images };
-      });
-      setFilePreviews((p) => {
-        const previews = [...p.vehicle_images];
-        previews.splice(index, 1);
-        const next = { ...p, vehicle_images: previews };
-        persist("transporterFormFilePreviews", next);
-        return next;
-      });
-    }
+  const removeFile = (name) => {
+    setFiles((f) => ({ ...f, [name]: null }));
+    setFilePreviews((p) => ({ ...p, [name]: null }));
   };
 
-  const addVehicleImageSlot = () => {
-    setFiles((f) => ({ ...f, vehicle_images: [...f.vehicle_images, null] }));
-    setFilePreviews((p) => {
-      const next = { ...p, vehicle_images: [...p.vehicle_images, null] };
-      persist("transporterFormFilePreviews", next);
-      return next;
-    });
+  const clearDraft = () => {
+    storage.remove("transporterFormValues");
+    storage.remove("transporterFormLocation");
+    storage.remove("transporterFormLists");
   };
 
   const handleReset = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setValues(EMPTY_VALUES);
-    setLists({ transport_mode: [], transport_means: [] });
-    setFiles({ logo: null, vehicle_images: [] });
-    setFilePreviews({ logo: null, vehicle_images: [] });
-    storage.remove("transporterFormValues");
-    storage.remove("transporterFormLists");
-    storage.remove("transporterFormFilePreviews");
+    setLocation(EMPTY_LOCATION);
+    setLists({ transport_modes: [], transport_means: [] });
+    setFiles({ logo: null, image_front_view: null });
+    setFilePreviews({ logo: null, image_front_view: null });
+    clearDraft();
     toast.success("Form reset successfully.");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!lists.transport_mode.length) {
-      toast.error("Please select at least one transport mode.");
-      return;
-    }
-    if (!lists.transport_means.length) {
-      toast.error("Please select at least one transport means.");
-      return;
-    }
-    const totalUpload = [files.logo, ...files.vehicle_images].reduce(
-      (sum, f) => sum + (f?.size || 0),
-      0,
-    );
-    if (totalUpload > MAX_TOTAL_UPLOAD) {
-      toast.error("Your images are too large. Please use smaller images.");
-      return;
-    }
+
+    // Required fields per the spec.
+    const missingScalar = [
+      ["name", "transporter name"],
+      ["type", "type"],
+      ["category", "category"],
+      ["bio", "bio"],
+      ["email", "email"],
+      ["office_line", "primary phone"],
+    ].find(([k]) => !String(values[k]).trim());
+    if (missingScalar)
+      return toast.error(`Please provide the ${missingScalar[1]}.`);
+
+    const missingLocation = [
+      ["region", "region"],
+      ["district", "district"],
+      ["gps", "GPS address"],
+      ["street_address", "street address"],
+    ].find(([k]) => !String(location[k]).trim());
+    if (missingLocation)
+      return toast.error(`Please provide the ${missingLocation[1]}.`);
+
+    if (!lists.transport_modes.length)
+      return toast.error("Please select at least one transport mode.");
+    if (!lists.transport_means.length)
+      return toast.error("Please select at least one transport means.");
+    if (!files.logo) return toast.error("Please upload a logo.");
+    if (!files.image_front_view)
+      return toast.error("Please upload a front-view image.");
+
     setSubmitting(true);
     try {
-      // The API only accepts multipart/form-data (a JSON body is rejected with
-      // 415). The backend reads the plain `transport_mode` field as a single
-      // value and expects it to be a JSON-encoded array: repeated keys came
-      // back "got type str" (scalar read) and indexed keys came back "required"
-      // (plain key not found), while a JSON body historically accepted a real
-      // list. So send each list as a JSON string in one field.
+      // multipart/form-data (required for the image uploads).
       const fd = new FormData();
       Object.entries(values).forEach(([k, v]) => {
-        // The real selections live in `lists`; skip the vestigial (empty) copies
-        // that `values` still carries so they can't blank out the arrays below.
-        if (k === "transport_mode" || k === "transport_means") return;
-        if (v) fd.append(k, v);
+        if (String(v).trim()) fd.append(k, v);
       });
-      fd.append("transport_mode", JSON.stringify(lists.transport_mode));
-      fd.append("transport_means", JSON.stringify(lists.transport_means));
+      // Nested location via bracket notation: location[region]=…
+      Object.entries(location).forEach(([k, v]) => {
+        if (String(v).trim()) fd.append(`location[${k}]`, v);
+      });
+      // Arrays as repeated keys (style=form, explode=true).
+      lists.transport_modes.forEach((v) => fd.append("transport_modes", v));
+      lists.transport_means.forEach((v) => fd.append("transport_means", v));
+      fd.append("logo", files.logo);
+      fd.append("image_front_view", files.image_front_view);
+
       const created = await createTransporterRequest(fd);
-      setTransporterId(created.id);
-      storage.set("transporter_id", created.id);
-
-      // Attach the logo / vehicle images in a follow-up multipart PATCH.
-      if (files.logo || files.vehicle_images.some(Boolean)) {
-        const fd = new FormData();
-        if (files.logo) fd.append("logo", files.logo);
-        files.vehicle_images.forEach((file, index) => {
-          if (file) fd.append(`vehicle_images[${index}][file]`, file);
-        });
-        await updateTransporterRequest(created.id, fd);
+      if (created?.id) {
+        setTransporterId(created.id);
+        storage.set("transporter_id", created.id);
       }
-
+      clearDraft();
       toast.success("Transporter registered successfully!");
-      storage.remove("transporterFormValues");
-      storage.remove("transporterFormLists");
-      storage.remove("transporterFormFilePreviews");
       navigate("/dashboard/transporter/edit");
     } catch (err) {
       console.error("Registration failed", err);
+      const data = err.response?.data;
       toast.error(
-        err.response?.data?.vehicle_images?.[0] ||
-          err.response?.data?.detail ||
+        data?.detail ||
+          data?.logo?.[0] ||
+          data?.image_front_view?.[0] ||
+          (typeof data === "string" ? data : null) ||
           "Registration failed. Please try again.",
       );
     } finally {
       setSubmitting(false);
     }
   };
+
+  const renderChips = (name, choices, loading) => (
+    <div className="flex flex-wrap gap-2">
+      {loading ? (
+        <div className="flex items-center justify-center py-2">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+        </div>
+      ) : choices.length ? (
+        choices.map((c) => {
+          const active = lists[name].includes(c.value);
+          return (
+            <button
+              type="button"
+              key={c.value}
+              aria-pressed={active}
+              onClick={() => toggleListItem(name, c.value)}
+              className={cn(
+                "rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-colors",
+                active
+                  ? "border-brand bg-brand/10 text-brand"
+                  : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
+              )}
+            >
+              {c.label}
+            </button>
+          );
+        })
+      ) : (
+        <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
+          <X className="mr-2 h-4 w-4" /> None available.
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -405,28 +434,15 @@ const TransporterForm = () => {
             <label className={labelClass}>
               Transporter name <span className="text-destructive">*</span>
             </label>
-            <Input
-              name="name"
-              value={values.name}
-              onChange={handleChange}
-              required
-            />
+            <Input name="name" value={values.name} onChange={handleChange} required />
           </div>
           <div>
-            <label className={labelClass}>Type</label>
+            <label className={labelClass}>
+              Type <span className="text-destructive">*</span>
+            </label>
             <Select
               value={values.type || undefined}
-              onValueChange={(value) => {
-                // Radix can emit an empty value while the async options
-                // reconcile on load — ignore it so it never clobbers a
-                // restored/selected type.
-                if (!value) return;
-                setValues((v) => {
-                  const next = { ...v, type: value };
-                  persist("transporterFormValues", next);
-                  return next;
-                });
-              }}
+              onValueChange={(v) => setValue("type", v)}
             >
               <SelectTrigger className="h-10 w-full">
                 <SelectValue placeholder="Select a type" />
@@ -434,8 +450,7 @@ const TransporterForm = () => {
               <SelectContent>
                 {typeLoading && !typeOptions.length ? (
                   <div className="flex items-center justify-center py-2">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading…
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
                   </div>
                 ) : typeOptions.length ? (
                   typeOptions.map((choice) => (
@@ -451,11 +466,22 @@ const TransporterForm = () => {
               </SelectContent>
             </Select>
           </div>
-
+          <div>
+            <label className={labelClass}>
+              Category <span className="text-destructive">*</span>
+            </label>
+            <Input
+              name="category"
+              value={values.category}
+              onChange={handleChange}
+              placeholder="e.g. freight"
+              required
+            />
+          </div>
           <div className="sm:col-span-2">
             <div className="mb-1 flex items-center justify-between">
               <label className="text-sm font-medium text-foreground">
-                Transporter bio
+                Transporter bio <span className="text-destructive">*</span>
               </label>
               <span
                 className={cn(
@@ -475,6 +501,7 @@ const TransporterForm = () => {
               value={values.bio}
               onChange={handleChange}
               placeholder="Briefly describe your transport service"
+              required
             />
           </div>
         </div>
@@ -535,6 +562,78 @@ const TransporterForm = () => {
         </div>
       </section>
 
+      {/* Location */}
+      <section className="border-b border-border pb-6">
+        <h2 className="mb-4 font-display text-base font-semibold">Location</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>
+              Region <span className="text-destructive">*</span>
+            </label>
+            <Select
+              value={location.region || undefined}
+              onValueChange={setRegion}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="Select a region" />
+              </SelectTrigger>
+              <SelectContent>
+                {GHANA_REGIONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className={labelClass}>
+              District <span className="text-destructive">*</span>
+            </label>
+            <Input
+              name="district"
+              value={location.district}
+              onChange={handleLocationChange}
+              placeholder="e.g. Accra Metropolitan"
+              required
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Popular area name</label>
+            <Input
+              name="popular_area_name"
+              value={location.popular_area_name}
+              onChange={handleLocationChange}
+              placeholder="e.g. Osu"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>
+              GPS address <span className="text-destructive">*</span>
+            </label>
+            <Input
+              name="gps"
+              value={location.gps}
+              onChange={handleLocationChange}
+              placeholder="e.g. GA-123-4567"
+              required
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass}>
+              Street address <span className="text-destructive">*</span>
+            </label>
+            <Input
+              name="street_address"
+              value={location.street_address}
+              onChange={handleLocationChange}
+              placeholder="e.g. 12 Oxford Street"
+              required
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Transport services */}
       <section className="border-b border-border pb-6">
         <h2 className="mb-4 font-display text-base font-semibold">
@@ -545,77 +644,13 @@ const TransporterForm = () => {
             <label className={labelClass}>
               Transport modes <span className="text-destructive">*</span>
             </label>
-            <div className="flex flex-wrap gap-2">
-              {modeLoading ? (
-                <div className="flex items-center justify-center py-2">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading…
-                </div>
-              ) : modeChoices.length ? (
-                modeChoices.map((mode) => {
-                  const active = lists.transport_mode.includes(mode.value);
-                  return (
-                    <button
-                      type="button"
-                      key={mode.value}
-                      aria-pressed={active}
-                      onClick={() => toggleListItem("transport_mode", mode.value)}
-                      className={cn(
-                        "rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-colors",
-                        active
-                          ? "border-brand bg-brand/10 text-brand"
-                          : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
-                      )}
-                    >
-                      {mode.label}
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="flex items-center justify-center py-2">
-                  <X className="mr-2 h-4 w-4" />
-                  No transport modes available.
-                </div>
-              )}
-            </div>
+            {renderChips("transport_modes", modeChoices, modeLoading)}
           </div>
           <div>
             <label className={labelClass}>
               Transport means <span className="text-destructive">*</span>
             </label>
-            <div className="flex flex-wrap gap-2">
-              {meansLoading ? (
-                <div className="flex items-center justify-center py-2">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading…
-                </div>
-              ) : meansChoices.length ? (
-                meansChoices.map((means) => {
-                  const active = lists.transport_means.includes(means.value);
-                  return (
-                    <button
-                      type="button"
-                      key={means.value}
-                      aria-pressed={active}
-                      onClick={() => toggleListItem("transport_means", means.value)}
-                      className={cn(
-                        "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                        active
-                          ? "border-brand bg-brand/10 text-brand"
-                          : "border-input text-muted-foreground hover:border-brand/40 hover:text-foreground",
-                      )}
-                    >
-                      {means.label}
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="flex items-center justify-center py-2">
-                  <X className="mr-2 h-4 w-4" />
-                  No transport means available.
-                </div>
-              )}
-            </div>
+            {renderChips("transport_means", meansChoices, meansLoading)}
           </div>
         </div>
       </section>
@@ -626,36 +661,26 @@ const TransporterForm = () => {
           Media uploads
         </h2>
         <p className="mb-4 text-xs text-muted-foreground">
-          Add a square logo (under 2MB, JPG or PNG) and as many vehicle images
-          as you need to showcase your fleet.
+          A logo and a front-view image are required (under 2MB each, JPG or PNG).
         </p>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <UploadTile
             label="Logo"
             name="logo"
+            required
             preview={filePreviews.logo}
-            onChange={(e) => handleFileChange(e)}
+            onChange={handleFileChange}
             onRemove={() => removeFile("logo")}
           />
-          {filePreviews.vehicle_images.map((preview, index) => (
-            <UploadTile
-              key={index}
-              label={`Vehicle image ${index + 1}`}
-              name="vehicle_image"
-              preview={preview}
-              onChange={(e) => handleFileChange(e, index)}
-              onRemove={() => removeFile("vehicle_image", index)}
-            />
-          ))}
+          <UploadTile
+            label="Front-view image"
+            name="image_front_view"
+            required
+            preview={filePreviews.image_front_view}
+            onChange={handleFileChange}
+            onRemove={() => removeFile("image_front_view")}
+          />
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={addVehicleImageSlot}
-          className="mt-4 gap-1.5"
-        >
-          <Plus className="h-4 w-4" /> Add vehicle image
-        </Button>
       </section>
 
       {/* Actions */}

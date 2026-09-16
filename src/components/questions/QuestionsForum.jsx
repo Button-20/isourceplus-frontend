@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CornerDownRight, Loader2, MessageSquare, Send } from "lucide-react";
+import { CornerDownRight, Loader2, MessageSquare, Reply, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   getQuestions,
   QUESTION_ENTITIES,
+  submitAnswer,
   submitQuestion,
 } from "@/services/api/questions.service";
 
@@ -32,7 +33,38 @@ const formatDateTime = (v) => {
 };
 
 function QuestionCard({ q }) {
-  const answers = Array.isArray(q.answers) ? q.answers : [];
+  const [answers, setAnswers] = useState(
+    Array.isArray(q.answers) ? q.answers : [],
+  );
+  const [replying, setReplying] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const sendAnswer = async (e) => {
+    e.preventDefault();
+    const text = draft.trim();
+    if (!text) return;
+    setSending(true);
+    try {
+      const created = await submitAnswer(q.id, text);
+      setAnswers((prev) => [
+        ...prev,
+        created || { answer: text, created_at: new Date().toISOString() },
+      ]);
+      setDraft("");
+      setReplying(false);
+      toast.success("Answer submitted.");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.detail ||
+          err.response?.data?.answer?.[0] ||
+          "Couldn't submit the answer. Please try again.",
+      );
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <li className="rounded-xl border border-border bg-background/40 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -65,6 +97,51 @@ function QuestionCard({ q }) {
           Awaiting an answer.
         </p>
       )}
+
+      {q.id &&
+        (replying ? (
+          <form onSubmit={sendAnswer} className="mt-3 space-y-2">
+            <Textarea
+              rows={2}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Write an answer…"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setReplying(false)}
+                disabled={sending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={sending || !draft.trim()}
+                className="bg-brand-gradient text-white hover:opacity-90"
+              >
+                {sending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Sending…
+                  </>
+                ) : (
+                  "Submit answer"
+                )}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setReplying(true)}
+            className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
+          >
+            <Reply className="h-3.5 w-3.5" /> Answer
+          </button>
+        ))}
     </li>
   );
 }

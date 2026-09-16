@@ -75,3 +75,30 @@ export async function getQuestions(entity, id) {
     throw err;
   }
 }
+
+// ---- Answers (Event Answers API, OpenAPI 1.0.0) ---------------------------
+// Answers are attached to a question by its UUID.
+
+// POST /event-answers/submit-question-answer/{question_id}/  { answer }
+// Returns the created Answer { url, id, question, answer, created_at, updated_at }.
+export async function submitAnswer(questionId, answer) {
+  const { data } = await http.post(
+    `event-answers/submit-question-answer/${questionId}/`,
+    { answer },
+  );
+  return data;
+}
+
+// GET /event-answers/submitted-question-answers/{question_id}/ -> Answer[]
+// 404 (no answers yet) is treated as an empty list, not an error.
+export async function getAnswers(questionId) {
+  try {
+    const { data } = await http.get(
+      `event-answers/submitted-question-answers/${questionId}/`,
+    );
+    return Array.isArray(data) ? data : (data?.results ?? []);
+  } catch (err) {
+    if (err.response?.status === 404) return [];
+    throw err;
+  }
+}
