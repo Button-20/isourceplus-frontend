@@ -10,6 +10,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
+import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
   format,
   formatDistanceToNow,
@@ -303,6 +304,7 @@ const ProformaInvoiceDetailPage = () => {
           </p>
         )}
       </Section>
+      <QuestionsForum entity="proforma-invoice" id={invoice?.id ?? refNum} className="mt-6" />
     </div>
   );
 };

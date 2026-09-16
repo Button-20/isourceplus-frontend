@@ -11,6 +11,7 @@ import {
   Send,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
+import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
   format,
   formatDistanceToNow,
@@ -377,6 +378,7 @@ const WaybillDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <QuestionsForum entity="waybill" id={waybill?.id ?? refNum} className="mt-6" />
     </div>
   );
 };

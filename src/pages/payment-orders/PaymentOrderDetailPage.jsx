@@ -11,6 +11,7 @@ import {
   Save,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
   format,
   formatDistanceToNow,
@@ -392,6 +393,7 @@ const PaymentOrderDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <QuestionsForum entity="payment-order" id={paymentOrder?.id ?? refNum} className="mt-6" />
     </div>
   );
 };

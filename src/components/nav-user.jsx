@@ -1,4 +1,3 @@
-import { Bell, ChevronsUpDown, LogOut, Settings2, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   SidebarMenu,
@@ -6,9 +5,15 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Bell, ChevronsUpDown, Loader2, LogOut, Settings2 } from "lucide-react";
 // import { useKindeAuth } from "@kinde-oss/kinde-auth-react"
-import { Button } from "./ui/button";
-import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,15 +23,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/app.context";
+import { useState } from "react";
 import { useNavigate } from "react-router";
+import { Button } from "./ui/button";
 
 export function NavUser({ user }) {
   const { isMobile } = useSidebar();
@@ -35,7 +35,7 @@ export function NavUser({ user }) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [loggingOutAll, setLoggingOutAll] = useState(false);
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // `user` is the email string; derive a readable name + initials from it.
   const email = typeof user === "string" ? user : user?.email || "";
@@ -92,12 +92,12 @@ export function NavUser({ user }) {
                     }
                     alt="profile"
                   />
-                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {displayName}
-                  </span>
+                  <span className="truncate font-semibold">{displayName}</span>
                   <span className="truncate text-xs">
                     {email || "user@gmail.com"}
                   </span>
@@ -121,13 +121,15 @@ export function NavUser({ user }) {
                       }
                       alt="profile"
                     />
-                    <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                    <AvatarFallback className="rounded-lg">
+                      {initials}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
                       {displayName}
                     </span>
-                    <span className="truncate text-xs">
+                    <span className="truncate text-sm">
                       {email || "user@gmail.com"}
                     </span>
                   </div>
@@ -141,7 +143,9 @@ export function NavUser({ user }) {
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings2 />
-                  <span onClick={()=>navigate('/onboarding/user')}>Profile Settings</span>
+                  <span onClick={() => navigate("/onboarding/user")}>
+                    Profile Settings
+                  </span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />

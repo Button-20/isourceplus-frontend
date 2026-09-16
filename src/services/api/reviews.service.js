@@ -3,16 +3,31 @@
 
 import http from "@/services/lib/http";
 
+// The reviews endpoints return 404 `{ detail: "no reviews" }` when none exist
+// yet — that's an empty state, not a failure, so treat it as an empty list.
+const emptyOn404 = (err) => {
+  if (err.response?.status === 404) return [];
+  throw err;
+};
+
 // GET reviews authored by the current organization.
 export async function getOrganizationReviews() {
-  const { data } = await http.get("reviews/");
-  return data;
+  try {
+    const { data } = await http.get("reviews/");
+    return data;
+  } catch (err) {
+    return emptyOn404(err);
+  }
 }
 
 // GET every review across the platform.
 export async function getAllReviews() {
-  const { data } = await http.get("reviews/all-reviews/");
-  return data;
+  try {
+    const { data } = await http.get("reviews/all-reviews/");
+    return data;
+  } catch (err) {
+    return emptyOn404(err);
+  }
 }
 
 // GET organizations matching a name, to choose one to review.

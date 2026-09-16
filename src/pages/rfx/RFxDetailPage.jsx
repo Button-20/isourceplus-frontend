@@ -11,6 +11,7 @@ import {
   Send,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
   format,
   formatDistanceToNow,
@@ -323,6 +324,7 @@ const RFxDetailPage = () => {
           </p>
         )}
       </Section>
+      <QuestionsForum entity="rfx" id={rfx?.id ?? refNum} className="mt-6" />
     </div>
   );
 };

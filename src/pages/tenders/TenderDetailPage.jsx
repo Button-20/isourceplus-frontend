@@ -12,6 +12,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
   format,
   formatDistanceToNow,
@@ -424,6 +425,7 @@ const TenderDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <QuestionsForum entity="tender" id={tender?.id ?? refNum} className="mt-6" />
     </div>
   );
 };
