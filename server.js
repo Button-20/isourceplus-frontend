@@ -58,6 +58,14 @@ app.use(
         // referer/origin checks pass.
         proxyReq.setHeader("origin", API_TARGET);
         proxyReq.setHeader("referer", `${API_TARGET}/`);
+        // xfwd:true injects X-Forwarded-Host = the FRONTEND domain
+        // (e.g. isourceplus.com). If the backend honours USE_X_FORWARDED_HOST,
+        // that host isn't in ALLOWED_HOSTS and Django replies 400
+        // (DisallowedHost) — which is why prod failed while the dev Vite proxy
+        // (no xfwd) worked. Point the forwarded host/proto at the backend so it
+        // matches ALLOWED_HOSTS; X-Forwarded-For (client IP) is left intact.
+        proxyReq.setHeader("x-forwarded-host", new URL(API_TARGET).host);
+        proxyReq.setHeader("x-forwarded-proto", "https");
         // Re-stream a body we parsed above (logout) with a correct
         // Content-Length. No-op for the streaming requests (no req.body).
         if (req.body && Object.keys(req.body).length > 0) {
