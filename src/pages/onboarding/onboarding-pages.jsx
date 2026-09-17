@@ -608,7 +608,7 @@ export function OnBoardingOrgDetailsPage() {
                           <FormControl>
                             <Textarea
                               placeholder="Brief description of your organization"
-                              className="resize-y w-full min-h-[100px]"
+                              className="resize-y w-full min-h-25"
                               {...field}
                             />
                           </FormControl>

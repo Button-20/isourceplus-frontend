@@ -1,16 +1,9 @@
-import { useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2, Gift, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import Logo from "@/components/common/Logo";
-import {
-  IllustrationGrowth,
-  IllustrationLogistics,
-  IllustrationNetwork,
-  IllustrationPlatform,
-  IllustrationSignup,
-} from "@/components/waitlist/Illustrations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,8 +14,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  IllustrationGrowth,
+  IllustrationLogistics,
+  IllustrationNetwork,
+  IllustrationPlatform,
+  IllustrationSignup,
+} from "@/components/waitlist/Illustrations";
 import { cn } from "@/lib/utils";
-import { getRegionChoices, joinWaitlist } from "@/services/api/waitlist.service";
+import {
+  getRegionChoices,
+  joinWaitlist,
+} from "@/services/api/waitlist.service";
 import { normalizeChoices } from "@/utils/choices";
 
 // Pre-launch waitlist landing page, built from the "Strategic Plan to Build
@@ -39,7 +42,6 @@ import { normalizeChoices } from "@/utils/choices";
 export const PROMO_ENDS_AT = new Date("2026-10-31T23:59:59Z");
 export const PROMO_ENDS_LABEL = "31st October, 2026";
 export const LAUNCH_DATE_LABEL = "1st November, 2026";
-
 
 const CATEGORIES = [
   { value: "supplier", label: "Supplier" },
@@ -98,7 +100,7 @@ const pad = (n) => String(n).padStart(2, "0");
 
 function CountdownTile({ value, label }) {
   return (
-    <div className="flex min-w-[4.75rem] flex-col items-center rounded-2xl border border-border bg-card px-3 py-3 sm:min-w-[5.75rem] sm:px-4">
+    <div className="flex min-w-19 flex-col items-center rounded-2xl border border-border bg-card px-3 py-3 sm:min-w-23 sm:px-4">
       <span className="font-display text-3xl font-bold tabular-nums text-brand sm:text-4xl">
         {pad(value)}
       </span>
@@ -240,7 +242,10 @@ export default function WaitlistPage() {
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-lg">
         <nav className="container flex h-20 items-center justify-between">
           <Logo onDark to={null} imgClassName="h-16" />
-          <Button asChild className="bg-brand-gradient text-white hover:opacity-90">
+          <Button
+            asChild
+            className="bg-brand-gradient text-white hover:opacity-90"
+          >
             <a href={FORM_HREF}>Join the waitlist</a>
           </Button>
         </nav>
@@ -337,11 +342,10 @@ export default function WaitlistPage() {
           <SectionHeading eyebrow="About" title="About iSourceplus" />
           <p className="mt-6 text-muted-foreground sm:text-lg">
             Buying and selling across many suppliers, many buyers and many
-            routes means quotations, invoices and waybills scattered
-            everywhere. iSourceplus brings the whole Source-to-Pay journey
-            into one secure platform, so buyers, suppliers and cargo
-            transporters connect, transact and get paid without the paper
-            chase.
+            routes means quotations, invoices and waybills scattered everywhere.
+            iSourceplus brings the whole Source-to-Pay journey into one secure
+            platform, so buyers, suppliers and cargo transporters connect,
+            transact and get paid without the paper chase.
           </p>
           <p className="mt-4 font-semibold">
             Join the most comprehensive suppliers&apos; and buyers&apos;
@@ -351,7 +355,10 @@ export default function WaitlistPage() {
       </section>
 
       {/* Benefits */}
-      <section id="benefits" className="scroll-mt-24 border-y border-border bg-card/40">
+      <section
+        id="benefits"
+        className="scroll-mt-24 border-y border-border bg-card/40"
+      >
         <div className="container grid items-center gap-10 py-20 lg:grid-cols-2 lg:gap-16">
           <div className="lg:order-2">
             <IllustrationLogistics className="mx-auto w-full max-w-lg" />
@@ -369,7 +376,9 @@ export default function WaitlistPage() {
               {BENEFITS.map((b) => (
                 <li key={b} className="flex items-start gap-3">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
-                  <span className="text-muted-foreground sm:text-base">{b}</span>
+                  <span className="text-muted-foreground sm:text-base">
+                    {b}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -439,8 +448,8 @@ export default function WaitlistPage() {
           title="Join the waitlist with early access"
         />
         <p className="mx-auto mt-5 max-w-2xl text-center text-muted-foreground sm:text-lg">
-          Hundreds of businesses are getting ready for launch. Reserve your
-          spot now and we will contact you as soon as we go live on{" "}
+          Hundreds of businesses are getting ready for launch. Reserve your spot
+          now and we will contact you as soon as we go live on{" "}
           {LAUNCH_DATE_LABEL}.
         </p>
 
@@ -449,146 +458,149 @@ export default function WaitlistPage() {
 
           <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 lg:order-2">
             <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <h3 className="font-display text-xl font-bold">
-                    Reserve your spot
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Takes less than a minute.
-                  </p>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="First name" required>
-                    <Input
-                      required
-                      value={values.first_name}
-                      onChange={onInput("first_name")}
-                      autoComplete="given-name"
-                    />
-                  </Field>
-                  <Field label="Last name" required>
-                    <Input
-                      required
-                      value={values.last_name}
-                      onChange={onInput("last_name")}
-                      autoComplete="family-name"
-                    />
-                  </Field>
-                  <Field label="Email" required>
-                    <Input
-                      type="email"
-                      required
-                      value={values.email}
-                      onChange={onInput("email")}
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                    />
-                  </Field>
-                  <Field label="Contact (WhatsApp)" required>
-                    <Input
-                      type="tel"
-                      required
-                      value={values.whatsapp}
-                      onChange={onInput("whatsapp")}
-                      placeholder="+233 …"
-                      autoComplete="tel"
-                    />
-                  </Field>
-                  <Field label="Contact 2">
-                    <Input
-                      type="tel"
-                      value={values.contact_2}
-                      onChange={onInput("contact_2")}
-                      placeholder="+233 …"
-                    />
-                  </Field>
-                  <Field label="Company / Institution" required>
-                    <Input
-                      required
-                      value={values.company_institution}
-                      onChange={onInput("company_institution")}
-                      placeholder="Your company or institution"
-                      autoComplete="organization"
-                    />
-                  </Field>
-                  <Field label="Company email" required>
-                    <Input
-                      type="email"
-                      required
-                      value={values.company_email}
-                      onChange={onInput("company_email")}
-                      placeholder="name@company.com"
-                    />
-                  </Field>
-                  <Field label="Region" required>
-                    <Select
-                      value={values.region || undefined}
-                      onValueChange={onSelect("region")}
-                    >
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue
-                          placeholder={
-                            regionsLoading ? "Loading regions…" : "Select your region"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {regionsLoading ? (
-                          <div className="flex items-center justify-center py-2">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
-                          </div>
-                        ) : regions.length ? (
-                          regions.map((r) => (
-                            <SelectItem key={r.value} value={r.value}>
-                              {r.label}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="py-2 text-center text-sm text-muted-foreground">
-                            No regions available
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="Category" required>
-                    <Select
-                      value={values.category || undefined}
-                      onValueChange={onSelect("category")}
-                    >
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue placeholder="I am a…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORIES.map((c) => (
-                          <SelectItem key={c.value} value={c.value}>
-                            {c.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={submitting}
-                  className="w-full bg-brand-gradient text-white hover:opacity-90"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Joining…
-                    </>
-                  ) : (
-                    "Join the waitlist"
-                  )}
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  Promo ends {PROMO_ENDS_LABEL}. Free subscription starts at
-                  launch on {LAUNCH_DATE_LABEL}.
+              <div>
+                <h3 className="font-display text-xl font-bold">
+                  Reserve your spot
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Takes less than a minute.
                 </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="First name" required>
+                  <Input
+                    required
+                    value={values.first_name}
+                    onChange={onInput("first_name")}
+                    autoComplete="given-name"
+                  />
+                </Field>
+                <Field label="Last name" required>
+                  <Input
+                    required
+                    value={values.last_name}
+                    onChange={onInput("last_name")}
+                    autoComplete="family-name"
+                  />
+                </Field>
+                <Field label="Email" required>
+                  <Input
+                    type="email"
+                    required
+                    value={values.email}
+                    onChange={onInput("email")}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                  />
+                </Field>
+                <Field label="Contact (WhatsApp)" required>
+                  <Input
+                    type="tel"
+                    required
+                    value={values.whatsapp}
+                    onChange={onInput("whatsapp")}
+                    placeholder="+233 …"
+                    autoComplete="tel"
+                  />
+                </Field>
+                <Field label="Contact 2">
+                  <Input
+                    type="tel"
+                    value={values.contact_2}
+                    onChange={onInput("contact_2")}
+                    placeholder="+233 …"
+                  />
+                </Field>
+                <Field label="Company / Institution" required>
+                  <Input
+                    required
+                    value={values.company_institution}
+                    onChange={onInput("company_institution")}
+                    placeholder="Your company or institution"
+                    autoComplete="organization"
+                  />
+                </Field>
+                <Field label="Company email" required>
+                  <Input
+                    type="email"
+                    required
+                    value={values.company_email}
+                    onChange={onInput("company_email")}
+                    placeholder="name@company.com"
+                  />
+                </Field>
+                <Field label="Region" required>
+                  <Select
+                    value={values.region || undefined}
+                    onValueChange={onSelect("region")}
+                  >
+                    <SelectTrigger className="h-10 w-full">
+                      <SelectValue
+                        placeholder={
+                          regionsLoading
+                            ? "Loading regions…"
+                            : "Select your region"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {regionsLoading ? (
+                        <div className="flex items-center justify-center py-2">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                          Loading…
+                        </div>
+                      ) : regions.length ? (
+                        regions.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.label}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="py-2 text-center text-sm text-muted-foreground">
+                          No regions available
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Category" required>
+                  <Select
+                    value={values.category || undefined}
+                    onValueChange={onSelect("category")}
+                  >
+                    <SelectTrigger className="h-10 w-full">
+                      <SelectValue placeholder="I am a…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+
+              <Button
+                type="submit"
+                size="lg"
+                disabled={submitting}
+                className="w-full bg-brand-gradient text-white hover:opacity-90"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Joining…
+                  </>
+                ) : (
+                  "Join the waitlist"
+                )}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Promo ends {PROMO_ENDS_LABEL}. Free subscription starts at
+                launch on {LAUNCH_DATE_LABEL}.
+              </p>
             </form>
           </div>
         </div>
