@@ -16,3 +16,9 @@ export async function getWaitList(id) {
   const { data } = await http.get(`wait-lists/${id}/`);
   return data;
 }
+
+// GET /region-choices/ — the region enum values for the waitlist form.
+export async function getRegionChoices() {
+  const { data } = await http.get("region-choices/");
+  return data;
+}

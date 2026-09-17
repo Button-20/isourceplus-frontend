@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { joinWaitlist } from "@/services/api/waitlist.service";
+import { getRegionChoices, joinWaitlist } from "@/services/api/waitlist.service";
+import { normalizeChoices } from "@/utils/choices";
 
 // Pre-launch waitlist landing page, built from the "Strategic Plan to Build
 // Subscription Base" brief (Sept 2026 red corrections applied).
@@ -39,26 +40,6 @@ export const PROMO_ENDS_AT = new Date("2026-10-31T23:59:59Z");
 export const PROMO_ENDS_LABEL = "31st October, 2026";
 export const LAUNCH_DATE_LABEL = "1st November, 2026";
 
-// The API `region` is an enum; values sent as snake_case slugs to match the
-// spec's example ("greater_accra"). Exact enum set is TBD server-side — confirm.
-const GHANA_REGIONS = [
-  { value: "greater_accra", label: "Greater Accra" },
-  { value: "ashanti", label: "Ashanti" },
-  { value: "volta", label: "Volta" },
-  { value: "upper_east", label: "Upper East" },
-  { value: "savannah", label: "Savannah" },
-  { value: "bono", label: "Bono" },
-  { value: "upper_west", label: "Upper West" },
-  { value: "western_north", label: "Western North" },
-  { value: "western", label: "Western" },
-  { value: "eastern", label: "Eastern" },
-  { value: "northern", label: "Northern" },
-  { value: "central", label: "Central" },
-  { value: "ahafo", label: "Ahafo" },
-  { value: "oti", label: "Oti" },
-  { value: "north_east", label: "North East" },
-  { value: "bono_east", label: "Bono East" },
-];
 
 const CATEGORIES = [
   { value: "supplier", label: "Supplier" },
@@ -172,6 +153,30 @@ export default function WaitlistPage() {
   const navigate = useNavigate();
   const [values, setValues] = useState(EMPTY);
   const [submitting, setSubmitting] = useState(false);
+  const [regions, setRegions] = useState([]);
+  const [regionsLoading, setRegionsLoading] = useState(true);
+
+  // Regions come from the backend enum (/region-choices/).
+  useEffect(() => {
+    let cancelled = false;
+    setRegionsLoading(true);
+    getRegionChoices()
+      .then((data) => {
+        if (!cancelled) setRegions(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRegions([]);
+          toast.error("Couldn't load regions.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRegionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const onInput = (name) => (e) =>
     setValues((v) => ({ ...v, [name]: e.target.value }));
@@ -210,6 +215,12 @@ export default function WaitlistPage() {
       // navigation via sonner).
       toast.success("You're on the waitlist! We'll be in touch before launch.");
       navigate("/");
+      // The global ScrollToTop only runs at app mount, not on client-side
+      // navigation, so reset scroll after the landing page mounts (next frame,
+      // which also lets Lenis pick up the reset).
+      requestAnimationFrame(() =>
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" }),
+      );
     } catch (err) {
       const data = err.response?.data;
       toast.error(
@@ -516,14 +527,28 @@ export default function WaitlistPage() {
                       onValueChange={onSelect("region")}
                     >
                       <SelectTrigger className="h-10 w-full">
-                        <SelectValue placeholder="Select your region" />
+                        <SelectValue
+                          placeholder={
+                            regionsLoading ? "Loading regions…" : "Select your region"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {GHANA_REGIONS.map((r) => (
-                          <SelectItem key={r.value} value={r.value}>
-                            {r.label}
-                          </SelectItem>
-                        ))}
+                        {regionsLoading ? (
+                          <div className="flex items-center justify-center py-2">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+                          </div>
+                        ) : regions.length ? (
+                          regions.map((r) => (
+                            <SelectItem key={r.value} value={r.value}>
+                              {r.label}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="py-2 text-center text-sm text-muted-foreground">
+                            No regions available
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                   </Field>
