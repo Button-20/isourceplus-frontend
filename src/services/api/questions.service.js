@@ -4,49 +4,38 @@
 // Paths are relative to the shared http client's base (/api/v1/), matching the
 // spec's server URL https://app.isourceplus.net/api/v1.
 //
-//   Submit: POST <entity>/submit-<slug>-question/<id>/     { question }
-//   List:   GET  <entity>/submitted-<slug>-questions/<id>/ -> Question[]
+//   Submit: POST <prefix>/<id>/submit-<slug>-question/     { question }
+//   List:   GET  <prefix>/<id>/submitted-<slug>-questions/ -> Question[]
 //
 // `id` is the parent resource's UUID (not its human reference number). Auth is
 // the app's usual bearer/cookie session, added by the http client.
 import http from "@/services/lib/http";
 
-// Per-entity path segments. Keyed by a stable slug used across the UI.
+// Per-entity path pieces. `prefix` is the collection path, `slug` the singular
+// used in the action segment; both label and slug are keyed by a stable UI key.
 export const QUESTION_ENTITIES = {
-  tender: {
-    label: "tender",
-    submit: (id) => `tenders/submit-tender-question/${id}/`,
-    list: (id) => `tenders/submitted-tender-questions/${id}/`,
-  },
-  rfx: {
-    label: "RFx",
-    submit: (id) => `rfxs/submit-rfx-question/${id}/`,
-    list: (id) => `rfxs/submitted-rfx-questions/${id}/`,
-  },
-  waybill: {
-    label: "waybill",
-    submit: (id) => `waybills/submit-waybill-question/${id}/`,
-    list: (id) => `waybills/submitted-waybill-questions/${id}/`,
-  },
+  tender: { label: "tender", prefix: "tenders", slug: "tender" },
+  rfx: { label: "RFx", prefix: "rfxs", slug: "rfx" },
+  waybill: { label: "waybill", prefix: "waybills", slug: "waybill" },
   "proforma-invoice": {
     label: "proforma invoice",
-    submit: (id) => `proforma-invoices/submit-proforma-invoice-question/${id}/`,
-    list: (id) => `proforma-invoices/submitted-proforma-invoice-questions/${id}/`,
+    prefix: "proforma-invoices",
+    slug: "proforma-invoice",
   },
   "purchase-order": {
     label: "purchase order",
-    submit: (id) => `purchase-orders/submit-purchase-order-question/${id}/`,
-    list: (id) => `purchase-orders/submitted-purchase-order-questions/${id}/`,
+    prefix: "purchase-orders",
+    slug: "purchase-order",
   },
   "sales-invoice": {
     label: "sales invoice",
-    submit: (id) => `sales-invoices/submit-sales-invoice-question/${id}/`,
-    list: (id) => `sales-invoices/submitted-sales-invoice-questions/${id}/`,
+    prefix: "sales-invoices",
+    slug: "sales-invoice",
   },
   "payment-order": {
     label: "payment order",
-    submit: (id) => `payment-orders/submit-payment-order-question/${id}/`,
-    list: (id) => `payment-orders/submitted-payment-order-questions/${id}/`,
+    prefix: "payment-orders",
+    slug: "payment-order",
   },
 };
 
@@ -56,10 +45,14 @@ const resolve = (entity) => {
   return cfg;
 };
 
-// Submit a question against a resource. Returns the created Question
-// { url, id, question, answers, created_at, updated_at }.
+// POST <prefix>/<id>/submit-<slug>-question/ — submit a question against a
+// resource. Returns the created Question { url, id, question, answers, … }.
 export async function submitQuestion(entity, id, question) {
-  const { data } = await http.post(resolve(entity).submit(id), { question });
+  const { prefix, slug } = resolve(entity);
+  const { data } = await http.post(
+    `${prefix}/${id}/submit-${slug}-question/`,
+    { question },
+  );
   return data;
 }
 
@@ -67,8 +60,11 @@ export async function submitQuestion(entity, id, question) {
 // have been asked yet, so treat that as an empty list — every other failure
 // propagates to the caller.
 export async function getQuestions(entity, id) {
+  const { prefix, slug } = resolve(entity);
   try {
-    const { data } = await http.get(resolve(entity).list(id));
+    const { data } = await http.get(
+      `${prefix}/${id}/submitted-${slug}-questions/`,
+    );
     return Array.isArray(data) ? data : (data?.results ?? []);
   } catch (err) {
     if (err.response?.status === 404) return [];
@@ -76,25 +72,25 @@ export async function getQuestions(entity, id) {
   }
 }
 
-// ---- Answers (Event Answers API, OpenAPI 1.0.0) ---------------------------
-// Answers are attached to a question by its UUID.
+// ---- Answers --------------------------------------------------------------
+// Answers hang off a question by its UUID, under event-questions/<id>/.
 
-// POST /event-answers/submit-question-answer/{question_id}/  { answer }
+// POST event-questions/<question_id>/submit-question-answer/  { answer }
 // Returns the created Answer { url, id, question, answer, created_at, updated_at }.
 export async function submitAnswer(questionId, answer) {
   const { data } = await http.post(
-    `event-answers/submit-question-answer/${questionId}/`,
+    `event-questions/${questionId}/submit-question-answer/`,
     { answer },
   );
   return data;
 }
 
-// GET /event-answers/submitted-question-answers/{question_id}/ -> Answer[]
+// GET event-questions/<question_id>/submitted-question-answers/ -> Answer[]
 // 404 (no answers yet) is treated as an empty list, not an error.
 export async function getAnswers(questionId) {
   try {
     const { data } = await http.get(
-      `event-answers/submitted-question-answers/${questionId}/`,
+      `event-questions/${questionId}/submitted-question-answers/`,
     );
     return Array.isArray(data) ? data : (data?.results ?? []);
   } catch (err) {
