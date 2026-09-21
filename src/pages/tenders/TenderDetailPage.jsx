@@ -425,7 +425,7 @@ const TenderDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <QuestionsForum entity="tender" id={tender?.id ?? refNum} className="mt-6" />
+      <QuestionsForum entity="tender" refNum={refNum} className="mt-6" />
     </div>
   );
 };

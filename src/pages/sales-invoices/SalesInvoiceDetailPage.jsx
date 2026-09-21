@@ -488,7 +488,7 @@ const SalesInvoiceDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <QuestionsForum entity="sales-invoice" id={salesInvoice?.id ?? refNum} className="mt-6" />
+      <QuestionsForum entity="sales-invoice" refNum={refNum} className="mt-6" />
     </div>
   );
 };

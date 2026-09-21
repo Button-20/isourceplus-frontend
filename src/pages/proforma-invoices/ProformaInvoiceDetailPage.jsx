@@ -304,7 +304,7 @@ const ProformaInvoiceDetailPage = () => {
           </p>
         )}
       </Section>
-      <QuestionsForum entity="proforma-invoice" id={invoice?.id ?? refNum} className="mt-6" />
+      <QuestionsForum entity="proforma-invoice" refNum={refNum} className="mt-6" />
     </div>
   );
 };

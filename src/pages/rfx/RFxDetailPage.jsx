@@ -324,7 +324,7 @@ const RFxDetailPage = () => {
           </p>
         )}
       </Section>
-      <QuestionsForum entity="rfx" id={rfx?.id ?? refNum} className="mt-6" />
+      <QuestionsForum entity="rfx" refNum={refNum} className="mt-6" />
     </div>
   );
 };

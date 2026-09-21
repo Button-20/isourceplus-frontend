@@ -239,7 +239,7 @@ const PurchaseOrderDetailPage = () => {
           )}
         </div>
       </div>
-      <QuestionsForum entity="purchase-order" id={purchaseOrder?.id ?? refNum} className="mt-6" />
+      <QuestionsForum entity="purchase-order" refNum={refNum} className="mt-6" />
     </div>
   );
 };

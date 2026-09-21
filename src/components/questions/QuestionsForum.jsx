@@ -14,9 +14,9 @@ import {
 
 // Reusable Q&A forum for an entity detail page (iSourcePlus Q&A API). Drop in
 // with the entity slug and the parent resource's UUID:
-//   <QuestionsForum entity="rfx" id={rfx?.id} />
+//   <QuestionsForum entity="rfx" refNum={rfx?.ref_num} />
 // Handles listing (404 = "no questions yet"), submitting, and rendering each
-// question with its answers. Renders nothing until an id is available.
+// question with its answers. Renders nothing until a ref_num is available.
 
 const formatDateTime = (v) => {
   if (!v) return "";
@@ -146,7 +146,7 @@ function QuestionCard({ q }) {
   );
 }
 
-export default function QuestionsForum({ entity, id, className }) {
+export default function QuestionsForum({ entity, refNum, className }) {
   const label = QUESTION_ENTITIES[entity]?.label ?? "item";
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -154,16 +154,16 @@ export default function QuestionsForum({ entity, id, className }) {
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!refNum) return;
     setLoading(true);
     try {
-      setQuestions(await getQuestions(entity, id));
+      setQuestions(await getQuestions(entity, refNum));
     } catch {
       toast.error("Couldn't load questions.");
     } finally {
       setLoading(false);
     }
-  }, [entity, id]);
+  }, [entity, refNum]);
 
   useEffect(() => {
     load();
@@ -175,7 +175,7 @@ export default function QuestionsForum({ entity, id, className }) {
     if (!text) return toast.error("Type a question first.");
     setSubmitting(true);
     try {
-      const created = await submitQuestion(entity, id, text);
+      const created = await submitQuestion(entity, refNum, text);
       // Prepend the new question so it shows immediately (newest first).
       setQuestions((prev) => (created ? [created, ...prev] : prev));
       setDraft("");
@@ -192,7 +192,7 @@ export default function QuestionsForum({ entity, id, className }) {
   };
 
   // Nothing to key questions to until the parent resource id is known.
-  if (!id) return null;
+  if (!refNum) return null;
 
   return (
     <section

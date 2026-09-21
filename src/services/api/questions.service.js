@@ -4,11 +4,12 @@
 // Paths are relative to the shared http client's base (/api/v1/), matching the
 // spec's server URL https://app.isourceplus.net/api/v1.
 //
-//   Submit: POST <prefix>/<id>/submit-<slug>-question/     { question }
-//   List:   GET  <prefix>/<id>/submitted-<slug>-questions/ -> Question[]
+//   Submit: POST <prefix>/<ref_num>/submit-<slug>-question/     { question }
+//   List:   GET  <prefix>/<ref_num>/submitted-<slug>-questions/ -> Question[]
 //
-// `id` is the parent resource's UUID (not its human reference number). Auth is
-// the app's usual bearer/cookie session, added by the http client.
+// The path segment is the parent resource's `ref_num` (its human reference,
+// e.g. the value in the detail-page route), NOT the UUID. Auth is the app's
+// usual bearer/cookie session, added by the http client.
 import http from "@/services/lib/http";
 
 // Per-entity path pieces. `prefix` is the collection path, `slug` the singular
@@ -45,12 +46,12 @@ const resolve = (entity) => {
   return cfg;
 };
 
-// POST <prefix>/<id>/submit-<slug>-question/ — submit a question against a
+// POST <prefix>/<ref_num>/submit-<slug>-question/ — submit a question against a
 // resource. Returns the created Question { url, id, question, answers, … }.
-export async function submitQuestion(entity, id, question) {
+export async function submitQuestion(entity, refNum, question) {
   const { prefix, slug } = resolve(entity);
   const { data } = await http.post(
-    `${prefix}/${id}/submit-${slug}-question/`,
+    `${prefix}/${refNum}/submit-${slug}-question/`,
     { question },
   );
   return data;
@@ -59,11 +60,11 @@ export async function submitQuestion(entity, id, question) {
 // List questions for a resource. The API returns 404 (not an error) when none
 // have been asked yet, so treat that as an empty list — every other failure
 // propagates to the caller.
-export async function getQuestions(entity, id) {
+export async function getQuestions(entity, refNum) {
   const { prefix, slug } = resolve(entity);
   try {
     const { data } = await http.get(
-      `${prefix}/${id}/submitted-${slug}-questions/`,
+      `${prefix}/${refNum}/submitted-${slug}-questions/`,
     );
     return Array.isArray(data) ? data : (data?.results ?? []);
   } catch (err) {

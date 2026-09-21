@@ -378,7 +378,7 @@ const WaybillDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <QuestionsForum entity="waybill" id={waybill?.id ?? refNum} className="mt-6" />
+      <QuestionsForum entity="waybill" refNum={refNum} className="mt-6" />
     </div>
   );
 };

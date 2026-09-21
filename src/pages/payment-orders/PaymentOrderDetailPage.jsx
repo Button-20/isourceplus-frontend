@@ -393,7 +393,7 @@ const PaymentOrderDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <QuestionsForum entity="payment-order" id={paymentOrder?.id ?? refNum} className="mt-6" />
+      <QuestionsForum entity="payment-order" refNum={refNum} className="mt-6" />
     </div>
   );
 };
