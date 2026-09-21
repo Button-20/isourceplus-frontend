@@ -94,7 +94,7 @@ const MobileVerificationPage = () => {
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-8 sm:py-10">
         {/* Top bar */}
         <div className="flex items-center justify-between">
-          <Logo imgClassName="h-12" />
+          <Logo onDark imgClassName="h-12" />
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="mr-1 h-4 w-4" /> Back
           </Button>

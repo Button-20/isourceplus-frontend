@@ -16,10 +16,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   createTransporter as createTransporterRequest,
+  getDistrictChoices,
   getTransporterTypeChoices,
   getTransportMeansChoices,
   getTransportModeChoices,
 } from "@/services/api/transporters.service";
+// Shared region enum endpoint (/region-choices/) — the same source the waitlist
+// form uses, so regions stay consistent across the app.
+import { getRegionChoices } from "@/services/api/waitlist.service";
 import { useAuth } from "@/services/context/app.context";
 import { storage } from "@/services/lib/storage";
 import { compressImage } from "@/utils/compress-image";
@@ -30,8 +34,8 @@ import { normalizeChoices, prettify } from "@/utils/choices";
 // image_front_view images, a nested `location` (bracket notation) and
 // `transport_modes` / `transport_means` as repeated form keys (style=form,
 // explode=true). type/modes/means come from the backend choices endpoints;
-// region uses Ghana slugs; district & category are free-text pending their
-// (TBD) choice endpoints.
+// region comes from /region-choices/; country is a fixed Ghana/Nigeria list;
+// district is free-text. (Category is intentionally omitted for now.)
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -40,7 +44,6 @@ const MAX_BIO = 225; // Backend caps the description/bio at 225 characters.
 const EMPTY_VALUES = {
   name: "",
   type: "",
-  category: "",
   bio: "",
   email: "",
   office_line: "",
@@ -48,34 +51,35 @@ const EMPTY_VALUES = {
   web_address: "",
 };
 const EMPTY_LOCATION = {
+  country: "",
   region: "",
   district: "",
   popular_area_name: "",
   gps: "",
   street_address: "",
 };
+
+const COUNTRIES = [
+  { value: "ghana", label: "Ghana" },
+  { value: "nigeria", label: "Nigeria" },
+];
 const VALUE_KEYS = Object.keys(EMPTY_VALUES);
 const LOCATION_KEYS = Object.keys(EMPTY_LOCATION);
 
-// region is an enum server-side; slugs match the spec example ("greater_accra").
-const GHANA_REGIONS = [
-  { value: "greater_accra", label: "Greater Accra" },
-  { value: "ashanti", label: "Ashanti" },
-  { value: "volta", label: "Volta" },
-  { value: "upper_east", label: "Upper East" },
-  { value: "savannah", label: "Savannah" },
-  { value: "bono", label: "Bono" },
-  { value: "upper_west", label: "Upper West" },
-  { value: "western_north", label: "Western North" },
-  { value: "western", label: "Western" },
-  { value: "eastern", label: "Eastern" },
-  { value: "northern", label: "Northern" },
-  { value: "central", label: "Central" },
-  { value: "ahafo", label: "Ahafo" },
-  { value: "oti", label: "Oti" },
-  { value: "north_east", label: "North East" },
-  { value: "bono_east", label: "Bono East" },
-];
+// The API doesn't express which transport means belong to which mode, so both
+// are classified into land / sea / air buckets by keyword and the means list is
+// filtered to the selected mode(s). Anything unclassifiable stays visible
+// (fail open) so a means is never wrongly hidden.
+const bucketOf = (text) => {
+  const s = String(text || "").toLowerCase();
+  if (/air|plane|aircraft|helicopter|jet|drone|flight|fly/.test(s)) return "air";
+  if (/sea|marine|ocean|ship|boat|ferry|barge|vessel|canoe|water/.test(s))
+    return "sea";
+  if (/land|road|ground|rail|train|truck|lorry|van|bus|car|bike|bicycle|motor/.test(s))
+    return "land";
+  return null;
+};
+const meansBucket = (m) => bucketOf(`${m?.value ?? m} ${m?.label ?? ""}`);
 
 const validateStoredData = (data, expectedKeys) =>
   data &&
@@ -151,6 +155,10 @@ const TransporterForm = () => {
   const [modeLoading, setModeLoading] = useState(false);
   const [meansChoices, setMeansChoices] = useState([]);
   const [meansLoading, setMeansLoading] = useState(false);
+  const [regionChoices, setRegionChoices] = useState([]);
+  const [regionLoading, setRegionLoading] = useState(false);
+  const [districtChoices, setDistrictChoices] = useState([]);
+  const [districtLoading, setDistrictLoading] = useState(false);
 
   // Restore any in-progress draft once on mount. (File objects can't be
   // persisted, so previews are restored but the files must be re-picked.)
@@ -215,6 +223,87 @@ const TransporterForm = () => {
       ),
     [],
   );
+  useEffect(
+    () =>
+      loadChoices(getRegionChoices, setRegionChoices, setRegionLoading, "regions"),
+    [],
+  );
+
+  // Districts depend on the selected region (/district-choices/?region=…).
+  useEffect(() => {
+    if (!location.region) {
+      setDistrictChoices([]);
+      return;
+    }
+    let cancelled = false;
+    setDistrictLoading(true);
+    getDistrictChoices(location.region)
+      .then((d) => {
+        if (!cancelled) setDistrictChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDistrictChoices([]);
+          toast.error("Couldn't load districts.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDistrictLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [location.region]);
+
+  // Keep a restored draft district selectable before its options load.
+  const districtOptions = useMemo(() => {
+    if (
+      location.district &&
+      !districtChoices.some((c) => c.value === location.district)
+    ) {
+      return [
+        ...districtChoices,
+        { value: location.district, label: prettify(location.district) },
+      ];
+    }
+    return districtChoices;
+  }, [districtChoices, location.district]);
+
+  // Which land/sea/air buckets the selected modes cover.
+  const activeModeBuckets = useMemo(
+    () => new Set(lists.transport_modes.map((v) => bucketOf(v)).filter(Boolean)),
+    [lists.transport_modes],
+  );
+
+  // Show only the means matching the selected mode(s); before any mode is
+  // chosen, show them all.
+  const visibleMeans = useMemo(
+    () =>
+      meansChoices.filter((m) => {
+        if (!activeModeBuckets.size) return true;
+        const b = meansBucket(m);
+        return b == null || activeModeBuckets.has(b);
+      }),
+    [meansChoices, activeModeBuckets],
+  );
+
+  // Drop any already-selected means that no longer match the chosen modes, so
+  // a now-hidden means can't be submitted.
+  useEffect(() => {
+    setLists((prev) => {
+      if (!prev.transport_means.length || !activeModeBuckets.size) return prev;
+      const valid = prev.transport_means.filter((v) => {
+        const m = meansChoices.find((c) => c.value === v);
+        const b = m ? meansBucket(m) : null;
+        return b == null || activeModeBuckets.has(b);
+      });
+      if (valid.length === prev.transport_means.length) return prev;
+      const next = { ...prev, transport_means: valid };
+      persist("transporterFormLists", next);
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModeBuckets, meansChoices]);
 
   // Guarantee a restored type value always has a matching option before the
   // async choices resolve, so the trigger doesn't fall back to the placeholder.
@@ -255,10 +344,14 @@ const TransporterForm = () => {
       return next;
     });
   };
-  const setRegion = (value) => {
+  // Set a location dropdown value (country/region). Guards the empty value
+  // Radix can emit while options reconcile.
+  const setLocationField = (name, value) => {
     if (!value) return;
     setLocation((l) => {
-      const next = { ...l, region: value };
+      const next = { ...l, [name]: value };
+      // Region drives the district options, so a new region clears the district.
+      if (name === "region") next.district = "";
       persist("transporterFormLocation", next);
       return next;
     });
@@ -323,7 +416,6 @@ const TransporterForm = () => {
     const missingScalar = [
       ["name", "transporter name"],
       ["type", "type"],
-      ["category", "category"],
       ["bio", "bio"],
       ["email", "email"],
       ["office_line", "primary phone"],
@@ -332,6 +424,7 @@ const TransporterForm = () => {
       return toast.error(`Please provide the ${missingScalar[1]}.`);
 
     const missingLocation = [
+      ["country", "country"],
       ["region", "region"],
       ["district", "district"],
       ["gps", "GPS address"],
@@ -359,9 +452,16 @@ const TransporterForm = () => {
       Object.entries(location).forEach(([k, v]) => {
         if (String(v).trim()) fd.append(`location[${k}]`, v);
       });
-      // Arrays as repeated keys (style=form, explode=true).
-      lists.transport_modes.forEach((v) => fd.append("transport_modes", v));
-      lists.transport_means.forEach((v) => fd.append("transport_means", v));
+      // The backend expects these as nested DICTIONARIES (it rejects repeated
+      // string keys with "Expected a dictionary, but got str"). Send each
+      // selection into a slotted bracket key: transport_modes[mode_1]=land,
+      // transport_means[means_1]=truck, …
+      lists.transport_modes.forEach((v, i) =>
+        fd.append(`transport_modes[mode_${i + 1}]`, v),
+      );
+      lists.transport_means.forEach((v, i) =>
+        fd.append(`transport_means[means_${i + 1}]`, v),
+      );
       fd.append("logo", files.logo);
       fd.append("image_front_view", files.image_front_view);
 
@@ -466,18 +566,6 @@ const TransporterForm = () => {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <label className={labelClass}>
-              Category <span className="text-destructive">*</span>
-            </label>
-            <Input
-              name="category"
-              value={values.category}
-              onChange={handleChange}
-              placeholder="e.g. freight"
-              required
-            />
-          </div>
           <div className="sm:col-span-2">
             <div className="mb-1 flex items-center justify-between">
               <label className="text-sm font-medium text-foreground">
@@ -568,19 +656,19 @@ const TransporterForm = () => {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass}>
-              Region <span className="text-destructive">*</span>
+              Country <span className="text-destructive">*</span>
             </label>
             <Select
-              value={location.region || undefined}
-              onValueChange={setRegion}
+              value={location.country || undefined}
+              onValueChange={(v) => setLocationField("country", v)}
             >
               <SelectTrigger className="h-10 w-full">
-                <SelectValue placeholder="Select a region" />
+                <SelectValue placeholder="Select a country" />
               </SelectTrigger>
               <SelectContent>
-                {GHANA_REGIONS.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
+                {COUNTRIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -588,15 +676,74 @@ const TransporterForm = () => {
           </div>
           <div>
             <label className={labelClass}>
+              Region <span className="text-destructive">*</span>
+            </label>
+            <Select
+              value={location.region || undefined}
+              onValueChange={(v) => setLocationField("region", v)}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue
+                  placeholder={regionLoading ? "Loading regions…" : "Select a region"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {regionLoading ? (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+                  </div>
+                ) : regionChoices.length ? (
+                  regionChoices.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="py-2 text-center text-sm text-muted-foreground">
+                    No regions available
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className={labelClass}>
               District <span className="text-destructive">*</span>
             </label>
-            <Input
-              name="district"
-              value={location.district}
-              onChange={handleLocationChange}
-              placeholder="e.g. Accra Metropolitan"
-              required
-            />
+            <Select
+              value={location.district || undefined}
+              onValueChange={(v) => setLocationField("district", v)}
+              disabled={!location.region}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue
+                  placeholder={
+                    !location.region
+                      ? "Select a region first"
+                      : districtLoading
+                        ? "Loading districts…"
+                        : "Select a district"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {districtLoading && !districtOptions.length ? (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+                  </div>
+                ) : districtOptions.length ? (
+                  districtOptions.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>
+                      {d.label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="py-2 text-center text-sm text-muted-foreground">
+                    No districts available
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className={labelClass}>Popular area name</label>
@@ -650,7 +797,13 @@ const TransporterForm = () => {
             <label className={labelClass}>
               Transport means <span className="text-destructive">*</span>
             </label>
-            {renderChips("transport_means", meansChoices, meansLoading)}
+            {activeModeBuckets.size > 0 && (
+              <p className="mb-2 text-xs text-muted-foreground">
+                Showing means for your selected mode
+                {activeModeBuckets.size > 1 ? "s" : ""}.
+              </p>
+            )}
+            {renderChips("transport_means", visibleMeans, meansLoading)}
           </div>
         </div>
       </section>

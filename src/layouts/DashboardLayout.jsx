@@ -54,10 +54,11 @@ export function DashboardLayout() {
   const navigate = useNavigate();
   const [profileVerified, setProfileVerified] = useState(null);
 
-  // Kick unauthenticated users back to login.
+  // Kick unauthenticated users back to login. No return-url is carried, so
+  // logging out (and logging back in) lands on the dashboard, not the last page.
   useEffect(() => {
     if (!user || !token) {
-      navigate("/login", { state: { from: location }, replace: true });
+      navigate("/login", { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token]);
@@ -117,19 +118,29 @@ export function DashboardLayout() {
   const isTransporter =
     Boolean(transporterId) || normalizedJob === "logistics manager";
   const isSupplierRole = normalizedJob === "sales manager";
+  // A company user by role (drives the org nav before ids finish loading).
+  const isCompanyRole =
+    Boolean(companyId) ||
+    normalizedJob === "sales manager" ||
+    normalizedJob === "lead buyer";
 
-  // Sidebar navigation — always fully populated. Backend permissions still
-  // guard the actual routes, so showing the full workspace is safe and gives
-  // every role a complete sidebar. A company only gets "Edit Company"; a
-  // transporter only gets "Edit Transporter" — never both.
-  const companiesSubmenu = [
-    ...(!companyId && !transporterId
-      ? [{ title: "Account Type", url: "/dashboard/companies" }]
-      : []),
-    ...(isTransporter
-      ? [{ title: "Edit Transporter", url: "/dashboard/transporter/edit" }]
-      : [{ title: "Edit Company", url: "/dashboard/company/edit" }]),
-  ];
+  // A single top-level org nav (no sub-nav), decided by ROLE so it's correct
+  // immediately (a logistics manager sees "Edit Transporter" even before the
+  // transporter id finishes loading). Only a user with no org and no known
+  // role sees "Account Type".
+  const orgNav = isTransporter
+    ? {
+        title: "Edit Transporter",
+        icon: Building2,
+        url: "/dashboard/transporter/edit",
+      }
+    : isCompanyRole
+      ? {
+          title: "Edit Company",
+          icon: Building2,
+          url: "/dashboard/company/edit",
+        }
+      : { title: "Account Type", icon: Building2, url: "/dashboard/companies" };
 
   // A single Employees entry that points at the company or transporter roster
   // depending on which kind of organization the user belongs to.
@@ -141,11 +152,7 @@ export function DashboardLayout() {
   const allNavLinks = [
     { title: "Home", url: "/dashboard/", icon: Home },
     { title: "Subscriptions", icon: ShoppingCart, url: "/dashboard/subscriptions" },
-    {
-      title: "Companies & Transporters",
-      icon: Building2,
-      submenu: companiesSubmenu,
-    },
+    orgNav,
     { title: "Employees", icon: MdOutlinePeopleAlt, url: employeesUrl },
     { title: "Branches", icon: TruckIcon, url: "/dashboard/branches" },
     {

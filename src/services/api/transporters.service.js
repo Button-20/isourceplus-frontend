@@ -34,6 +34,13 @@ export async function getTransporterTypeChoices() {
   return data;
 }
 
+// GET /district-choices/?region=<region> — districts for a region (the region
+// param is required; it's the value from /region-choices/).
+export async function getDistrictChoices(region) {
+  const { data } = await http.get("district-choices/", { params: { region } });
+  return data;
+}
+
 // GET the transport mode choices for a transporter.
 export async function getTransportModeChoices() {
   const { data } = await http.get("transport-mode-choices/");

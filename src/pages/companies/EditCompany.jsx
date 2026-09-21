@@ -432,7 +432,7 @@ const EditCompany = () => {
                   </label>
                   <span
                     className={`text-xs ${
-                      values.bio.length >= MAX_BIO
+                      values.bio.length > MAX_BIO
                         ? "text-destructive"
                         : "text-muted-foreground"
                     }`}

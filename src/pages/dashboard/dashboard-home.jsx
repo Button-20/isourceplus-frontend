@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import {
   FileText,
   Gavel,
@@ -12,6 +12,7 @@ import {
   Building2,
   BadgeCheck,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 
 import { useAuth } from "@/services/context/app.context";
@@ -137,7 +138,6 @@ function StatCard({ resource, count, loading }) {
 export function DashBoardHome() {
   const { user, token, jobTitle, companyId, transporterId, viewMode, sidebarLoading } =
     useAuth();
-  const location = useLocation();
   const [counts, setCounts] = useState({});
   const [loadingCounts, setLoadingCounts] = useState(true);
 
@@ -178,7 +178,7 @@ export function DashBoardHome() {
   }, [jobTitle]);
 
   if (!user && !token) {
-    return <Navigate state={{ from: location }} to="/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   const roleLabel = jobTitle
@@ -299,10 +299,18 @@ export function DashBoardHome() {
               <span
                 className={cn(
                   "inline-flex items-center gap-1 font-medium",
-                  hasOrg ? "text-emerald-600" : "text-amber-600",
+                  sidebarLoading
+                    ? "text-muted-foreground"
+                    : hasOrg
+                      ? "text-emerald-600"
+                      : "text-amber-600",
                 )}
               >
-                {hasOrg ? (
+                {sidebarLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Checking…
+                  </>
+                ) : hasOrg ? (
                   <>
                     <BadgeCheck className="h-4 w-4" /> Active
                   </>

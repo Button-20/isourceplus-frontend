@@ -180,12 +180,20 @@ export const AppProvider = ({ children }) => {
       // Navigate straight away using the login response. Awaiting the extra
       // `users/` call here could hang or fail (e.g. a transient 401 →
       // refresh → logout cascade) and strand the user on the sign-in page.
-      // The `[token]` effect hydrates company/transporter ids in the
-      // background, and DashboardLayout re-verifies the profile — redirecting
-      // to onboarding if it isn't complete.
-      navigate(data.profile_id ? "/dashboard" : "/onboarding/user", {
-        replace: true,
-      });
+      // Resolve the company/transporter ids BEFORE landing on the dashboard so
+      // it never briefly flashes the "no organization" state (nudge, "Account
+      // Type", "Incomplete") on a fresh login. Bounded so a slow/flaky `users/`
+      // call (e.g. a transient 401 → refresh → retry) can't strand the user on
+      // the sign-in page; fetchUserData never throws, so this always settles.
+      if (data.profile_id) {
+        await Promise.race([
+          fetchUserData(),
+          new Promise((resolve) => setTimeout(resolve, 4000)),
+        ]);
+        navigate("/dashboard", { replace: true });
+      } else {
+        navigate("/onboarding/user", { replace: true });
+      }
       return data;
     } catch (err) {
       const message =
