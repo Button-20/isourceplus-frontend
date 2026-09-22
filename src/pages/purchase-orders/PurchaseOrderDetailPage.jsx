@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, ShoppingCart, Send } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  ShoppingCart,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
+import FundEscrowModal from "@/components/escrow/FundEscrowModal";
+import EscrowPanel from "@/components/escrow/EscrowPanel";
 
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +31,8 @@ const PurchaseOrderDetailPage = () => {
   const { refNum } = useParams();
   const navigate = useNavigate();
   const [purchaseOrder, setPurchaseOrder] = useState(null);
+  const [escrow, setEscrow] = useState(null);
+  const [fundOpen, setFundOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [modalLoading, setModalLoading] = useState(false);
 
@@ -32,6 +42,8 @@ const PurchaseOrderDetailPage = () => {
       try {
         const response = await authAxios.get(`purchase-orders/${refNum}/`);
         setPurchaseOrder(response.data);
+        // The PO payload may embed the existing escrow once one has been created.
+        if (response.data?.escrow) setEscrow(response.data.escrow);
       } catch (error) {
         toast.error("Failed to load purchase order details.");
         console.error("Fetch purchase order error:", error);
@@ -93,6 +105,23 @@ const PurchaseOrderDetailPage = () => {
       ? "/dashboard/purchase-orders/issued"
       : "/dashboard/purchase-orders";
 
+  // Escrow is a buyer action, and only relevant to POs that require it. Once the
+  // escrow is secured (or beyond), funding is a no-op, so hide the CTA.
+  const escrowRequired =
+    purchaseOrder?.escrow_required ?? Boolean(purchaseOrder?.escrow);
+  const escrowFunded =
+    escrow &&
+    [
+      "SECURED",
+      "PARTIAL_RELEASED",
+      "FULLY_RELEASED",
+      "REFUNDED",
+      "FROZEN",
+      "DISPUTED",
+    ].includes(escrow.escrow_status);
+  const canFundEscrow =
+    jobTitle === "lead buyer" && escrowRequired && !escrowFunded;
+
   if (!loading && !purchaseOrder) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
@@ -138,6 +167,14 @@ const PurchaseOrderDetailPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {canFundEscrow && (
+              <Button
+                onClick={() => setFundOpen(true)}
+                className="bg-white text-brand hover:bg-white/90"
+              >
+                <ShieldCheck className="mr-1.5 h-4 w-4" /> Fund escrow
+              </Button>
+            )}
             {(jobTitle === "sales manager" ||
               jobTitle === "logistics manager") && (
               <Button
@@ -239,7 +276,50 @@ const PurchaseOrderDetailPage = () => {
           )}
         </div>
       </div>
+      {/* Escrow */}
+      {escrow ? (
+        <EscrowPanel escrow={escrow} />
+      ) : (
+        escrowRequired && (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/70 bg-card p-8 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand/10 text-brand">
+              <ShieldCheck className="h-6 w-6" />
+            </span>
+            <div>
+              <p className="font-display text-base font-semibold">
+                This purchase order requires escrow
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {canFundEscrow
+                  ? "Lodge funds into the Isourceplus escrow account to secure this order."
+                  : "Awaiting the buyer to lodge funds into escrow."}
+              </p>
+            </div>
+            {canFundEscrow && (
+              <Button
+                onClick={() => setFundOpen(true)}
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              >
+                <ShieldCheck className="mr-1.5 h-4 w-4" /> Fund escrow
+              </Button>
+            )}
+          </div>
+        )
+      )}
+
       <QuestionsForum entity="purchase-order" refNum={refNum} className="mt-6" />
+
+      <FundEscrowModal
+        open={fundOpen}
+        onOpenChange={setFundOpen}
+        refNum={refNum}
+        onSecured={(secured) => {
+          setEscrow(secured);
+          setPurchaseOrder((prev) =>
+            prev ? { ...prev, status: "ESCROW_FUNDED", escrow: secured } : prev,
+          );
+        }}
+      />
     </div>
   );
 };
