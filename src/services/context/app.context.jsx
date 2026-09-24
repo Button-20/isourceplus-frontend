@@ -187,7 +187,21 @@ export const AppProvider = ({ children }) => {
       // the sign-in page; fetchUserData never throws, so this always settles.
       if (data.profile_id) {
         await Promise.race([
-          fetchUserData(),
+          // Mirror a fresh page load: rotate/establish the session BEFORE
+          // reading the user's org. On a cookie-auth login the just-set session
+          // isn't yet honoured by `users/`, so a straight fetch here comes back
+          // without the company/transporter and the dashboard flashes the
+          // "Finish setting up your organization" nudge until the user manually
+          // refreshes (a refresh runs exactly this refresh-then-fetch sequence).
+          // Both steps swallow their own errors, so this never strands login.
+          (async () => {
+            try {
+              await refreshTokenFunction();
+            } catch {
+              /* keep going — fetchUserData still runs, worst case unchanged */
+            }
+            await fetchUserData();
+          })(),
           new Promise((resolve) => setTimeout(resolve, 4000)),
         ]);
         navigate("/dashboard", { replace: true });

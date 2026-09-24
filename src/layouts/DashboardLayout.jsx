@@ -17,6 +17,7 @@ import {
   Wallet,
   Star,
   MessageSquare,
+  Handshake,
 } from "lucide-react";
 import Logo from "@/components/common/Logo";
 import { useEffect, useState } from "react";
@@ -155,6 +156,15 @@ export function DashboardLayout() {
     orgNav,
     { title: "Employees", icon: MdOutlinePeopleAlt, url: employeesUrl },
     { title: "Branches", icon: TruckIcon, url: "/dashboard/branches" },
+    {
+      title: "Business Invitation",
+      icon: Handshake,
+      key: "business-invitation",
+      submenu: [
+        { title: "RFx", url: "/dashboard/rfxs" },
+        { title: "Tender", url: "/dashboard/tenders" },
+      ],
+    },
     {
       title: "RFx Management",
       icon: FileText,
