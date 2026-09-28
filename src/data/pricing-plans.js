@@ -5,6 +5,8 @@
 export const buyerPlans = [
   {
     name: "Bronze",
+    description:
+      "Gain the lowest reach into the suppliers’ market with fewer competitive offers.",
     monthlyRate: 14,
     sixMonthRate: 134.4,
     twelveMonthRate: 117.6,
@@ -21,6 +23,8 @@ export const buyerPlans = [
   },
   {
     name: "Silver",
+    description:
+      "Gain a lower reach into the suppliers’ market with less competitive offers.",
     monthlyRate: 21,
     sixMonthRate: 201.6,
     twelveMonthRate: 141.12,
@@ -37,6 +41,8 @@ export const buyerPlans = [
   },
   {
     name: "Gold",
+    description:
+      "Gain a high reach into the suppliers’ market with highly competitive offers.",
     monthlyRate: 28,
     sixMonthRate: 268.8,
     twelveMonthRate: 188.16,
@@ -53,6 +59,8 @@ export const buyerPlans = [
   },
   {
     name: "Diamond",
+    description:
+      "Gain a higher reach into the suppliers’ market with higher competitive offers.",
     monthlyRate: 42,
     sixMonthRate: 403.2,
     twelveMonthRate: 282.24,
@@ -70,6 +78,8 @@ export const buyerPlans = [
   },
   {
     name: "Platinum",
+    description:
+      "Gain the highest reach into the suppliers’ market with the highest competitive offers.",
     monthlyRate: 56,
     sixMonthRate: 537.6,
     twelveMonthRate: 376.32,
@@ -89,6 +99,8 @@ export const buyerPlans = [
 export const supplierPlans = [
   {
     name: "Bronze",
+    description:
+      "Gain the lowest reach into the buyers’ market with fewer business opportunities.",
     monthlyRate: 21,
     sixMonthRate: 201.6,
     twelveMonthRate: 176.4,
@@ -105,6 +117,8 @@ export const supplierPlans = [
   },
   {
     name: "Silver",
+    description:
+      "Gain a lower reach into the buyers’ market with less business opportunities.",
     monthlyRate: 28,
     sixMonthRate: 268.8,
     twelveMonthRate: 235.2,
@@ -121,6 +135,8 @@ export const supplierPlans = [
   },
   {
     name: "Gold",
+    description:
+      "Gain a high reach into the buyers’ market with more business opportunities.",
     monthlyRate: 35,
     sixMonthRate: 336,
     twelveMonthRate: 294,
@@ -137,6 +153,8 @@ export const supplierPlans = [
   },
   {
     name: "Diamond",
+    description:
+      "Gain a higher reach into the buyers’ market with higher business opportunities.",
     monthlyRate: 49,
     sixMonthRate: 470.4,
     twelveMonthRate: 411.6,
@@ -154,6 +172,8 @@ export const supplierPlans = [
   },
   {
     name: "Platinum",
+    description:
+      "Gain the highest reach into the buyers’ market with the highest business opportunities.",
     monthlyRate: 70,
     sixMonthRate: 672,
     twelveMonthRate: 588,
@@ -173,6 +193,8 @@ export const supplierPlans = [
 export const transporterPlans = [
   {
     name: "Bronze",
+    description:
+      "Gain the lowest reach into the suppliers’ and buyers’ market with fewer business opportunities.",
     monthlyRate: 20,
     sixMonthRate: 102,
     twelveMonthRate: 180,
@@ -189,6 +211,8 @@ export const transporterPlans = [
   },
   {
     name: "Silver",
+    description:
+      "Gain a lower reach into the suppliers’ and buyers’ market with less business opportunities.",
     monthlyRate: 25,
     sixMonthRate: 127.5,
     twelveMonthRate: 225,
@@ -205,6 +229,8 @@ export const transporterPlans = [
   },
   {
     name: "Gold",
+    description:
+      "Gain a high reach into the suppliers’ and buyers’ market with more business opportunities.",
     monthlyRate: 30,
     sixMonthRate: 153,
     twelveMonthRate: 270,
@@ -221,6 +247,8 @@ export const transporterPlans = [
   },
   {
     name: "Diamond",
+    description:
+      "Gain a higher reach into the suppliers’ and buyers’ market with higher business opportunities.",
     monthlyRate: 35,
     sixMonthRate: 178.5,
     twelveMonthRate: 315,
@@ -238,6 +266,8 @@ export const transporterPlans = [
   },
   {
     name: "Platinum",
+    description:
+      "Gain the highest reach into the suppliers’ and buyers’ market with the highest business opportunities.",
     monthlyRate: 40,
     sixMonthRate: 204,
     twelveMonthRate: 360,

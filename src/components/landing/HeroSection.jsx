@@ -25,18 +25,17 @@ export default function HeroSection() {
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand/5 px-3 py-1 text-xs font-medium text-brand">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-gradient" />
-            B2B Procurement, reimagined for West Africa
+            Connect. Source. Pay.
           </span>
 
           <h1 className="mt-6 font-display text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-            Optimize your{" "}
-            <span className="text-brand-gradient">procurement workflow</span>{" "}
-            with iSourcePlus
+            We connect you.{" "}
+            <span className="text-brand-gradient">You source and pay.</span>
           </h1>
 
           <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-            Connecting buyers and suppliers seamlessly for efficient sourcing,
-            tenders, and transactions — all in one secure platform.
+            Seamless source-to-pay transactions — buyers, suppliers and cargo
+            transporters, all on one secure platform.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -57,7 +56,7 @@ export default function HeroSection() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            {["No setup fees", "Ghana Card verified", "Secure payments"].map(
+            {["TIN-verified companies", "GRA E-VAT integrated", "Secured transactions"].map(
               (item) => (
                 <span key={item} className="inline-flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-brand" /> {item}

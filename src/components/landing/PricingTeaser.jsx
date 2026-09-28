@@ -15,7 +15,7 @@ export default function PricingTeaser() {
             Pricing
           </span>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            Plans that scale with your business
+            Bigger package, more opportunities, higher competitive offers
           </h2>
           <p className="mt-4 text-muted-foreground">
             Buyer plans shown below. Supplier and transporter plans, plus 6- and
@@ -41,7 +41,12 @@ export default function PricingTeaser() {
                 </span>
               )}
               <h3 className="font-display text-lg font-semibold">{plan.name}</h3>
-              <div className="mt-2 flex items-baseline gap-1">
+              {plan.description && (
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                  {plan.description}
+                </p>
+              )}
+              <div className="mt-3 flex items-baseline gap-1">
                 <span className="font-display text-3xl font-bold">
                   GHC {plan.monthlyRate}
                 </span>

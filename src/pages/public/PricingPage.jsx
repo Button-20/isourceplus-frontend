@@ -292,7 +292,12 @@ export function PricingPage({ embedded = false }) {
                 </span>
               )}
               <h2 className="font-display text-xl font-bold">{plan.name}</h2>
-              <div className="mt-2 flex items-baseline gap-1">
+              {plan.description && (
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                  {plan.description}
+                </p>
+              )}
+              <div className="mt-4 flex items-baseline gap-1">
                 <span className="font-display text-4xl font-bold text-brand-gradient">
                   GHC {plan.monthlyRate}
                 </span>

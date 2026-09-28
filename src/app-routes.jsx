@@ -101,6 +101,9 @@ import WaybillDetailPage from "./pages/waybills/WaybillDetailPage";
 // subscription
 import { SubscriptionCallbackPage } from "./pages/subscription/SubscriptionCallbackPage";
 
+// legal
+import { TermsPage, PrivacyPage } from "./pages/public/legal-pages";
+
 const fullRoutes = [
   { path: "/", element: <LandingPage /> },
   { path: "/waitlist", element: <WaitlistPage /> },
@@ -108,6 +111,8 @@ const fullRoutes = [
   { path: "/marketplace", element: <MarketplacePage /> },
   { path: "/store", element: <Store /> },
   { path: "/about", element: <AboutPage /> },
+  { path: "/terms", element: <TermsPage /> },
+  { path: "/privacy", element: <PrivacyPage /> },
   { path: "/subscription/callback", element: <SubscriptionCallbackPage /> },
 
   {
