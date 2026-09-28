@@ -46,7 +46,7 @@ export default function FeaturesSection() {
             One platform for the entire procurement lifecycle
           </h2>
           <p className="mt-4 text-muted-foreground">
-            From the first quote to final payment, iSource+ keeps buyers and
+            From the first quote to final payment, iSourcePlus keeps buyers and
             suppliers moving in the same, secure workflow.
           </p>
         </div>

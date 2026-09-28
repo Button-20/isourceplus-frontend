@@ -24,13 +24,11 @@ const Footer = () => {
   };
 
   return (
-    <footer className=" text-white py-10">
+    <footer className="text-foreground py-10">
       <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Logo and Description Section */}
         <div className="flex flex-col items-center md:items-start text-center">
-          {/* Same ISlogo.png as everywhere else, on the white chip so the
-              coloured wordmark stays legible against the dark footer. */}
-          <Logo onDark imgClassName="h-16" />
+          <Logo imgClassName="h-12" />
 
           <p className="text-muted-foreground text-sm sm:mr-10">
             The most Comprehensive Suppliers' and Buyers' Network
@@ -80,7 +78,7 @@ const Footer = () => {
       </div>
 
       {/* Bottom Section: Social Links and Copyright */}
-      <div className="border-t border-white/15 mt-8 pt-6">
+      <div className="border-t border-border mt-8 pt-6">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between">
           {/* Social Links */}
           <div className="flex gap-3 mb-4 md:mb-0">
@@ -88,7 +86,7 @@ const Footer = () => {
               <a
                 key={index}
                 href={href}
-                className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10 hover:bg-white/20"
+                className="flex items-center justify-center w-12 h-12 rounded-full bg-muted hover:bg-muted/80"
                 aria-label={label}
                 title={label}
               >

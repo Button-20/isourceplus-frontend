@@ -241,7 +241,7 @@ export default function WaitlistPage() {
       {/* Sticky nav */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-lg">
         <nav className="container flex h-20 items-center justify-between">
-          <Logo onDark to={null} imgClassName="h-16" />
+          <Logo to={null} imgClassName="h-12" />
           <Button
             asChild
             className="bg-brand-gradient text-white hover:opacity-90"
@@ -609,7 +609,7 @@ export default function WaitlistPage() {
       {/* Footer */}
       <footer className="border-t border-border">
         <div className="container flex flex-col items-center gap-3 py-8 text-center sm:flex-row sm:justify-between">
-          <Logo onDark to={null} imgClassName="h-16" />
+          <Logo to={null} imgClassName="h-12" />
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} iSourceplus · Connect. Source. Pay.
           </p>

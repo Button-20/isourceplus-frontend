@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/common/Logo";
+import ThemeToggle from "@/components/common/ThemeToggle";
 import { ENV } from "@/services/lib/env";
 
 // Before launch there's no login, so the CTAs point at the waitlist instead of
@@ -24,9 +25,8 @@ export default function LandingNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-lg">
       <nav className="container flex h-16 items-center justify-between">
-        {/* onDark renders a white mark, so it needs no chip and sits cleanly
-            inside the h-16 bar. */}
-        <Logo onDark imgClassName="h-12" />
+        {/* Theme-aware lockup — colored on light, light on dark. */}
+        <Logo imgClassName="h-10" />
 
         <div className="hidden items-center gap-8 md:flex">
           {links.map((l) => (
@@ -41,6 +41,7 @@ export default function LandingNav() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
+          <ThemeToggle />
           {!ENV.PRELAUNCH && (
             <Button variant="ghost" asChild>
               <Link to="/login">Sign in</Link>

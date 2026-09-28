@@ -14,7 +14,7 @@ export default function ProductMockup() {
           <span className="h-3 w-3 rounded-full bg-amber-400" />
           <span className="h-3 w-3 rounded-full bg-emerald-400" />
           <span className="ml-3 text-xs text-muted-foreground">
-            iSource+ · Procurement dashboard
+            iSourcePlus · Procurement dashboard
           </span>
         </div>
 

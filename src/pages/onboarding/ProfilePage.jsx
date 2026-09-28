@@ -43,7 +43,7 @@ const ProfilePage = () => {
               </h1>
               <p className="relative mt-2 text-sm text-white/85">
                 A few details to set up your workspace and unlock the full
-                iSource+ platform.
+                iSourcePlus platform.
               </p>
             </div>
 

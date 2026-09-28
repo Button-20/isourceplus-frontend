@@ -59,7 +59,7 @@ export function LoginPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <AuthBrandPanel
-        title="Welcome back to iSource+"
+        title="Welcome back to iSourcePlus"
         subtitle="Sign in to manage your quotes, tenders, orders, and payments — all in one secure workspace."
       />
 
@@ -170,7 +170,7 @@ export function SignUpPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <AuthBrandPanel
-        title="Start sourcing with iSource+"
+        title="Start sourcing with iSourcePlus"
         subtitle="Create your account to connect with verified buyers and suppliers and run your procurement end to end."
       />
 

@@ -7,7 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { AiOutlineClose } from "react-icons/ai";
 import ResponsiveMenu from "../ResponsiveMenu";
-import { assets } from "@/assets/assets";
+import Logo from "@/components/common/Logo";
 
 const NavBar = () => {
   // local tailwind variables
@@ -49,8 +49,7 @@ const NavBar = () => {
             onClick={() => navigate("/")}
             className={`text-2xl flex items-center gap-2 cursor-pointer font-bold uppercase`}
           >
-            {/* <Users /> */}
-            <img src={assets.ISlogo} alt="iSource+" className="w-44" />
+            <Logo to={null} imgClassName="h-10 w-auto" />
           </div>
           {/* menu section */}
           <div className="hidden xl:block">

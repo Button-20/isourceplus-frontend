@@ -85,14 +85,13 @@ export function NavUser({ user }) {
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage
-                    src={
-                      user?.profileImage ||
-                      "https://www.flaticon.com/free-icons/avatar"
-                    }
-                    alt="profile"
-                  />
-                  <AvatarFallback className="rounded-lg">
+                  {user?.profileImage && (
+                    <AvatarImage src={user.profileImage} alt="profile" />
+                  )}
+                  {/* White chip + blue initials — high contrast on the blue
+                      sidebar in both light and dark (the default bg-muted made
+                      the white initials nearly invisible in light mode). */}
+                  <AvatarFallback className="rounded-lg bg-white font-semibold text-brand">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -175,7 +174,7 @@ export function NavUser({ user }) {
                   Log out
                 </DialogTitle>
                 <DialogDescription className="text-center text-sm text-muted-foreground">
-                  You&apos;ll be signed out of your iSource+ workspace. You can
+                  You&apos;ll be signed out of your iSourcePlus workspace. You can
                   sign back in anytime.
                 </DialogDescription>
               </DialogHeader>

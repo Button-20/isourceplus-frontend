@@ -31,7 +31,7 @@ export default function HeroSection() {
           <h1 className="mt-6 font-display text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
             Optimize your{" "}
             <span className="text-brand-gradient">procurement workflow</span>{" "}
-            with iSource+
+            with iSourcePlus
           </h1>
 
           <p className="mt-6 max-w-xl text-lg text-muted-foreground">

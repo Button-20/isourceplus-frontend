@@ -16,7 +16,7 @@ export default function TransporterPage() {
         </h1>
         <p className="relative mt-2 max-w-2xl text-sm text-white/85">
           Set up your transporter profile to offer logistics and delivery across
-          the iSource+ supply chain.
+          the iSourcePlus supply chain.
         </p>
       </div>
 

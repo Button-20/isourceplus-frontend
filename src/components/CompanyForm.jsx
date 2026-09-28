@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import VerifyOrganisation from "@/components/organisation/VerifyOrganisation";
 import {
   createCompany,
   getCategoryChoices,
@@ -135,6 +136,10 @@ const CompanyForm = () => {
   const navigate = useNavigate();
 
   const [values, setValues] = useState(EMPTY_VALUES);
+  // TIN is used only to verify the organisation (POST verify-organisation/); the
+  // company model doesn't store it, so it's kept out of `values` / the create
+  // payload and persisted under its own draft key.
+  const [tin, setTin] = useState("");
   const [files, setFiles] = useState({ logo: null, image_front_view: null });
   const [filePreviews, setFilePreviews] = useState({
     logo: null,
@@ -162,6 +167,8 @@ const CompanyForm = () => {
     ) {
       setFilePreviews(parsedPreviews);
     }
+    const storedTin = storage.get("companyFormTin");
+    if (storedTin) setTin(storedTin);
   }, []);
 
   // Category options depend on the company type (buyers and suppliers have
@@ -219,6 +226,25 @@ const CompanyForm = () => {
   }, [isSupplier, values.category]);
 
   const persistValues = (next) => storage.setJSON("companyFormValues", next);
+
+  const handleTinChange = (next) => {
+    setTin(next);
+    if (next) storage.set("companyFormTin", next);
+    else storage.remove("companyFormTin");
+  };
+
+  // When the organisation is verified, adopt its official registered name if the
+  // user hasn't already typed a company name.
+  const handleOrganisationVerified = ({ organisationName }) => {
+    if (organisationName && !values.name.trim()) {
+      setValues((v) => {
+        const next = { ...v, name: organisationName };
+        persistValues(next);
+        return next;
+      });
+      toast.success("Company name filled from the verified organisation.");
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -302,10 +328,12 @@ const CompanyForm = () => {
   const handleReset = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setValues(EMPTY_VALUES);
+    setTin("");
     setFiles({ logo: null, image_front_view: null });
     setFilePreviews({ logo: null, image_front_view: null });
     storage.remove("companyFormValues");
     storage.remove("companyFormFilePreviews");
+    storage.remove("companyFormTin");
     toast.success("Form reset successfully.");
   };
 
@@ -343,7 +371,9 @@ const CompanyForm = () => {
       storage.set("company_id", data.id);
       storage.remove("companyFormValues");
       storage.remove("companyFormFilePreviews");
+      storage.remove("companyFormTin");
       setValues(EMPTY_VALUES);
+      setTin("");
       setFiles({ logo: null, image_front_view: null });
       setFilePreviews({ logo: null, image_front_view: null });
       navigate("/dashboard/company/edit");
@@ -366,6 +396,14 @@ const CompanyForm = () => {
           Company information
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <VerifyOrganisation
+              value={tin}
+              onChange={handleTinChange}
+              onVerified={handleOrganisationVerified}
+            />
+          </div>
+
           <div className="sm:col-span-2">
             <label className={labelClass}>
               Company name <span className="text-destructive">*</span>

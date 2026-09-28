@@ -165,7 +165,7 @@ const AccountTypePage = () => {
             Choose your account type
           </h1>
           <p className="relative mt-2 max-w-2xl text-sm text-white/85">
-            Set up the organization that matches how you&apos;ll use iSource+.
+            Set up the organization that matches how you&apos;ll use iSourcePlus.
             The options available to you are based on your role.
           </p>
         </div>

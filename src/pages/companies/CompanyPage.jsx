@@ -15,7 +15,7 @@ export default function CompanyPage() {
           Register your company
         </h1>
         <p className="relative mt-2 max-w-2xl text-sm text-white/85">
-          Set up your company profile to join the iSource+ network and start
+          Set up your company profile to join the iSourcePlus network and start
           sourcing with verified partners.
         </p>
       </div>

@@ -16,7 +16,7 @@ export function CtaBanner() {
             Ready to streamline your sourcing?
           </h2>
           <p className="relative mx-auto mt-3 max-w-xl text-white/90">
-            Join buyers and suppliers already trading smarter on iSource+.
+            Join buyers and suppliers already trading smarter on iSourcePlus.
           </p>
           <div className="relative mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button
@@ -78,12 +78,12 @@ const footerLinks = ENV.PRELAUNCH
 
 export default function LandingFooter() {
   return (
-    <footer className="border-t border-border bg-background text-neutral-300">
+    <footer className="border-t border-border bg-background text-muted-foreground">
       <div className="container py-14">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Logo onDark imgClassName="h-16" />
-            <p className="mt-4 max-w-sm text-sm text-neutral-400">
+            <Logo imgClassName="h-12" />
+            <p className="mt-4 max-w-sm text-sm text-muted-foreground">
               The most comprehensive suppliers&apos; and buyers&apos; network —
               connecting businesses across Ghana and beyond.
             </p>
@@ -91,7 +91,7 @@ export default function LandingFooter() {
               {[FaLinkedin, FaXTwitter, FaFacebook].map((Icon, i) => (
                 <span
                   key={i}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-neutral-300 transition-colors hover:bg-brand-gradient hover:text-white"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-brand-gradient hover:text-white"
                 >
                   <Icon className="h-4 w-4" />
                 </span>
@@ -101,7 +101,7 @@ export default function LandingFooter() {
 
           {Object.entries(footerLinks).map(([group, links]) => (
             <div key={group}>
-              <h4 className="font-display text-sm font-semibold text-white">
+              <h4 className="font-display text-sm font-semibold text-foreground">
                 {group}
               </h4>
               <ul className="mt-4 space-y-2 text-sm">
@@ -110,14 +110,14 @@ export default function LandingFooter() {
                     {l.to ? (
                       <Link
                         to={l.to}
-                        className="text-neutral-400 transition-colors hover:text-white"
+                        className="text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {l.label}
                       </Link>
                     ) : (
                       <a
                         href={l.href}
-                        className="text-neutral-400 transition-colors hover:text-white"
+                        className="text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {l.label}
                       </a>
@@ -129,8 +129,8 @@ export default function LandingFooter() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-neutral-500 sm:flex-row">
-          <span>© {new Date().getFullYear()} iSource+. All rights reserved.</span>
+        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row">
+          <span>© {new Date().getFullYear()} iSourcePlus. All rights reserved.</span>
           <span>Accra, Ghana</span>
         </div>
       </div>

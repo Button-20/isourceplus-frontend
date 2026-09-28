@@ -17,9 +17,9 @@ import {
   Wallet,
   Star,
   MessageSquare,
-  Handshake,
 } from "lucide-react";
 import Logo from "@/components/common/Logo";
+import ThemeToggle from "@/components/common/ThemeToggle";
 import { useEffect, useState } from "react";
 import {
   Sidebar,
@@ -149,98 +149,115 @@ export function DashboardLayout() {
     ? "/dashboard/transporter/employees"
     : "/dashboard/company/employees";
 
-  // Transaction navs carry a `key` so they can be hidden per view/role below.
-  const allNavLinks = [
-    { title: "Home", url: "/dashboard/", icon: Home },
-    { title: "Subscriptions", icon: ShoppingCart, url: "/dashboard/subscriptions" },
-    orgNav,
-    { title: "Employees", icon: MdOutlinePeopleAlt, url: employeesUrl },
-    { title: "Branches", icon: TruckIcon, url: "/dashboard/branches" },
+  // The sidebar is organized into labeled sections. Transaction navs carry a
+  // `key` so they can be hidden per view/role (see HIDDEN_KEYS below).
+  const NAV_SECTIONS = [
     {
-      title: "Business Invitation",
-      icon: Handshake,
-      key: "business-invitation",
-      submenu: [
-        { title: "RFx", url: "/dashboard/rfxs" },
-        { title: "Tender", url: "/dashboard/tenders" },
-      ],
+      label: "Overview",
+      items: [{ title: "Home", url: "/dashboard/", icon: Home }],
     },
     {
-      title: "RFx Management",
-      icon: FileText,
-      key: "rfx",
-      submenu: [
-        { title: "View All RFxs", url: "/dashboard/rfxs" },
-        { title: "Issued RFxs", url: "/dashboard/rfxs/issued" },
-      ],
-    },
-    {
-      title: "Tender Management",
-      icon: Gavel,
-      key: "tenders",
-      submenu: [
-        { title: "View All Tenders", url: "/dashboard/tenders" },
-        { title: "Issued Tenders", url: "/dashboard/tenders/issued" },
-      ],
-    },
-    {
-      title: "Proforma Invoices",
-      icon: ReceiptText,
-      key: "proforma",
-      submenu: [
-        { title: "All Proforma Invoices", url: "/dashboard/proforma-invoices" },
+      label: "Procurement",
+      items: [
         {
-          title: "Issued Proforma Invoices",
-          url: "/dashboard/proforma-invoices/issued",
+          title: "RFx Management",
+          icon: FileText,
+          key: "rfx",
+          submenu: [
+            { title: "View All RFxs", url: "/dashboard/rfxs" },
+            { title: "Issued RFxs", url: "/dashboard/rfxs/issued" },
+          ],
+        },
+        {
+          title: "Tender Management",
+          icon: Gavel,
+          key: "tenders",
+          submenu: [
+            { title: "View All Tenders", url: "/dashboard/tenders" },
+            { title: "Issued Tenders", url: "/dashboard/tenders/issued" },
+          ],
+        },
+        {
+          title: "Proforma Invoices",
+          icon: ReceiptText,
+          key: "proforma",
+          submenu: [
+            {
+              title: "All Proforma Invoices",
+              url: "/dashboard/proforma-invoices",
+            },
+            {
+              title: "Issued Proforma Invoices",
+              url: "/dashboard/proforma-invoices/issued",
+            },
+          ],
+        },
+        {
+          title: "Purchase Orders",
+          icon: FilePlus,
+          key: "purchase-orders",
+          submenu: [
+            { title: "All Purchase Orders", url: "/dashboard/purchase-orders" },
+            {
+              title: "Issued Purchase Orders",
+              url: "/dashboard/purchase-orders/issued",
+            },
+          ],
+        },
+        {
+          title: "Sales Invoices",
+          icon: Wallet,
+          key: "sales-invoices",
+          submenu: [
+            { title: "All Sales Invoices", url: "/dashboard/sales-invoices" },
+            {
+              title: "Issued Sales Invoices",
+              url: "/dashboard/sales-invoices/issued",
+            },
+          ],
+        },
+        {
+          title: "Waybills",
+          icon: TruckIcon,
+          key: "waybills",
+          submenu: [
+            { title: "All Waybills", url: "/dashboard/waybills" },
+            { title: "Issued Waybills", url: "/dashboard/waybills/issued" },
+          ],
+        },
+        {
+          title: "Payment Orders",
+          icon: Wallet,
+          key: "payment-orders",
+          url: "/dashboard/payment-orders/issued",
         },
       ],
     },
     {
-      title: "Purchase Orders",
-      icon: FilePlus,
-      key: "purchase-orders",
-      submenu: [
-        { title: "All Purchase Orders", url: "/dashboard/purchase-orders" },
+      label: "Organization",
+      items: [
+        orgNav,
+        { title: "Employees", icon: MdOutlinePeopleAlt, url: employeesUrl },
+        { title: "Branches", icon: TruckIcon, url: "/dashboard/branches" },
+      ],
+    },
+    {
+      label: "Account",
+      items: [
         {
-          title: "Issued Purchase Orders",
-          url: "/dashboard/purchase-orders/issued",
+          title: "Subscriptions",
+          icon: ShoppingCart,
+          url: "/dashboard/subscriptions",
         },
-      ],
-    },
-    {
-      title: "Sales Invoices",
-      icon: Wallet,
-      key: "sales-invoices",
-      submenu: [
-        { title: "All Sales Invoices", url: "/dashboard/sales-invoices" },
         {
-          title: "Issued Sales Invoices",
-          url: "/dashboard/sales-invoices/issued",
+          title: "Add ID Documents",
+          icon: MdOutlineDocumentScanner,
+          url: "/dashboard/user/verification-docs",
         },
+        { title: "Reviews", icon: Star, url: "/dashboard/reviews" },
+        { title: "SMS", icon: MessageSquare, url: "/dashboard/sms" },
       ],
     },
-    {
-      title: "Waybills",
-      icon: TruckIcon,
-      key: "waybills",
-      submenu: [
-        { title: "All Waybills", url: "/dashboard/waybills" },
-        { title: "Issued Waybills", url: "/dashboard/waybills/issued" },
-      ],
-    },
-    {
-      title: "Payment Orders",
-      icon: Wallet,
-      key: "payment-orders",
-      url: "/dashboard/payment-orders/issued",
-    },
-    {
-      title: "Add ID Documents",
-      icon: MdOutlineDocumentScanner,
-      url: "/dashboard/user/verification-docs",
-    },
-    { title: "Reviews", icon: Star, url: "/dashboard/reviews" },
-    { title: "SMS", icon: MessageSquare, url: "/dashboard/sms" },
   ];
 
   // Exception (hidden) routes per view/role. A transporter follows its own set;
@@ -259,9 +276,12 @@ export function DashboardLayout() {
       ? HIDDEN_KEYS.transporter
       : HIDDEN_KEYS[viewMode] || HIDDEN_KEYS.buyer,
   );
-  const navLinks = allNavLinks.filter(
-    (item) => !item.key || !hidden.has(item.key),
-  );
+  // Filter each section by the hidden keys, then drop any section left empty so
+  // its label never renders on its own.
+  const navSections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => !item.key || !hidden.has(item.key)),
+  })).filter((section) => section.items.length > 0);
 
   // Redirecting to /login (see effect above).
   if (!user || !token) {
@@ -294,17 +314,21 @@ export function DashboardLayout() {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <Link to={"/dashboard"} className="gap-2">
-                  <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
-                    iS
-                  </div>
-                  {/* White wordmark (onDark) for the dark sidebar, at 2x the
-                      previous size. to={null} avoids nesting an <a> in the
-                      surrounding Link; hidden when the rail collapses to icons,
-                      leaving the "iS" tile as the mark. */}
+                  {/* White lockup (onDark) — the sidebar is a blue panel (light)
+                      or dark (dark theme), so the mark/wordmark stay white in
+                      both. to={null} avoids nesting an <a>. When the rail
+                      collapses to icons, show the mark only. */}
                   <Logo
                     onDark
                     to={null}
-                    imgClassName="h-16 w-auto"
+                    showWordmark={false}
+                    imgClassName="h-8 w-auto"
+                    className="hidden group-data-[collapsible=icon]:inline-flex"
+                  />
+                  <Logo
+                    onDark
+                    to={null}
+                    imgClassName="h-9 w-auto"
                     className="group-data-[collapsible=icon]:hidden"
                   />
                 </Link>
@@ -313,7 +337,7 @@ export function DashboardLayout() {
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          <NavMain items={navLinks} pathname={location.pathname} />
+          <NavMain sections={navSections} pathname={location.pathname} />
           <NavSecondary className="mt-auto" />
         </SidebarContent>
         <SidebarFooter>
@@ -323,7 +347,10 @@ export function DashboardLayout() {
       <main style={{ width: "100%" }}>
         <div className="m-5 mb-0 flex items-center justify-between gap-3">
           <SidebarTrigger />
-          {showViewToggle && <ViewModeToggle />}
+          <div className="flex items-center gap-2">
+            {showViewToggle && <ViewModeToggle />}
+            <ThemeToggle />
+          </div>
         </div>
         <div className="p-5 pt-5">
           {loading ? (

@@ -17,7 +17,7 @@ const ACTIONS = [
   },
   {
     title: "Add Existing Employee",
-    desc: "Link an existing iSource+ user to your team.",
+    desc: "Link an existing iSourcePlus user to your team.",
     href: "/dashboard/employee/existing",
     icon: UserCheck,
   },

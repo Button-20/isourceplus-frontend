@@ -40,7 +40,7 @@ export default function SecuritySection() {
             Built to protect every transaction
           </h2>
           <p className="mt-4 max-w-lg text-muted-foreground">
-            Trust is the foundation of trade. iSource+ safeguards your business
+            Trust is the foundation of trade. iSourcePlus safeguards your business
             with verified identities, encrypted data, and compliant processes at
             every step.
           </p>

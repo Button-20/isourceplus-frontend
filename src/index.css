@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap')
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap')
 layer(base);
 
 @import 'tailwindcss';
@@ -25,9 +25,13 @@ layer(base);
 }
 
 @theme {
-  --font-montserrat: Montserrat, sans-serif;
-  --font-sora: Sora, sans-serif;
-  --font-display: Sora, sans-serif;
+  /* Inter across the app — the neutral, humanist sans from the brand mockups.
+     The historical token names are kept (font-montserrat / font-sora /
+     font-display utilities are used everywhere) but all resolve to Inter. */
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-montserrat: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-sora: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display: Inter, ui-sans-serif, system-ui, sans-serif;
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -244,52 +248,99 @@ layer(base);
 
 @layer base {
   /*
-    iSource+ runs dark-only. The palette lives on :root so it applies even
-    before the `dark` class is on <html>, and is duplicated onto `.dark` so
-    `dark:` variant utilities activate consistently. There is no light theme.
+    iSourcePlus theming. LIGHT is the default (`:root`); DARK is opt-in via the
+    `.dark` class on <html> (toggled by the ThemeProvider + persisted). The
+    brand is all-blue — bright azure ("i-SOURCE" primary) + deep navy
+    ("PLUS"/secondary), from the 2026 interlocking-rings logo. No maroon.
   */
-  :root,
+  :root {
+    color-scheme: light;
+
+    --background: 214 32% 96%;
+    --foreground: 222 44% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 44% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 44% 16%;
+    --primary: 216 84% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 30% 93%;
+    --secondary-foreground: 222 44% 20%;
+    --muted: 214 28% 93%;
+    --muted-foreground: 215 18% 42%;
+    --accent: 216 90% 95%;
+    --accent-foreground: 216 84% 40%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 22% 88%;
+    --input: 214 22% 86%;
+    --ring: 216 84% 52%;
+    /* Brand: azure primary + navy secondary (the two interlocking rings). */
+    --brand: 216 84% 52%;
+    --brand-2: 226 58% 28%;
+    --brand-foreground: 0 0% 100%;
+    --chart-1: 216 84% 52%;
+    --chart-2: 226 58% 34%;
+    --chart-3: 199 89% 48%;
+    --chart-4: 250 70% 60%;
+    --chart-5: 173 58% 39%;
+    --radius: 0.5rem;
+    /* Blue sidebar (per the brand mockup): azure panel, white text/icons, and
+       a white active/hover pill with blue text. */
+    --sidebar-background: 217 83% 50%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 217 83% 45%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 217 83% 45%;
+    --sidebar-border: 217 70% 60%;
+    --sidebar-ring: 0 0% 100%;
+  }
+
   .dark {
     color-scheme: dark;
 
-    --background: 222 24% 8%;
-    --foreground: 210 20% 96%;
-    --card: 222 20% 11%;
-    --card-foreground: 210 20% 96%;
-    --popover: 222 22% 10%;
-    --popover-foreground: 210 20% 96%;
-    --primary: 226 78% 58%;
+    /* Deep navy, brand-tinted shell (hue ~221) — cohesive with the blue
+       sidebar/brand rather than a neutral slate. */
+    --background: 221 47% 8%;
+    --foreground: 210 32% 96%;
+    --card: 221 44% 12%;
+    --card-foreground: 210 32% 96%;
+    --popover: 221 45% 11%;
+    --popover-foreground: 210 32% 96%;
+    --primary: 216 88% 62%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 222 16% 17%;
-    --secondary-foreground: 210 20% 96%;
-    --muted: 222 16% 16%;
-    --muted-foreground: 215 16% 65%;
-    --accent: 222 16% 18%;
-    --accent-foreground: 210 20% 98%;
+    --secondary: 220 34% 18%;
+    --secondary-foreground: 210 32% 96%;
+    --muted: 220 32% 17%;
+    --muted-foreground: 214 24% 68%;
+    --accent: 220 34% 21%;
+    --accent-foreground: 210 32% 98%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 222 16% 20%;
-    --input: 222 16% 20%;
-    --ring: 226 78% 58%;
-    /* iSource+ brand: royal blue ("i-Source") → maroon/crimson ("plus+"),
-       matching the logo and brightened so both pop on the dark shell. */
-    --brand: 226 78% 58%;
-    --brand-2: 349 65% 47%;
+    --border: 220 32% 22%;
+    --input: 220 32% 22%;
+    --ring: 216 88% 62%;
+    /* Same all-blue brand, brightened so both rings pop on the navy shell. */
+    --brand: 216 88% 62%;
+    --brand-2: 214 62% 66%;
     --brand-foreground: 0 0% 100%;
-    --chart-1: 220 70% 55%;
-    --chart-2: 160 60% 48%;
-    --chart-3: 30 80% 58%;
-    --chart-4: 280 65% 62%;
-    --chart-5: 340 75% 58%;
+    --chart-1: 216 88% 62%;
+    --chart-2: 214 62% 66%;
+    --chart-3: 199 85% 58%;
+    --chart-4: 250 72% 70%;
+    --chart-5: 173 58% 54%;
     --radius: 0.5rem;
-    --sidebar-background: 222 24% 9%;
-    --sidebar-foreground: 215 16% 75%;
-    --sidebar-primary: 226 78% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 16% 16%;
-    --sidebar-accent-foreground: 210 20% 96%;
-    --sidebar-border: 222 16% 18%;
-    --sidebar-ring: 226 78% 58%;
+    /* Blue sidebar in dark mode too (a slightly deeper azure so it sits calmly
+       against the dark shell), with the same white active/hover pill. */
+    --sidebar-background: 217 80% 44%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 217 83% 42%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 217 83% 42%;
+    --sidebar-border: 217 60% 54%;
+    --sidebar-ring: 0 0% 100%;
   }
 }
 

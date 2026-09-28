@@ -60,7 +60,7 @@ export default function AddExistingEmployeePage() {
                 Add existing employee
               </h1>
               <p className="mt-1 text-sm text-white/85">
-                Invite a current iSource+ user to your team.
+                Invite a current iSourcePlus user to your team.
               </p>
             </div>
           </div>

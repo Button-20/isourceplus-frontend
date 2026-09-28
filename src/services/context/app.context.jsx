@@ -122,8 +122,10 @@ export const AppProvider = ({ children }) => {
       const profileId = userData.profile?.split("/").slice(-2)[0] || null;
       setUserProfileId(profileId);
       return profileId;
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to load user data");
+    } catch {
+      // Background fetch (runs whenever a token exists, e.g. a stale session on
+      // the public landing page). Non-critical — the 401 interceptor handles a
+      // truly expired session — so fail silently instead of toasting.
       return null;
     } finally {
       setSidebarLoading(false);
