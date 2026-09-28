@@ -24,9 +24,9 @@ function NavItem({ item, pathname }) {
     item.url === pathname ||
     (item.submenu && item.submenu.some((sub) => pathname.startsWith(sub.url)));
 
-  // Active state is the filled light-blue pill from SidebarMenuButton's
-  // data-[active=true] styles (bg-sidebar-accent + brand text) — matches the
-  // mockup. Just add a semibold weight on top.
+  // Active AND hover both use the bright-blue accent (#008ffe, white text) via
+  // SidebarMenuButton's built-in data-[active=true]/hover:bg-sidebar-accent
+  // styles. Just add a semibold weight on the active row.
   const activeClasses = cn(
     "transition-colors duration-200",
     isTopLevelActive && "font-semibold",

@@ -345,14 +345,16 @@ export function DashboardLayout() {
         </SidebarFooter>
       </Sidebar>
       <main style={{ width: "100%" }}>
-        <div className="m-5 mb-0 flex items-center justify-between gap-3">
-          <SidebarTrigger />
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-white/10 bg-header px-5 py-3 text-header-foreground">
+          <SidebarTrigger className="text-header-foreground hover:bg-white/10 hover:text-header-foreground" />
           <div className="flex items-center gap-2">
             {showViewToggle && <ViewModeToggle />}
-            <ThemeToggle />
+            <ThemeToggle className="text-header-foreground hover:bg-white/10 hover:text-header-foreground" />
           </div>
-        </div>
-        <div className="p-5 pt-5">
+        </header>
+        {/* Content fills the available width, then centers on very large
+            screens (capped at max-w-screen-2xl) so it never stretches too wide. */}
+        <div className="mx-auto w-full max-w-screen-2xl p-5 pt-5">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />

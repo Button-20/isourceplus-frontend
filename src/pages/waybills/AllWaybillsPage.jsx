@@ -69,7 +69,7 @@ const AllWaybillsPage = () => {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 font-montserrat">
+    <div className="w-full space-y-8 font-montserrat">
       <ScrollToTop />
       {/* Branded header */}
       <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">

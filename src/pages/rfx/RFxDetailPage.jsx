@@ -2,14 +2,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import {
-  Loader2,
-  ArrowLeft,
-  ChevronDown,
-  ChevronUp,
-  Building2,
-  Send,
-} from "lucide-react";
+import { Loader2, ArrowLeft, Building2, Send } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
@@ -18,37 +11,16 @@ import {
 } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 
 import { Button } from "@/components/ui/button";
-
-function Section({ title, open, onToggle, children }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-muted/40"
-      >
-        <h2 className="font-display text-base font-semibold">{title}</h2>
-        {open ? (
-          <ChevronUp className="h-5 w-5 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="h-5 w-5 text-muted-foreground" />
-        )}
-      </button>
-      {open && <div className="border-t border-border/60 p-5">{children}</div>}
-    </div>
-  );
-}
-
-function Row({ label, children }) {
-  return (
-    <div className="flex items-start gap-3 text-sm">
-      <span className="w-32 shrink-0 font-medium text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-foreground">{children}</span>
-    </div>
-  );
-}
+import {
+  DetailPage,
+  DetailCard,
+  DetailHeader,
+  Section,
+  DetailGrid,
+  Row,
+  StatusBadge,
+  DetailFooter,
+} from "@/components/detail/DetailShell";
 
 const RFxDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -57,9 +29,6 @@ const RFxDetailPage = () => {
   const [rfx, setRfx] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalLoading, setModalLoading] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(true);
-  const [reachOpen, setReachOpen] = useState(true);
-  const [itemsOpen, setItemsOpen] = useState(true);
 
   useEffect(() => {
     const fetchRfxDetails = async () => {
@@ -160,172 +129,133 @@ const RFxDetailPage = () => {
 
   const created = formatDateTime(rfx.created_at);
   const updated = formatDateTime(rfx.updated_at);
+  const isSalesManager = jobTitle === "sales manager";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 font-montserrat">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            {rfx.issuing_company_display_logo ? (
-              <img
-                src={rfx.issuing_company_display_logo}
-                alt="Issuing company logo"
-                className="h-14 w-14 rounded-xl border border-white/30 bg-white/10 object-contain p-1"
-              />
-            ) : (
-              <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/15">
-                <Building2 className="h-7 w-7" />
-              </span>
-            )}
-            <div>
-              <p className="text-xs text-white/80">{rfx.ref_num}</p>
-              <h1 className="font-display text-2xl font-bold">
-                {rfx.title || "Untitled RFx"}
-              </h1>
-            </div>
+    <DetailPage onBack={() => navigate("/dashboard/rfxs")} backLabel="Back to RFxs">
+      <DetailCard>
+        <DetailHeader
+          icon={Building2}
+          logo={rfx.issuing_company_display_logo}
+          title={rfx.title || "Untitled RFx"}
+          subtitle={rfx.ref_num}
+          badge={
+            <StatusBadge
+              label={rfx.status === "draft" ? "Open" : "Closed"}
+              tone={rfx.status === "draft" ? "open" : "closed"}
+            />
+          }
+        />
+
+        <Section title="RFx details">
+          <DetailGrid>
+            <Row label="Reference">{rfx.ref_num}</Row>
+            <Row label="Title">{rfx.title}</Row>
+            <Row label="Issuing company">{rfx.issuing_company_info}</Row>
+            <Row label="Type">{rfx.type}</Row>
+            <Row label="Procedure">{rfx.procedure}</Row>
+            <Row label="Spend category">{rfx.spend_category}</Row>
+            <Row label="Priority">
+              {rfx.priority === "urgent" ? "Urgent" : "Non-Urgent"}
+            </Row>
+            <Row label="Created">
+              <span title={created.relative}>{created.formatted}</span>
+            </Row>
+            <Row label="Updated">
+              <span title={updated.relative}>{updated.formatted}</span>
+            </Row>
+          </DetailGrid>
+          <div className="mt-3">
+            <Row label="Note">{rfx.note || "N/A"}</Row>
           </div>
-          <div className="flex items-center gap-3">
-            {jobTitle === "sales manager" && (
-              <Button
-                onClick={handleSendOffer}
-                disabled={modalLoading}
-                className="bg-white text-brand hover:bg-white/90"
-              >
-                {modalLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-1.5 h-4 w-4" /> Send offer
-                  </>
-                )}
-              </Button>
-            )}
+        </Section>
+
+        <Section title="Reach">
+          <DetailGrid>
+            <Row label="Region">{rfx.reach?.region || "N/A"}</Row>
+            <Row label="District">{rfx.reach?.district || "N/A"}</Row>
+            <Row label="City">{rfx.reach?.city || "N/A"}</Row>
+            <Row label="Town">{rfx.reach?.town || "N/A"}</Row>
+          </DetailGrid>
+        </Section>
+
+        <Section title="Items requested">
+          {rfx.items?.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl border border-border/70">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-2.5 font-medium">#</th>
+                    <th className="px-4 py-2.5 font-medium">Item description</th>
+                    <th className="px-4 py-2.5 font-medium">Qty</th>
+                    <th className="px-4 py-2.5 font-medium">Unit</th>
+                    <th className="px-4 py-2.5 font-medium">Special handling</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {rfx.items.map((item, i) => (
+                    <tr key={item.id}>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {i + 1}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="font-medium">{item.name || "N/A"}</span>
+                        {item.description && (
+                          <span className="block text-xs text-muted-foreground">
+                            {item.description}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">{item.quantity}</td>
+                      <td className="px-4 py-2.5">{item.unit_of_measure}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {item.special_handles?.length > 0
+                          ? item.special_handles
+                              .map((sh) => sh.handling_description)
+                              .join(", ")
+                          : "N/A"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No items available.
+            </p>
+          )}
+        </Section>
+
+        {isSalesManager && (
+          <DetailFooter>
             <Button
               variant="outline"
               onClick={() => navigate("/dashboard/rfxs")}
-              className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
             >
-              <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
+              Cancel
             </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Details */}
-      <Section
-        title="RFx details"
-        open={detailsOpen}
-        onToggle={() => setDetailsOpen((o) => !o)}
-      >
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Row label="Reference">{rfx.ref_num}</Row>
-          <Row label="Title">{rfx.title}</Row>
-          <Row label="Issuing company">{rfx.issuing_company_info}</Row>
-          <Row label="Status">
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                rfx.status === "draft"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-emerald-100 text-emerald-700"
-              }`}
+            <Button
+              onClick={handleSendOffer}
+              disabled={modalLoading}
+              className="bg-brand-gradient text-brand-foreground hover:opacity-90"
             >
-              {rfx.status === "draft" ? "Open" : "Closed"}
-            </span>
-          </Row>
-          <Row label="Type">{rfx.type}</Row>
-          <Row label="Procedure">{rfx.procedure}</Row>
-          <Row label="Spend category">{rfx.spend_category}</Row>
-          <Row label="Priority">
-            {rfx.priority === "urgent" ? "Urgent" : "Non-Urgent"}
-          </Row>
-          <Row label="Created">
-            <span title={created.relative}>{created.formatted}</span>
-          </Row>
-          <Row label="Updated">
-            <span title={updated.relative}>{updated.formatted}</span>
-          </Row>
-        </div>
-        <div className="mt-4">
-          <Row label="Note">{rfx.note || "N/A"}</Row>
-        </div>
-      </Section>
-
-      {/* Reach */}
-      <Section
-        title="Reach"
-        open={reachOpen}
-        onToggle={() => setReachOpen((o) => !o)}
-      >
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Row label="Region">{rfx.reach?.region || "N/A"}</Row>
-          <Row label="District">{rfx.reach?.district || "N/A"}</Row>
-          <Row label="City">{rfx.reach?.city || "N/A"}</Row>
-          <Row label="Town">{rfx.reach?.town || "N/A"}</Row>
-        </div>
-      </Section>
-
-      {/* Items */}
-      <Section
-        title="Items"
-        open={itemsOpen}
-        onToggle={() => setItemsOpen((o) => !o)}
-      >
-        {rfx.items?.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="px-4 py-2.5 font-medium">Name</th>
-                  <th className="px-4 py-2.5 font-medium">Description</th>
-                  <th className="px-4 py-2.5 font-medium">Qty</th>
-                  <th className="px-4 py-2.5 font-medium">Unit</th>
-                  <th className="px-4 py-2.5 font-medium">Special handling</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {rfx.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-2.5 font-medium">
-                      {item.name || "N/A"}
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground">
-                      {item.description || "N/A"}
-                    </td>
-                    <td className="px-4 py-2.5">{item.quantity}</td>
-                    <td className="px-4 py-2.5">{item.unit_of_measure}</td>
-                    <td className="px-4 py-2.5">
-                      {item.special_handles?.length > 0 ? (
-                        <div className="flex flex-col gap-1">
-                          {item.special_handles.map((sh) => (
-                            <span
-                              key={sh.id}
-                              className="text-muted-foreground"
-                            >
-                              {sh.handling_description}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        "N/A"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No items available.
-          </p>
+              {modalLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
+                </>
+              ) : (
+                <>
+                  <Send className="mr-1.5 h-4 w-4" /> Send offer
+                </>
+              )}
+            </Button>
+          </DetailFooter>
         )}
-      </Section>
-      <QuestionsForum entity="rfx" refNum={refNum} className="mt-6" />
-    </div>
+      </DetailCard>
+
+      <QuestionsForum entity="rfx" refNum={refNum} />
+    </DetailPage>
   );
 };
 

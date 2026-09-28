@@ -187,7 +187,7 @@ export function DashBoardHome() {
   const hasOrg = Boolean(companyId || transporterId);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className="w-full space-y-8">
       {/* Greeting */}
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-brand-gradient p-6 text-brand-foreground sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

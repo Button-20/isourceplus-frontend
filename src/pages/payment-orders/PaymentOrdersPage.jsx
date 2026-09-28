@@ -110,7 +110,7 @@ const PaymentOrdersPage = () => {
   const totalPages = Math.max(1, Math.ceil(pagination.count / 10));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 font-montserrat">
+    <div className="w-full space-y-8 font-montserrat">
       {/* Branded header */}
       <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
         <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />

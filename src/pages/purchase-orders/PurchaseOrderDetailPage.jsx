@@ -14,17 +14,24 @@ import FundEscrowModal from "@/components/escrow/FundEscrowModal";
 import EscrowPanel from "@/components/escrow/EscrowPanel";
 
 import { Button } from "@/components/ui/button";
+import {
+  DetailPage,
+  DetailCard,
+  DetailHeader,
+  Section,
+  DetailGrid,
+  Row,
+  StatusBadge,
+  DetailFooter,
+} from "@/components/detail/DetailShell";
 
-function Row({ label, children }) {
-  return (
-    <div className="flex items-start gap-3 text-sm">
-      <span className="w-40 shrink-0 font-medium text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-foreground">{children}</span>
-    </div>
-  );
-}
+const statusTone = (status) => {
+  const s = String(status || "").toLowerCase();
+  if (/(fund|active|open|secured)/.test(s)) return "open";
+  if (/(pending|draft|await)/.test(s)) return "warn";
+  if (/(cancel|closed|reject)/.test(s)) return "closed";
+  return "neutral";
+};
 
 const PurchaseOrderDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -149,114 +156,69 @@ const PurchaseOrderDetailPage = () => {
     );
   }
 
+  const canSendSalesInvoice =
+    jobTitle === "sales manager" || jobTitle === "logistics manager";
+
   return (
-    <div className="mx-auto max-w-5xl space-y-6 font-montserrat">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-brand-gradient p-6 text-brand-foreground sm:p-8">
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/15">
-              <ShoppingCart className="h-7 w-7" />
-            </span>
-            <div>
-              <p className="text-xs text-white/80">Purchase order</p>
-              <h1 className="font-display text-2xl font-bold">
-                {purchaseOrder.title || purchaseOrder.ref_num}
-              </h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {canFundEscrow && (
-              <Button
-                onClick={() => setFundOpen(true)}
-                className="bg-white text-brand hover:bg-white/90"
-              >
-                <ShieldCheck className="mr-1.5 h-4 w-4" /> Fund escrow
-              </Button>
-            )}
-            {(jobTitle === "sales manager" ||
-              jobTitle === "logistics manager") && (
-              <Button
-                onClick={handleSendSalesInvoice}
-                disabled={modalLoading}
-                className="bg-white text-brand hover:bg-white/90"
-              >
-                {modalLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-1.5 h-4 w-4" /> Send sales invoice
-                  </>
-                )}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => navigate(backTo)}
-              className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
-            >
-              <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
-            </Button>
-          </div>
-        </div>
-      </div>
+    <DetailPage onBack={() => navigate(backTo)} backLabel="Back to purchase orders">
+      <DetailCard>
+        <DetailHeader
+          icon={ShoppingCart}
+          title={purchaseOrder.title || purchaseOrder.ref_num}
+          subtitle={purchaseOrder.ref_num}
+          badge={
+            purchaseOrder.status ? (
+              <StatusBadge
+                label={purchaseOrder.status}
+                tone={statusTone(purchaseOrder.status)}
+              />
+            ) : null
+          }
+        />
 
-      {/* Details */}
-      <div className="rounded-2xl border border-border/70 bg-card p-6">
-        <h2 className="mb-4 font-display text-base font-semibold">
-          Purchase order details
-        </h2>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Row label="Reference">{purchaseOrder.ref_num}</Row>
-          <Row label="Title">{purchaseOrder.title}</Row>
-          <Row label="Issuing company">
-            {purchaseOrder.issuing_company_name}
-          </Row>
-          <Row label="Status">
-            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium capitalize text-emerald-700">
-              {purchaseOrder.status}
-            </span>
-          </Row>
-          <Row label="Type">{purchaseOrder.type}</Row>
-          <Row label="Spend category">{purchaseOrder.spend_category}</Row>
-          <Row label="Payment channel">
-            {purchaseOrder.preferred_payment_channel || "N/A"}
-          </Row>
-          <Row label="Delivery date">
-            {purchaseOrder.delivery_datetime
-              ? new Date(purchaseOrder.delivery_datetime).toLocaleString()
-              : "N/A"}
-          </Row>
-          <Row label="VAT type">{purchaseOrder.vat_type || "N/A"}</Row>
-          <Row label="Total cost">{purchaseOrder.total_cost}</Row>
-          <Row label="Proforma reference">
-            {purchaseOrder.proforma_ref_num || "N/A"}
-          </Row>
-        </div>
-      </div>
+        <Section title="Purchase order details">
+          <DetailGrid>
+            <Row label="Reference">{purchaseOrder.ref_num}</Row>
+            <Row label="Title">{purchaseOrder.title}</Row>
+            <Row label="Issuing company">
+              {purchaseOrder.issuing_company_name}
+            </Row>
+            <Row label="Type">{purchaseOrder.type}</Row>
+            <Row label="Spend category">{purchaseOrder.spend_category}</Row>
+            <Row label="Payment channel">
+              {purchaseOrder.preferred_payment_channel || "N/A"}
+            </Row>
+            <Row label="Delivery date">
+              {purchaseOrder.delivery_datetime
+                ? new Date(purchaseOrder.delivery_datetime).toLocaleString()
+                : "N/A"}
+            </Row>
+            <Row label="VAT type">{purchaseOrder.vat_type || "N/A"}</Row>
+            <Row label="Total cost">{purchaseOrder.total_cost}</Row>
+            <Row label="Proforma reference">
+              {purchaseOrder.proforma_ref_num || "N/A"}
+            </Row>
+          </DetailGrid>
+        </Section>
 
-      {/* Items */}
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-        <div className="border-b border-border/60 px-5 py-4">
-          <h2 className="font-display text-base font-semibold">Items</h2>
-        </div>
-        <div className="p-5">
+        <Section title="Items">
           {purchaseOrder.items?.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-border/70">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-2.5 font-medium">#</th>
                     <th className="px-4 py-2.5 font-medium">Name</th>
                     <th className="px-4 py-2.5 font-medium">Description</th>
                     <th className="px-4 py-2.5 font-medium">Quantity</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {purchaseOrder.items.map((item) => (
+                  {purchaseOrder.items.map((item, i) => (
                     <tr key={item.id}>
+                      <td className="px-4 py-2.5 text-muted-foreground">
+                        {i + 1}
+                      </td>
                       <td className="px-4 py-2.5 font-medium">{item.name}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {item.description || "N/A"}
@@ -274,8 +236,42 @@ const PurchaseOrderDetailPage = () => {
               No items available.
             </p>
           )}
-        </div>
-      </div>
+        </Section>
+
+        {(canFundEscrow || canSendSalesInvoice) && (
+          <DetailFooter>
+            <Button variant="outline" onClick={() => navigate(backTo)}>
+              Cancel
+            </Button>
+            {canFundEscrow && (
+              <Button
+                onClick={() => setFundOpen(true)}
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              >
+                <ShieldCheck className="mr-1.5 h-4 w-4" /> Fund escrow
+              </Button>
+            )}
+            {canSendSalesInvoice && (
+              <Button
+                onClick={handleSendSalesInvoice}
+                disabled={modalLoading}
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              >
+                {modalLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-1.5 h-4 w-4" /> Send sales invoice
+                  </>
+                )}
+              </Button>
+            )}
+          </DetailFooter>
+        )}
+      </DetailCard>
+
       {/* Escrow */}
       {escrow ? (
         <EscrowPanel escrow={escrow} />
@@ -320,7 +316,7 @@ const PurchaseOrderDetailPage = () => {
           );
         }}
       />
-    </div>
+    </DetailPage>
   );
 };
 

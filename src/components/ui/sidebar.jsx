@@ -329,6 +329,9 @@ const SidebarContent = React.forwardRef(({ className, ...props }, ref) => {
     (<div
       ref={ref}
       data-sidebar="content"
+      // Let the sidebar scroll natively with the mouse wheel — Lenis smooth
+      // scroll (SmoothScroll) otherwise hijacks the wheel and scrolls the page.
+      data-lenis-prevent=""
       className={cn(
         "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
         className

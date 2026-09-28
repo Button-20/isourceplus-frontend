@@ -349,7 +349,7 @@ export default function SmsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="w-full space-y-6">
       {/* Header — flat brand block */}
       <div className="flex flex-col gap-5 rounded-2xl bg-brand-gradient p-6 text-white sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div className="flex items-start gap-4">
