@@ -45,4 +45,17 @@ export const ENV = {
 
 export const getApiBaseUrl = () => ENV.API_BASE_URL;
 
+// Resolve a backend media reference to a URL the browser can load. Some
+// serializers return absolute URLs ("https://app.isourceplus.net/media/…"),
+// others only the path ("/media/…"). A bare path would resolve against the
+// SPA's own origin (localhost in dev, the static host in prod), where `/media`
+// doesn't exist and the SPA fallback returns index.html — a broken image. So
+// bare paths are rebased onto the backend host.
+export const resolveMediaUrl = (value) => {
+  if (!value || typeof value !== "string") return "";
+  const v = value.trim();
+  if (/^(https?:)?\/\//i.test(v) || /^(data|blob):/i.test(v)) return v;
+  return `${SERVER_URL}${v.replace(/^\/+/, "")}`;
+};
+
 export const isDevelopment = () => Boolean(raw.DEV);

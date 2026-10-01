@@ -46,6 +46,7 @@ import {
   StatusBadge,
   DetailFooter,
 } from "@/components/detail/DetailShell";
+import { isDraftStatus } from "@/utils/status";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -247,7 +248,7 @@ const SalesInvoiceDetailPage = () => {
 
   const created = formatDateTime(salesInvoice.created_at);
   const updated = formatDateTime(salesInvoice.updated_at);
-  const isDraft = salesInvoice.status === "draft";
+  const isDraft = isDraftStatus(salesInvoice.status);
 
   return (
     <DetailPage

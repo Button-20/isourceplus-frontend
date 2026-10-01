@@ -9,6 +9,7 @@ import {
 } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 import ScrollToTop from "@/components/ScrollToTop";
 import { Button } from "@/components/ui/button";
+import { isDraftStatus } from "@/utils/status";
 
 const AllWaybillsPage = () => {
   const { authAxios, jobTitle, BASE_URL } = useAuth();
@@ -126,12 +127,12 @@ const AllWaybillsPage = () => {
                         <td className="px-5 py-3">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              waybill.status === "draft"
+                              isDraftStatus(waybill.status)
                                 ? "bg-amber-100 text-amber-700"
                                 : "bg-emerald-100 text-emerald-700"
                             }`}
                           >
-                            {waybill.status === "draft" ? "Open" : "Closed"}
+                            {isDraftStatus(waybill.status) ? "Open" : "Closed"}
                           </span>
                         </td>
                         <td

@@ -2,6 +2,8 @@
 // accent, a title + status header, sectioned label/value details, and an action
 // footer. Used by every entity detail page so they read as one system.
 import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import { resolveMediaUrl } from "@/services/lib/env";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -50,13 +52,19 @@ export function DetailHeader({
   badge,
   actions,
 }) {
+  // Logos may come back as bare "/media/…" paths; rebase them onto the backend
+  // host, and fall back to the entity icon if the image still fails to load.
+  const logoSrc = resolveMediaUrl(logo);
+  const [logoBroken, setLogoBroken] = useState(false);
+  const showLogo = Boolean(logoSrc) && !logoBroken;
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-center gap-4">
-        {logo ? (
+        {showLogo ? (
           <img
-            src={logo}
+            src={logoSrc}
             alt=""
+            onError={() => setLogoBroken(true)}
             className="h-12 w-12 shrink-0 rounded-xl border border-border/70 object-contain p-1"
           />
         ) : Icon ? (

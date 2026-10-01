@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { prettify } from "@/utils/choices";
+import { resolveMediaUrl } from "@/services/lib/env";
 import StarRating from "@/components/reviews/StarRating";
 import {
   createReview,
@@ -60,7 +61,7 @@ function normalizeOrg(item) {
     name: item.name ?? item.company_name ?? item.title ?? "Unnamed",
     contentType, // "company" | "transporter"
     subType: item.type ? String(item.type) : "", // buyer | supplier | organisation | individual
-    logo: item.logo || null,
+    logo: resolveMediaUrl(item.logo) || null,
     verified: Boolean(item.is_verified),
     rating: Number(item.avg_rating) || 0,
     location,

@@ -21,6 +21,7 @@ import {
   StatusBadge,
   DetailFooter,
 } from "@/components/detail/DetailShell";
+import { isDraftStatus } from "@/utils/status";
 
 const RFxDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -141,8 +142,8 @@ const RFxDetailPage = () => {
           subtitle={rfx.ref_num}
           badge={
             <StatusBadge
-              label={rfx.status === "draft" ? "Open" : "Closed"}
-              tone={rfx.status === "draft" ? "open" : "closed"}
+              label={isDraftStatus(rfx.status) ? "Open" : "Closed"}
+              tone={isDraftStatus(rfx.status) ? "open" : "closed"}
             />
           }
         />

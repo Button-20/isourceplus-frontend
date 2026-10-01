@@ -18,6 +18,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { isOpenStatus } from "@/utils/status";
 
 const TenderPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -109,7 +110,7 @@ const TenderPage = () => {
   }
 
   const statusClasses = (status) =>
-    status === "draft" || status === "open"
+    isOpenStatus(status)
       ? "bg-amber-100 text-amber-700"
       : "bg-emerald-100 text-emerald-700";
 

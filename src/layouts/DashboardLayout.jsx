@@ -243,6 +243,19 @@ export function DashboardLayout() {
       ],
     },
     {
+      // Supplier-only: the purchase orders buyers have awarded to this
+      // supplier. Opening one lets a sales manager raise the sales invoice.
+      label: "Awarded Businesses",
+      items: [
+        {
+          title: "Purchase Orders",
+          icon: FilePlus,
+          key: "awarded-businesses",
+          url: "/dashboard/purchase-orders",
+        },
+      ],
+    },
+    {
       // Buyer-only: the offers (proforma invoices) suppliers/transporters have
       // sent in response to this buyer's RFxs, tenders and waybills. Opening
       // one lets a lead buyer award it (create the purchase order).
@@ -289,7 +302,12 @@ export function DashboardLayout() {
   // Suppliers keep RFx + Tender (the business invitations they respond to) but
   // not the buyer-only "Issued …" sub-items (see `buyerOnly`).
   const HIDDEN_KEYS = {
-    buyer: ["proforma", "sales-invoices", "payment-orders"],
+    buyer: [
+      "proforma",
+      "sales-invoices",
+      "payment-orders",
+      "awarded-businesses",
+    ],
     supplier: ["purchase-orders", "business-orders"],
     transporter: [
       "rfx",
@@ -297,6 +315,7 @@ export function DashboardLayout() {
       "purchase-orders",
       "waybills",
       "business-orders",
+      "awarded-businesses",
     ],
   };
   // Buyer/Supplier view toggle visibility: only suppliers (sales managers) see

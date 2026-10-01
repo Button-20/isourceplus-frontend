@@ -8,6 +8,7 @@ import {
   formatDistanceToNow,
 } from "https://cdn.jsdelivr.net/npm/date-fns@2.30.0/+esm";
 import Pagination from "@/components/Pagination";
+import { isDraftStatus } from "@/utils/status";
 
 const ProformaInvoicesPage = () => {
   const { authAxios } = useAuth();
@@ -109,12 +110,12 @@ const ProformaInvoicesPage = () => {
                         <td className="px-5 py-3">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              invoice.status === "draft"
+                              isDraftStatus(invoice.status)
                                 ? "bg-amber-100 text-amber-700"
                                 : "bg-emerald-100 text-emerald-700"
                             }`}
                           >
-                            {invoice.status === "draft" ? "Open" : "Closed"}
+                            {isDraftStatus(invoice.status) ? "Open" : "Closed"}
                           </span>
                         </td>
                         <td

@@ -18,6 +18,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { isDraftStatus } from "@/utils/status";
 
 const IssuedWaybillsPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -138,12 +139,12 @@ const IssuedWaybillsPage = () => {
                         <td className="px-5 py-3">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              waybill.status === "draft"
+                              isDraftStatus(waybill.status)
                                 ? "bg-amber-100 text-amber-700"
                                 : "bg-emerald-100 text-emerald-700"
                             }`}
                           >
-                            {waybill.status === "draft" ? "Draft" : "Published"}
+                            {isDraftStatus(waybill.status) ? "Draft" : "Published"}
                           </span>
                         </td>
                         <td

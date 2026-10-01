@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { Loader2, ShoppingCart, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { isOpenStatus } from "@/utils/status";
 
 const IssuedPurchaseOrdersPage = () => {
   const { authAxios } = useAuth();
@@ -28,7 +29,7 @@ const IssuedPurchaseOrdersPage = () => {
   }, [authAxios]);
 
   const statusClasses = (status) =>
-    status === "draft" || status === "open"
+    isOpenStatus(status)
       ? "bg-amber-100 text-amber-700"
       : "bg-emerald-100 text-emerald-700";
 

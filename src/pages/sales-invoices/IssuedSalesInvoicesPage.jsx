@@ -5,6 +5,7 @@ import { Loader2, Wallet, ArrowRight, ChevronLeft, ChevronRight } from "lucide-r
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import { isOpenStatus } from "@/utils/status";
 
 const IssuedSalesInvoicesPage = () => {
   const { authAxios, BASE_URL } = useAuth();
@@ -61,7 +62,7 @@ const IssuedSalesInvoicesPage = () => {
   };
 
   const statusClasses = (status) =>
-    status === "draft" || status === "open"
+    isOpenStatus(status)
       ? "bg-amber-100 text-amber-700"
       : "bg-emerald-100 text-emerald-700";
 

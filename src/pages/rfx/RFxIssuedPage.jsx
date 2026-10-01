@@ -26,6 +26,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { isDraftStatus } from "@/utils/status";
 
 const RFxIssuedPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -125,7 +126,7 @@ const RFxIssuedPage = () => {
   }
 
   const statusClasses = (status) =>
-    status === "draft"
+    isDraftStatus(status)
       ? "bg-amber-100 text-amber-700"
       : "bg-emerald-100 text-emerald-700";
 
@@ -200,7 +201,7 @@ const RFxIssuedPage = () => {
                               rfx.status,
                             )}`}
                           >
-                            {rfx.status === "draft" ? "Open" : "Closed"}
+                            {isDraftStatus(rfx.status) ? "Open" : "Closed"}
                           </span>
                         </td>
                         <td className="px-5 py-3 text-muted-foreground">

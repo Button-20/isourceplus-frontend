@@ -11,6 +11,7 @@ import {
 import Pagination from "@/components/Pagination";
 import { Button } from "@/components/ui/button";
 import RFxCreateModal from "@/components/rfx/RFxCreateModal";
+import { isDraftStatus } from "@/utils/status";
 
 const RFxPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -88,7 +89,7 @@ const RFxPage = () => {
   }
 
   const statusClasses = (status) =>
-    status === "draft"
+    isDraftStatus(status)
       ? "bg-amber-100 text-amber-700"
       : "bg-emerald-100 text-emerald-700";
 
@@ -162,7 +163,7 @@ const RFxPage = () => {
                               rfx.status,
                             )}`}
                           >
-                            {rfx.status === "draft" ? "Open" : "Closed"}
+                            {isDraftStatus(rfx.status) ? "Open" : "Closed"}
                           </span>
                         </td>
                         <td className="px-5 py-3 text-muted-foreground">

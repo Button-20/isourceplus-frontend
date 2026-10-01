@@ -28,6 +28,7 @@ import {
   StatusBadge,
   DetailFooter,
 } from "@/components/detail/DetailShell";
+import { isDraftStatus } from "@/utils/status";
 
 const ProformaInvoiceIssuedDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -142,8 +143,8 @@ const ProformaInvoiceIssuedDetailPage = () => {
           subtitle={invoice.ref_num}
           badge={
             <StatusBadge
-              label={invoice.status === "draft" ? "Open" : "Closed"}
-              tone={invoice.status === "draft" ? "warn" : "closed"}
+              label={isDraftStatus(invoice.status) ? "Open" : "Closed"}
+              tone={isDraftStatus(invoice.status) ? "warn" : "closed"}
             />
           }
         />
