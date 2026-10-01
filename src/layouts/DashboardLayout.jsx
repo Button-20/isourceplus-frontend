@@ -33,10 +33,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/services/context/app.context";
 import ViewModeToggle from "@/components/dashboard/ViewModeToggle";
-import {
-  MdOutlineDocumentScanner,
-  MdOutlinePeopleAlt,
-} from "react-icons/md";
+import { MdOutlineDocumentScanner, MdOutlinePeopleAlt } from "react-icons/md";
 
 export function DashboardLayout() {
   const {
@@ -104,7 +101,10 @@ export function DashboardLayout() {
   // Send users without a profile to onboarding.
   useEffect(() => {
     if (user && token && profileVerified === false) {
-      navigate("/onboarding/user", { state: { from: location }, replace: true });
+      navigate("/onboarding/user", {
+        state: { from: location },
+        replace: true,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileVerified, user, token]);
@@ -165,7 +165,12 @@ export function DashboardLayout() {
           key: "rfx",
           submenu: [
             { title: "View All RFxs", url: "/dashboard/rfxs" },
-            { title: "Issued RFxs", url: "/dashboard/rfxs/issued" },
+            // Only buyers issue RFxs; suppliers just browse and respond.
+            {
+              title: "Issued RFxs",
+              url: "/dashboard/rfxs/issued",
+              buyerOnly: true,
+            },
           ],
         },
         {
@@ -174,7 +179,11 @@ export function DashboardLayout() {
           key: "tenders",
           submenu: [
             { title: "View All Tenders", url: "/dashboard/tenders" },
-            { title: "Issued Tenders", url: "/dashboard/tenders/issued" },
+            {
+              title: "Issued Tenders",
+              url: "/dashboard/tenders/issued",
+              buyerOnly: true,
+            },
           ],
         },
         {
@@ -234,6 +243,20 @@ export function DashboardLayout() {
       ],
     },
     {
+      // Buyer-only: the offers (proforma invoices) suppliers/transporters have
+      // sent in response to this buyer's RFxs, tenders and waybills. Opening
+      // one lets a lead buyer award it (create the purchase order).
+      label: "Business Orders",
+      items: [
+        {
+          title: "Proforma Invoices",
+          icon: ReceiptText,
+          key: "business-orders",
+          url: "/dashboard/proforma-invoices",
+        },
+      ],
+    },
+    {
       label: "Organization",
       items: [
         orgNav,
@@ -263,10 +286,18 @@ export function DashboardLayout() {
   // Exception (hidden) routes per view/role. A transporter follows its own set;
   // company users follow the Buyer/Supplier view toggle. Untagged entries
   // (Home, Subscriptions, Employees, Branches, etc.) are always shown.
+  // Suppliers keep RFx + Tender (the business invitations they respond to) but
+  // not the buyer-only "Issued …" sub-items (see `buyerOnly`).
   const HIDDEN_KEYS = {
     buyer: ["proforma", "sales-invoices", "payment-orders"],
-    supplier: ["rfx", "tenders", "purchase-orders"],
-    transporter: ["rfx", "tenders", "purchase-orders", "waybills"],
+    supplier: ["purchase-orders", "business-orders"],
+    transporter: [
+      "rfx",
+      "tenders",
+      "purchase-orders",
+      "waybills",
+      "business-orders",
+    ],
   };
   // Buyer/Supplier view toggle visibility: only suppliers (sales managers) see
   // it. Buyers and transporters never do.
@@ -278,9 +309,16 @@ export function DashboardLayout() {
   );
   // Filter each section by the hidden keys, then drop any section left empty so
   // its label never renders on its own.
+  const isSupplierView = !isTransporter && viewMode === "supplier";
   const navSections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !item.key || !hidden.has(item.key)),
+    items: section.items
+      .filter((item) => !item.key || !hidden.has(item.key))
+      .map((item) =>
+        item.submenu && isSupplierView
+          ? { ...item, submenu: item.submenu.filter((sub) => !sub.buyerOnly) }
+          : item,
+      ),
   })).filter((section) => section.items.length > 0);
 
   // Redirecting to /login (see effect above).

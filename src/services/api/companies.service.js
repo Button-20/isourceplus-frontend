@@ -30,11 +30,30 @@ export async function getCategoryChoices(type) {
   return data;
 }
 
-// GET the industry choices for a given category. Suppliers pick an industry
-// (which then maps to `field`); buyers don't use this.
-export async function getIndustryChoices(category) {
-  const { data } = await http.get("industry-choices/", {
-    params: { category },
+// GET the industry choices for a company type ("buyer" | "supplier").
+// Industry is required for BOTH types; the backend keys the list by `?type=`.
+export async function getIndustryChoices(type) {
+  const { data } = await http.get("industry-choices/", { params: { type } });
+  return data;
+}
+
+// GET company-type-choices/ — the `type` enum (buyer / supplier …).
+export async function getCompanyTypeChoices() {
+  const { data } = await http.get("company-type-choices/");
+  return data;
+}
+
+// GET supplier/type-choices/ — `supplier_type` enum (suppliers only).
+export async function getSupplierTypeChoices() {
+  const { data } = await http.get("supplier/type-choices/");
+  return data;
+}
+
+// GET supplier/sub-category-choices/?type=<type>&industry=<industry> —
+// `sub_category` enum (suppliers only; depends on the chosen industry).
+export async function getSubCategoryChoices(type, industry) {
+  const { data } = await http.get("supplier/sub-category-choices/", {
+    params: { type, industry },
   });
   return data;
 }

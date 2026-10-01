@@ -6,8 +6,58 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getCurrencyChoices } from "@/services/api/choices.service";
+import { normalizeChoices } from "@/utils/choices";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
+
+// Used when currency-choices/ cannot be reached.
+const FALLBACK_CURRENCIES = [
+  { value: "GHS", label: "GHS" },
+  { value: "NGN", label: "NGN" },
+];
+
+// Item keys the backend accepts on items[N][...]. `attachment` is handled
+// separately (only sent when a File is present) and `special_handles` is a
+// nested list.
+const ITEM_SCALAR_KEYS = [
+  "name",
+  "description",
+  "unit_of_measure",
+  "quantity",
+  "unit_price",
+  "extra_value",
+  "extra_value_TnCs",
+];
+
+// Shape an auto-populated source item into the spec's item fields, carrying
+// through every key the source provides.
+const normalizeItem = (item) => ({
+  name: item?.name ?? "",
+  description: item?.description ?? "",
+  unit_of_measure: item?.unit_of_measure ?? "",
+  quantity: item?.quantity ?? "",
+  unit_price: item?.unit_price ?? "",
+  extra_value: item?.extra_value ?? "",
+  extra_value_TnCs: item?.extra_value_TnCs ?? "",
+  // Auto-population returns a URL/string for existing attachments; only a
+  // File can be re-uploaded, so anything else is dropped from the payload.
+  attachment: item?.attachment instanceof File ? item.attachment : null,
+  special_handles: Array.isArray(item?.special_handles)
+    ? item.special_handles.map((h) => ({
+        handling_description:
+          typeof h === "string" ? h : (h?.handling_description ?? ""),
+      }))
+    : [],
+});
 
 const CreateSalesInvoicePage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -15,9 +65,33 @@ const CreateSalesInvoicePage = () => {
   const [searchParams] = useSearchParams();
   const eventRefNum = searchParams.get("event_ref_num");
   const mn = searchParams.get("mn");
-  const [formData, setFormData] = useState({ title: "", spend_category: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    title: "",
+    spend_category: "",
+    currency: "GHS",
+    note: "",
+    items: [],
+  });
+  const [currencyOptions, setCurrencyOptions] = useState(FALLBACK_CURRENCIES);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Currency enum (GHS, NGN, …) from the backend; fall back to the known set.
+  useEffect(() => {
+    let cancelled = false;
+    getCurrencyChoices()
+      .then((data) => {
+        const options = normalizeChoices(data);
+        if (!cancelled && options.length > 0) setCurrencyOptions(options);
+      })
+      .catch((error) => {
+        console.error("Fetch currency choices error:", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (jobTitle !== "sales manager" && jobTitle !== "logistics manager") {
@@ -30,10 +104,12 @@ const CreateSalesInvoicePage = () => {
         const response = await authAxios.get(
           `/sales-invoices/create-sales-invoice/?event_ref_num=${eventRefNum}&mn=${mn}`,
         );
+        const auto = response.data.auto_population_data || {};
         setFormData((prev) => ({
           ...prev,
-          spend_category:
-            response.data.auto_population_data.spend_category || "",
+          spend_category: auto.spend_category || "",
+          currency: auto.currency || prev.currency,
+          items: Array.isArray(auto.items) ? auto.items.map(normalizeItem) : [],
         }));
       } catch (error) {
         toast.error("Failed to load auto-population data.");
@@ -55,22 +131,61 @@ const CreateSalesInvoicePage = () => {
     setSubmitting(true);
 
     const data = new FormData();
+    data.append("name", formData.name);
     data.append("title", formData.title);
     data.append("spend_category", formData.spend_category);
+    data.append("currency", formData.currency);
+    data.append("note", formData.note);
+    formData.items.forEach((item, i) => {
+      ITEM_SCALAR_KEYS.forEach((key) => {
+        const value = item[key];
+        if (value !== undefined && value !== null && value !== "") {
+          data.append(`items[${i}][${key}]`, value);
+        }
+      });
+      if (item.attachment instanceof File) {
+        data.append(`items[${i}][attachment]`, item.attachment);
+      }
+      item.special_handles.forEach((h, j) => {
+        data.append(
+          `items[${i}][special_handles][${j}][handling_description]`,
+          h.handling_description,
+        );
+      });
+    });
 
     try {
       const response = await authAxios.post(
         `/sales-invoices/create-sales-invoice/?event_ref_num=${eventRefNum}&mn=${mn}`,
         data,
       );
-      const refNum = response.data.url.split("/").slice(-2)[0];
-      toast.success("Sales invoice created successfully!");
-      navigate(`/dashboard/sales-invoices/${refNum}`);
+      // A 2xx is success regardless of the envelope: the backend returns either
+      // a flat { url } or { detail, message, event_data: { url, ref_num? } }.
+      const body = response.data ?? {};
+      const eventData =
+        body.event_data && typeof body.event_data === "object"
+          ? body.event_data
+          : {};
+      const url = String(eventData.url ?? body.url ?? "");
+      const refNum =
+        eventData.ref_num ??
+        body.ref_num ??
+        url.match(/sales-invoices[/]([^/?#]+)/)?.[1] ??
+        "";
+      toast.success(
+        body.message
+          ? `Sales invoice created. ${body.message}`
+          : "Sales invoice created successfully!",
+      );
+      navigate(refNum ? `/dashboard/sales-invoices/${refNum}` : "/dashboard/sales-invoices");
     } catch (error) {
       toast.error(
         error.response?.data?.detail ||
+          error.response?.data?.name?.[0] ||
           error.response?.data?.title?.[0] ||
           error.response?.data?.spend_category?.[0] ||
+          error.response?.data?.currency?.[0] ||
+          error.response?.data?.note?.[0] ||
           "Failed to create sales invoice.",
       );
       console.error("Create error:", error);
@@ -116,29 +231,144 @@ const CreateSalesInvoicePage = () => {
         onSubmit={handleSubmit}
         className="space-y-5 rounded-2xl border border-border/70 bg-card p-6"
       >
-        <div>
-          <label className={labelClass}>Title</label>
-          <Input
-            value={formData.title}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, title: e.target.value }))
-            }
-            required
-          />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>Name</label>
+            <Input
+              value={formData.name}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
+              }
+              required
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Title</label>
+            <Input
+              value={formData.title}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, title: e.target.value }))
+              }
+              required
+            />
+          </div>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>
+              Spend category
+              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
+                <Sparkles className="h-3 w-3" /> Auto-populated
+              </span>
+            </label>
+            <Input
+              value={formData.spend_category}
+              readOnly
+              className="bg-muted/40"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Currency</label>
+            <Select
+              value={formData.currency}
+              onValueChange={(v) =>
+                setFormData((prev) => ({ ...prev, currency: v }))
+              }
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {currencyOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div>
-          <label className={labelClass}>
-            Spend category
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
+          <label className={labelClass}>Note</label>
+          <Textarea
+            value={formData.note}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, note: e.target.value }))
+            }
+            rows={3}
+          />
+        </div>
+
+        <div>
+          <h2 className="mb-3 flex items-center gap-2 font-display text-base font-semibold">
+            Items
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
               <Sparkles className="h-3 w-3" /> Auto-populated
             </span>
-          </label>
-          <Input
-            value={formData.spend_category}
-            readOnly
-            className="bg-muted/40"
-          />
+          </h2>
+          {formData.items.length > 0 ? (
+            <div className="space-y-4">
+              {formData.items.map((item, index) => (
+                <div
+                  key={index}
+                  className="rounded-xl border border-border/70 p-4 text-sm"
+                >
+                  <p>
+                    <span className="font-medium text-muted-foreground">
+                      Name:
+                    </span>{" "}
+                    {item.name || "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-muted-foreground">
+                      Description:
+                    </span>{" "}
+                    {item.description || "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium text-muted-foreground">
+                      Quantity:
+                    </span>{" "}
+                    {item.quantity} {item.unit_of_measure}
+                  </p>
+                  <p>
+                    <span className="font-medium text-muted-foreground">
+                      Unit price:
+                    </span>{" "}
+                    {item.unit_price !== "" ? item.unit_price : "N/A"}
+                  </p>
+                  {item.extra_value !== "" && (
+                    <p>
+                      <span className="font-medium text-muted-foreground">
+                        Extra value:
+                      </span>{" "}
+                      {item.extra_value}
+                      {item.extra_value_TnCs !== "" && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          ({item.extra_value_TnCs})
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  <p>
+                    <span className="font-medium text-muted-foreground">
+                      Special handling:
+                    </span>{" "}
+                    {item.special_handles.length > 0
+                      ? item.special_handles
+                          .map((h) => h.handling_description)
+                          .join(", ")
+                      : "None"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No items available.</p>
+          )}
         </div>
+
         <div className="flex justify-end gap-3 border-t border-border pt-5">
           <Button
             type="button"

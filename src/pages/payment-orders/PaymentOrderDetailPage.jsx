@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
+import { getPriorityChoices } from "@/services/api/choices.service";
+import { normalizeChoices, prettify } from "@/utils/choices";
 import { Loader2, ArrowLeft, Trash2, Wallet, Save } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
@@ -38,6 +40,12 @@ import {
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
+// Fallback only — the live list comes from GET priority-choices/.
+const PRIORITY_FALLBACK = [
+  { value: "non urgent", label: "Non-Urgent" },
+  { value: "urgent", label: "Urgent" },
+];
+
 const PaymentOrderDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
   const { refNum } = useParams();
@@ -48,9 +56,36 @@ const PaymentOrderDetailPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
-    priority: "normal",
+    priority: "",
     payment_method: "",
   });
+
+  // Priority enum from GET priority-choices/ (falls back to the hardcoded
+  // list). The saved value is always kept selectable even if the backend
+  // list changes.
+  const [priorityChoices, setPriorityChoices] = useState(PRIORITY_FALLBACK);
+  useEffect(() => {
+    let cancelled = false;
+    getPriorityChoices()
+      .then((d) => {
+        const list = normalizeChoices(d);
+        if (!cancelled && list.length) setPriorityChoices(list);
+      })
+      .catch(() => {
+        if (!cancelled) setPriorityChoices(PRIORITY_FALLBACK);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const priorityOptions =
+    formData.priority &&
+    !priorityChoices.some((o) => o.value === formData.priority)
+      ? [
+          ...priorityChoices,
+          { value: formData.priority, label: prettify(formData.priority) },
+        ]
+      : priorityChoices;
 
   const canManage = ["sales manager", "logistics manager"].includes(jobTitle);
 
@@ -203,9 +238,11 @@ const PaymentOrderDetailPage = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
+                    {priorityOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

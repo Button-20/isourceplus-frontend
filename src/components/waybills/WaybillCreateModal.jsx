@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -10,6 +10,15 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/services/context/app.context";
+import { getRegionChoices } from "@/services/api/waitlist.service";
+import { getDistrictChoices } from "@/services/api/transporters.service";
+import {
+  getExtraValueChoices,
+  getPriorityChoices,
+  getProcedureChoices,
+  getUnitOfMeasureChoices,
+} from "@/services/api/choices.service";
+import { normalizeChoices } from "@/utils/choices";
 import {
   Dialog,
   DialogContent,
@@ -29,64 +38,80 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-const STATUSES = [
-  { value: "draft", label: "Draft" },
-  { value: "published", label: "Published" },
-];
+// Fallback only — the live list comes from GET procedure-choices/.
 const PROCEDURES = [
   { value: "open", label: "Open" },
   { value: "sealed", label: "Sealed" },
 ];
-const SPEND_CATEGORIES = [
-  { value: "communications", label: "Communications" },
-  { value: "logistics", label: "Logistics" },
-  { value: "equipment", label: "Equipment" },
-];
+// Fallback only — the live list comes from GET priority-choices/.
 const PRIORITIES = [
-  { value: "non urgent", label: "Non Urgent" },
+  { value: "non urgent", label: "Non-Urgent" },
   { value: "urgent", label: "Urgent" },
 ];
+// Fallback only — the live list comes from GET item/unit-of-measure-choices/.
 const UNITS = [
   { value: "pc", label: "Piece (pc)" },
   { value: "kg", label: "Kilogram (kg)" },
   { value: "liter", label: "Liter (L)" },
 ];
+// Sentinel for the optional extra_value Select (Radix items can't be "").
+const NO_EXTRA_VALUE = "__none__";
 
 const STEPS = ["Details", "Reach", "Items"];
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
-const emptyItem = () => ({
+// Default unit for a new item: "pc" when the loaded list has it, else the
+// first loaded option.
+const defaultUnit = (opts) =>
+  opts.some((o) => o.value === "pc") ? "pc" : (opts[0]?.value ?? "pc");
+
+const emptyItem = (unit = "pc") => ({
   name: "",
   description: "",
-  unit_of_measure: "pc",
+  unit_of_measure: unit,
+  unit_price: "",
   quantity: 1,
+  extra_value: "",
+  extra_value_TnCs: "",
+  attachment: null,
   special_handles: [],
 });
 
-const initialValues = () => ({
+const initialValues = (unit) => ({
   title: "",
   description: "",
-  status: "draft",
   procedure: "open",
-  spend_category: "communications",
   priority: "non urgent",
+  origin: "",
+  destination: "",
   start_datetime: new Date().toISOString().slice(0, 16),
   submission_datetime: new Date().toISOString().slice(0, 16),
   departure_datetime: new Date().toISOString().slice(0, 16),
-  delivery_datetime: new Date().toISOString().slice(0, 16),
+  expected_delivery_date: new Date().toISOString().slice(0, 10),
+  delivery_deadline: new Date().toISOString().slice(0, 16),
   is_approved: true,
   region: "",
   district: "",
-  city: "",
-  town: "",
-  items: [emptyItem()],
+  items: [emptyItem(unit)],
 });
+
+// Backend expects full ISO strings for datetime fields.
+const toIso = (v) => new Date(v).toISOString();
 
 export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
   const { authAxios, companyId, transporterId, userProfileId } = useAuth();
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(initialValues);
   const [loading, setLoading] = useState(false);
+  const [regionChoices, setRegionChoices] = useState([]);
+  const [regionLoading, setRegionLoading] = useState(false);
+  const [districtChoices, setDistrictChoices] = useState([]);
+  const [districtLoading, setDistrictLoading] = useState(false);
+  const [unitChoices, setUnitChoices] = useState(UNITS);
+  const [priorityChoices, setPriorityChoices] = useState(PRIORITIES);
+  const [procedureChoices, setProcedureChoices] = useState(PROCEDURES);
+  // Empty => extra_value renders as a free-text Input (fallback).
+  const [extraValueChoices, setExtraValueChoices] = useState([]);
 
   const set = (patch) => setValues((v) => ({ ...v, ...patch }));
   const setItem = (i, patch) =>
@@ -96,8 +121,126 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
       return { ...v, items };
     });
 
+  // Backend enums: priority and units fall back to their hardcoded lists and
+  // extra_value falls back to a plain text Input, so the form still works if
+  // a request fails.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
+    getProcedureChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setProcedureChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.procedure)
+              ? v
+              : { ...v, procedure: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setProcedureChoices(PROCEDURES);
+      });
+
+    getPriorityChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setPriorityChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.priority)
+              ? v
+              : { ...v, priority: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPriorityChoices(PRIORITIES);
+      });
+
+    getUnitOfMeasureChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setUnitChoices(opts);
+          const fallback = defaultUnit(opts);
+          setValues((v) => ({
+            ...v,
+            items: v.items.map((it) =>
+              opts.some((o) => o.value === it.unit_of_measure)
+                ? it
+                : { ...it, unit_of_measure: fallback },
+            ),
+          }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setUnitChoices(UNITS);
+      });
+
+    getExtraValueChoices()
+      .then((data) => {
+        if (!cancelled) setExtraValueChoices(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) setExtraValueChoices([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  // Regions come from the shared /region-choices/ endpoint.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setRegionLoading(true);
+    getRegionChoices()
+      .then((d) => {
+        if (!cancelled) setRegionChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setRegionChoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setRegionLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  // Districts depend on the selected region (/district-choices/?region=…).
+  useEffect(() => {
+    if (!values.region) {
+      setDistrictChoices([]);
+      return;
+    }
+    let cancelled = false;
+    setDistrictLoading(true);
+    getDistrictChoices(values.region)
+      .then((d) => {
+        if (!cancelled) setDistrictChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setDistrictChoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDistrictLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [values.region]);
+
   const reset = () => {
-    setValues(initialValues());
+    setValues(initialValues(defaultUnit(unitChoices)));
     setStep(0);
   };
 
@@ -112,6 +255,18 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
         toast.error("Title is required");
         return false;
       }
+      if (!values.origin.trim()) {
+        toast.error("Origin is required");
+        return false;
+      }
+      if (!values.destination.trim()) {
+        toast.error("Destination is required");
+        return false;
+      }
+      if (!values.expected_delivery_date) {
+        toast.error("Expected delivery date is required");
+        return false;
+      }
       if (
         new Date(values.submission_datetime) < new Date(values.start_datetime)
       ) {
@@ -119,9 +274,15 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
         return false;
       }
       if (
-        new Date(values.delivery_datetime) < new Date(values.departure_datetime)
+        new Date(values.departure_datetime) < new Date(values.start_datetime)
       ) {
-        toast.error("Delivery date must be after the departure date");
+        toast.error("Departure date must be after the start date");
+        return false;
+      }
+      if (
+        new Date(values.delivery_deadline) < new Date(values.departure_datetime)
+      ) {
+        toast.error("Delivery deadline must be after the departure date");
         return false;
       }
     }
@@ -133,6 +294,10 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
       for (const it of values.items) {
         if (!it.name.trim()) {
           toast.error("Each item needs a name");
+          return false;
+        }
+        if (it.unit_price === "" || Number(it.unit_price) <= 0) {
+          toast.error("Item unit price must be greater than 0");
           return false;
         }
         if (!it.quantity || Number(it.quantity) <= 0) {
@@ -156,26 +321,36 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
       const data = new FormData();
       data.append("title", values.title);
       data.append("note", values.description);
-      data.append("status", values.status);
       data.append("procedure", values.procedure);
-      data.append("spend_category", values.spend_category);
       data.append("priority", values.priority);
-      data.append("start_datetime", values.start_datetime);
-      data.append("submission_datetime", values.submission_datetime);
-      data.append("departure_datetime", values.departure_datetime);
-      data.append("delivery_datetime", values.delivery_datetime);
+      data.append("origin", values.origin);
+      data.append("destination", values.destination);
+      data.append("start_datetime", toIso(values.start_datetime));
+      data.append("submission_datetime", toIso(values.submission_datetime));
+      data.append("departure_datetime", toIso(values.departure_datetime));
+      data.append("expected_delivery_date", values.expected_delivery_date);
+      data.append("delivery_deadline", toIso(values.delivery_deadline));
       data.append("is_approved", values.is_approved);
 
-      ["region", "district", "city", "town"].forEach((f) => {
-        if (values[f]) data.append(`reach[${f}]`, values[f]);
-      });
+      if (values.region) data.append("reach[region]", values.region);
+      if (values.district) data.append("reach[district]", values.district);
 
       values.items.forEach((item, index) => {
         data.append(`items[${index}][name]`, item.name);
         if (item.description)
           data.append(`items[${index}][description]`, item.description);
         data.append(`items[${index}][unit_of_measure]`, item.unit_of_measure);
+        data.append(`items[${index}][unit_price]`, item.unit_price);
         data.append(`items[${index}][quantity]`, item.quantity);
+        if (item.extra_value)
+          data.append(`items[${index}][extra_value]`, item.extra_value);
+        if (item.extra_value_TnCs)
+          data.append(
+            `items[${index}][extra_value_TnCs]`,
+            item.extra_value_TnCs,
+          );
+        if (item.attachment instanceof File)
+          data.append(`items[${index}][attachment]`, item.attachment);
         item.special_handles.forEach((h, hi) => {
           data.append(
             `items[${index}][special_handles][${hi}][handling_description]`,
@@ -271,22 +446,26 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
                 />
               </div>
               <div>
-                <label className={labelClass}>Status</label>
-                <Select
-                  value={values.status}
-                  onValueChange={(v) => set({ status: v })}
-                >
-                  <SelectTrigger className="h-10 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUSES.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className={labelClass}>
+                  Origin <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  value={values.origin}
+                  onChange={(e) => set({ origin: e.target.value })}
+                  placeholder="Supplier's address"
+                  maxLength={255}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  Destination <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  value={values.destination}
+                  onChange={(e) => set({ destination: e.target.value })}
+                  placeholder="Issuer's preferred address"
+                  maxLength={255}
+                />
               </div>
               <div>
                 <label className={labelClass}>Procedure</label>
@@ -298,25 +477,7 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROCEDURES.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className={labelClass}>Spend category</label>
-                <Select
-                  value={values.spend_category}
-                  onValueChange={(v) => set({ spend_category: v })}
-                >
-                  <SelectTrigger className="h-10 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SPEND_CATEGORIES.map((o) => (
+                    {procedureChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -334,7 +495,7 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PRIORITIES.map((o) => (
+                    {priorityChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -367,11 +528,24 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
                 />
               </div>
               <div>
-                <label className={labelClass}>Delivery date</label>
+                <label className={labelClass}>Delivery deadline</label>
                 <Input
                   type="datetime-local"
-                  value={values.delivery_datetime}
-                  onChange={(e) => set({ delivery_datetime: e.target.value })}
+                  value={values.delivery_deadline}
+                  onChange={(e) => set({ delivery_deadline: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  Expected delivery date{" "}
+                  <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  type="date"
+                  value={values.expected_delivery_date}
+                  onChange={(e) =>
+                    set({ expected_delivery_date: e.target.value })
+                  }
                 />
               </div>
               <div className="sm:col-span-2">
@@ -397,16 +571,67 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
               <p className="text-sm text-muted-foreground sm:col-span-2">
                 Optional — define the delivery location.
               </p>
-              {["region", "district", "city", "town"].map((f) => (
-                <div key={f}>
-                  <label className={cn(labelClass, "capitalize")}>{f}</label>
-                  <Input
-                    value={values[f]}
-                    onChange={(e) => set({ [f]: e.target.value })}
-                    placeholder={`Enter ${f}`}
-                  />
-                </div>
-              ))}
+              <div>
+                <label className={labelClass}>Region</label>
+                <Select
+                  value={values.region || undefined}
+                  onValueChange={(v) => set({ region: v, district: "" })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue
+                      placeholder={
+                        regionLoading ? "Loading regions…" : "Select a region"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regionChoices.length ? (
+                      regionChoices.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        {regionLoading ? "Loading…" : "No regions available"}
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className={labelClass}>District</label>
+                <Select
+                  value={values.district || undefined}
+                  onValueChange={(v) => set({ district: v })}
+                  disabled={!values.region}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue
+                      placeholder={
+                        !values.region
+                          ? "Select a region first"
+                          : districtLoading
+                            ? "Loading districts…"
+                            : "Select a district"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districtChoices.length ? (
+                      districtChoices.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        {districtLoading ? "Loading…" : "No districts available"}
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
@@ -454,6 +679,21 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
                       />
                     </div>
                     <div>
+                      <label className={labelClass}>
+                        Unit price <span className="text-destructive">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={item.unit_price}
+                        onChange={(e) =>
+                          setItem(i, { unit_price: e.target.value })
+                        }
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
                       <label className={labelClass}>Quantity</label>
                       <Input
                         type="number"
@@ -474,13 +714,69 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {UNITS.map((o) => (
+                          {unitChoices.map((o) => (
                             <SelectItem key={o.value} value={o.value}>
                               {o.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Attachment</label>
+                      <Input
+                        type="file"
+                        onChange={(e) =>
+                          setItem(i, {
+                            attachment: e.target.files?.[0] ?? null,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Extra value</label>
+                      {extraValueChoices.length ? (
+                        <Select
+                          value={item.extra_value || NO_EXTRA_VALUE}
+                          onValueChange={(v) =>
+                            setItem(i, {
+                              extra_value: v === NO_EXTRA_VALUE ? "" : v,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-10 w-full">
+                            <SelectValue placeholder="None" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NO_EXTRA_VALUE}>None</SelectItem>
+                            {extraValueChoices.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={item.extra_value}
+                          onChange={(e) =>
+                            setItem(i, { extra_value: e.target.value })
+                          }
+                          placeholder="e.g. extended warranty"
+                          maxLength={255}
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className={labelClass}>Extra value terms</label>
+                      <Input
+                        value={item.extra_value_TnCs}
+                        onChange={(e) =>
+                          setItem(i, { extra_value_TnCs: e.target.value })
+                        }
+                        placeholder="Terms and conditions for the extra value"
+                        maxLength={500}
+                      />
                     </div>
                   </div>
 
@@ -542,7 +838,10 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  setValues((v) => ({ ...v, items: [...v.items, emptyItem()] }))
+                  setValues((v) => ({
+                    ...v,
+                    items: [...v.items, emptyItem(defaultUnit(unitChoices))],
+                  }))
                 }
                 className="w-full gap-1.5"
               >

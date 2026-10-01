@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { normalizeChoices, prettify } from "@/utils/choices";
+import { compressImage } from "@/utils/compress-image";
+import { getCountryChoices } from "@/services/api/choices.service";
 import {
   getDistrictChoices,
   getTransporterTypeChoices,
@@ -26,11 +28,25 @@ import { getRegionChoices } from "@/services/api/waitlist.service";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const MAX_BIO = 255;
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+// The backend caps the WHOLE multipart body (~1MB), so every newly picked file
+// (logo + front view + vehicle images) must fit under this together.
+const MAX_TOTAL_UPLOAD = 900 * 1024;
 
-const COUNTRIES = [
+// Used only if /country-choices/ can't be fetched.
+const FALLBACK_COUNTRIES = [
   { value: "ghana", label: "Ghana" },
   { value: "nigeria", label: "Nigeria" },
 ];
+
+// The record's vehicle_images may be [{id, file}], [{file: url}] or plain
+// URL strings; reduce to the displayable URLs.
+const vehicleImageUrls = (list) =>
+  (Array.isArray(list) ? list : [])
+    .map((v) =>
+      typeof v === "string" ? v : v?.file || v?.image || v?.url || null,
+    )
+    .filter(Boolean);
 
 // The API doesn't relate modes↔means, so both are classified into land/sea/air
 // buckets by keyword and the means list is filtered to the selected mode(s).
@@ -115,9 +131,9 @@ export default function EditTransporter() {
     office_line: "",
     office_line_2: "",
     web_address: "",
+    country: "", // top-level per the API (not location[country])
   });
   const [location, setLocation] = useState({
-    country: "",
     region: "",
     district: "",
     popular_area_name: "",
@@ -133,9 +149,14 @@ export default function EditTransporter() {
     logo: null,
     image_front_view: null,
   });
+  // Already-saved gallery URLs (read-only) and newly picked files to append
+  // as vehicle_images[N][file]: [{ file, preview }].
+  const [existingVehicleImages, setExistingVehicleImages] = useState([]);
+  const [vehicleImages, setVehicleImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  const [countryChoices, setCountryChoices] = useState([]);
   const [typeChoices, setTypeChoices] = useState([]);
   const [modeChoices, setModeChoices] = useState([]);
   const [meansChoices, setMeansChoices] = useState([]);
@@ -159,6 +180,14 @@ export default function EditTransporter() {
     getRegionChoices()
       .then((d) => !cancelled && setRegionChoices(normalizeChoices(d)))
       .catch(() => {});
+    // Countries from /country-choices/, falling back to Ghana/Nigeria.
+    getCountryChoices()
+      .then((d) => {
+        if (cancelled) return;
+        const list = normalizeChoices(d);
+        setCountryChoices(list.length ? list : FALLBACK_COUNTRIES);
+      })
+      .catch(() => !cancelled && setCountryChoices(FALLBACK_COUNTRIES));
     return () => {
       cancelled = true;
     };
@@ -175,6 +204,20 @@ export default function EditTransporter() {
     }
     return typeChoices;
   }, [typeChoices, values.type]);
+
+  // Same guarantee for the saved country.
+  const countryOptions = useMemo(() => {
+    if (
+      values.country &&
+      !countryChoices.some((c) => c.value === values.country)
+    ) {
+      return [
+        ...countryChoices,
+        { value: values.country, label: prettify(values.country) },
+      ];
+    }
+    return countryChoices;
+  }, [countryChoices, values.country]);
 
   // Merge fetched mode/means options with any already-saved values, so a saved
   // selection still renders (and stays toggled) even if it's not in the list.
@@ -273,10 +316,11 @@ export default function EditTransporter() {
             office_line: data.office_line || "",
             office_line_2: data.office_line_2 || "",
             web_address: data.web_address || "",
+            // Country is top-level now; older records may still nest it.
+            country: data.country || data.location?.country || "",
           });
           const loc = data.location || {};
           setLocation({
-            country: loc.country || "",
             region: loc.region || "",
             district: loc.district || "",
             popular_area_name: loc.popular_area_name || "",
@@ -292,6 +336,8 @@ export default function EditTransporter() {
             image_front_view: data.image_front_view || null,
           });
           setFiles({ logo: null, image_front_view: null });
+          setExistingVehicleImages(vehicleImageUrls(data.vehicle_images));
+          setVehicleImages([]);
         } catch {
           toast.error("Failed to load transporter data");
         } finally {
@@ -358,6 +404,12 @@ export default function EditTransporter() {
     setValues((prev) => ({ ...prev, type: v }));
   };
 
+  // Top-level country select (guards Radix's transient "" value).
+  const setCountry = (v) => {
+    if (!v) return;
+    setValues((prev) => ({ ...prev, country: v }));
+  };
+
   const toggleListItem = (name, value) => {
     setLists((prev) => {
       const set = new Set(prev[name]);
@@ -389,9 +441,40 @@ export default function EditTransporter() {
     setFilePreviews((p) => ({ ...p, [name]: null }));
   };
 
+  // New vehicle photos: validate + compress each, then queue for upload.
+  const handleVehicleImagesChange = async (e) => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = ""; // allow re-picking the same files
+    if (!picked.length) return;
+    const accepted = [];
+    for (const raw of picked) {
+      if (!raw.type.startsWith("image/")) {
+        toast.error(`${raw.name} is not an image and was skipped.`);
+        continue;
+      }
+      const file = await compressImage(raw);
+      if (file.size > MAX_IMAGE_BYTES) {
+        toast.error(`${raw.name} is too large and was skipped.`);
+        continue;
+      }
+      accepted.push({ file, preview: URL.createObjectURL(file) });
+    }
+    if (accepted.length) setVehicleImages((prev) => [...prev, ...accepted]);
+  };
+
+  const removeVehicleImage = (index) => {
+    setVehicleImages((prev) => {
+      const target = prev[index];
+      if (target?.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!String(values.country).trim())
+      return toast.error("Please provide the country.");
     const missingLocation = [
       ["region", "region"],
       ["district", "district"],
@@ -405,11 +488,25 @@ export default function EditTransporter() {
     if (!lists.transport_means.length)
       return toast.error("Please select at least one transport means.");
 
+    // The backend caps the whole multipart body, so guard the combined size of
+    // every newly picked file (logo + front view + vehicle images).
+    const totalUpload = [
+      files.logo,
+      files.image_front_view,
+      ...vehicleImages.map((v) => v.file),
+    ].reduce((sum, f) => sum + (f?.size || 0), 0);
+    if (totalUpload > MAX_TOTAL_UPLOAD)
+      return toast.error(
+        "Your images are too large altogether. Please use smaller or fewer images.",
+      );
+
     setSubmitting(true);
     try {
-      // Single multipart/form-data PATCH (partial update). Nested location via
-      // bracket notation; modes/means as slotted dicts; images only if a new
-      // one was picked (otherwise the existing one is kept).
+      // Single multipart/form-data PATCH (partial update). `country` is a
+      // top-level scalar in `values`; nested location via bracket notation;
+      // modes/means as slotted dicts; images only if a new one was picked
+      // (otherwise the existing one is kept); vehicle_images only for files
+      // picked in this session (existing gallery entries are left untouched).
       const fd = new FormData();
       Object.entries(values).forEach(([k, v]) => {
         if (String(v).trim()) fd.append(k, v);
@@ -426,6 +523,9 @@ export default function EditTransporter() {
       if (files.logo) fd.append("logo", files.logo);
       if (files.image_front_view)
         fd.append("image_front_view", files.image_front_view);
+      vehicleImages.forEach(({ file }, i) =>
+        fd.append(`vehicle_images[${i}][file]`, file),
+      );
 
       await authAxios.patch(`transporters/${transporterId}/`, fd);
       toast.success("Transporter updated successfully!");
@@ -433,10 +533,13 @@ export default function EditTransporter() {
     } catch (err) {
       console.error("Update error:", err);
       const data = err.response?.data;
+      const vehicleErr = data?.vehicle_images?.[0];
       toast.error(
         data?.detail ||
+          data?.country?.[0] ||
           data?.logo?.[0] ||
           data?.image_front_view?.[0] ||
+          (typeof vehicleErr === "string" ? vehicleErr : vehicleErr?.file?.[0]) ||
           (typeof data === "string" ? data : null) ||
           "Update failed",
       );
@@ -665,20 +768,28 @@ export default function EditTransporter() {
           <h2 className="mb-4 font-display text-base font-semibold">Location</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>Country</label>
+              <label className={labelClass}>
+                Country <span className="text-destructive">*</span>
+              </label>
               <Select
-                value={location.country || undefined}
-                onValueChange={(v) => setLocationField("country", v)}
+                value={values.country || undefined}
+                onValueChange={setCountry}
               >
                 <SelectTrigger className="h-10 w-full">
                   <SelectValue placeholder="Select a country" />
                 </SelectTrigger>
                 <SelectContent>
-                  {COUNTRIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
+                  {countryOptions.length ? (
+                    countryOptions.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="py-2 text-center text-sm text-muted-foreground">
+                      No countries available
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -818,6 +929,7 @@ export default function EditTransporter() {
           <p className="mb-4 text-xs text-muted-foreground">
             Upload a new logo or front-view image to replace the current one
             (under 2MB, JPG or PNG). Leave as-is to keep the existing image.
+            New vehicle photos are added to your existing gallery.
           </p>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <UploadTile
@@ -834,6 +946,74 @@ export default function EditTransporter() {
               onChange={handleFileChange}
               onRemove={() => removeFile("image_front_view")}
             />
+          </div>
+
+          {/* Vehicle gallery (vehicle_images[N][file]) */}
+          <div className="mt-6">
+            <label className={labelClass}>Vehicle images</label>
+            {existingVehicleImages.length > 0 && (
+              <ul className="mb-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {existingVehicleImages.map((url, index) => (
+                  <li
+                    key={`${url}-${index}`}
+                    className="overflow-hidden rounded-xl border border-border bg-muted/30"
+                  >
+                    <img
+                      src={url}
+                      alt={`Vehicle ${index + 1}`}
+                      className="h-24 w-full object-cover"
+                    />
+                    <p className="px-2 py-1 text-[11px] text-muted-foreground">
+                      Saved
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <label className="relative flex h-24 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-input bg-muted/30 text-center transition-colors hover:border-brand/50 hover:bg-brand/5">
+              <Upload className="mb-1 h-5 w-5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                Click to add one or more vehicle photos
+              </span>
+              <input
+                type="file"
+                name="vehicle_images"
+                accept="image/*"
+                multiple
+                onChange={handleVehicleImagesChange}
+                className="hidden"
+              />
+            </label>
+            {vehicleImages.length > 0 && (
+              <ul className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {vehicleImages.map((v, index) => (
+                  <li
+                    key={`${v.file.name}-${index}`}
+                    className="relative overflow-hidden rounded-xl border border-border bg-muted/30"
+                  >
+                    <img
+                      src={v.preview}
+                      alt={v.file.name}
+                      className="h-24 w-full object-cover"
+                    />
+                    <p
+                      className="truncate px-2 py-1 text-[11px] text-muted-foreground"
+                      title={v.file.name}
+                    >
+                      {v.file.name}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => removeVehicleImage(index)}
+                      aria-label={`Remove ${v.file.name}`}
+                      className="absolute right-1 top-1 rounded-full bg-background/90 p-1 text-muted-foreground shadow transition-colors hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </section>
 

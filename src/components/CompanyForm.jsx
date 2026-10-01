@@ -14,72 +14,89 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import VerifyOrganisation from "@/components/organisation/VerifyOrganisation";
+import { getCountryChoices } from "@/services/api/choices.service";
 import {
   createCompany,
-  getCategoryChoices,
+  getCompanyTypeChoices,
   getIndustryChoices,
+  getSubCategoryChoices,
+  getSupplierTypeChoices,
 } from "@/services/api/companies.service";
+import { getDistrictChoices } from "@/services/api/transporters.service";
+// Shared region enum endpoint (/region-choices/) — same source as the
+// transporter and waitlist forms, so regions stay consistent across the app.
+import { getRegionChoices } from "@/services/api/waitlist.service";
 import { useAuth } from "@/services/context/app.context";
 import { storage } from "@/services/lib/storage";
+import { normalizeChoices, prettify } from "@/utils/choices";
 import { compressImage } from "@/utils/compress-image";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
+// Flat multipart keys. `supplier_type` and `sub_category` are supplier-only and
+// are omitted from the payload entirely for buyers.
 const EMPTY_VALUES = {
   name: "",
   type: "",
-  category: "",
-  // Supplier-only fields (industry is picked; field = industry, sector = category).
-  field: "",
+  country: "",
+  supplier_type: "",
   industry: "",
-  sector: "",
+  sub_category: "",
   bio: "",
   email: "",
   office_line: "",
   office_line_2: "",
   web_address: "",
+  // Payment details (all optional).
+  bank_account_name: "",
+  bank_account_number: "",
+  momo_number: "",
 };
 
+// Sent as bracketed keys: location[region], location[district], …
+const EMPTY_LOCATION = {
+  region: "",
+  district: "",
+  popular_area_name: "",
+  gps: "",
+  street_address: "",
+};
+
+const SUPPLIER_ONLY_KEYS = ["supplier_type", "sub_category"];
+// Mobile money numbers are local Ghanaian format: leading 0 + 9 digits
+// (0241234567), never the +233 international prefix.
+const MOMO_RE = /^0\d{9}$/;
+
 const VALUE_KEYS = Object.keys(EMPTY_VALUES);
+const LOCATION_KEYS = Object.keys(EMPTY_LOCATION);
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB, per the upload guidelines below.
 // The backend caps the whole request at ~1MB; keep the combined upload under it.
 const MAX_TOTAL_UPLOAD = 900 * 1024;
 const MAX_BIO = 225; // Backend caps the description/bio at 225 characters.
 
-const prettify = (s) =>
-  String(s)
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+// Used when company-type-choices/ can't be reached.
+const FALLBACK_TYPE_CHOICES = [
+  { value: "buyer", label: "Buyer" },
+  { value: "supplier", label: "Supplier" },
+];
+// Used when country-choices/ can't be reached.
+const FALLBACK_COUNTRY_CHOICES = [{ value: "ghana", label: "Ghana" }];
 
-// Normalize a choices response into { value, label }[]. The exact shape isn't
-// guaranteed, so handle strings, [value, label] tuples, and objects.
-function normalizeChoices(data) {
-  const list = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.results)
-      ? data.results
-      : Array.isArray(data?.choices)
-        ? data.choices
-        : [];
-  return list
-    .map((item) => {
-      if (typeof item === "string")
-        return { value: item, label: prettify(item) };
-      if (Array.isArray(item))
-        return {
-          value: String(item[0]),
-          label: String(item[1] ?? prettify(item[0])),
-        };
-      if (item && typeof item === "object") {
-        const value = item.value ?? item.id ?? item.key ?? item.name ?? "";
-        const label =
-          item.label ?? item.display_name ?? item.name ?? prettify(value);
-        return { value: String(value), label: String(label) };
-      }
-      return null;
-    })
-    .filter((c) => c && c.value !== "");
-}
+// Prefer Ghana, otherwise the first option.
+const defaultCountry = (choices) =>
+  choices.find(
+    (c) =>
+      c.value.toLowerCase() === "ghana" || c.label.toLowerCase() === "ghana",
+  )?.value ??
+  choices[0]?.value ??
+  "";
+
+// Keep a restored draft value selectable even if it isn't in the loaded options
+// (e.g. the options request failed or hasn't resolved yet).
+const withCurrent = (choices, value) =>
+  value && !choices.some((c) => c.value === value)
+    ? [...choices, { value, label: prettify(value) }]
+    : choices;
 
 // Only accept a stored blob if it has the keys we expect.
 const validateStoredData = (data, expectedKeys) =>
@@ -131,11 +148,48 @@ function UploadTile({ label, name, preview, onChange, onRemove }) {
   );
 }
 
+// Generic choices Select used for every enum-backed field below.
+function ChoiceSelect({
+  value,
+  onValueChange,
+  options,
+  placeholder,
+  loading = false,
+  disabled = false,
+  emptyText = "No options available",
+}) {
+  return (
+    <Select
+      value={value || undefined}
+      onValueChange={onValueChange}
+      disabled={disabled || loading}
+    >
+      <SelectTrigger className="h-10 w-full">
+        <SelectValue placeholder={loading ? "Loading…" : placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.length ? (
+          options.map((c) => (
+            <SelectItem key={c.value} value={c.value}>
+              {c.label}
+            </SelectItem>
+          ))
+        ) : (
+          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+            {loading ? "Loading…" : emptyText}
+          </div>
+        )}
+      </SelectContent>
+    </Select>
+  );
+}
+
 const CompanyForm = () => {
   const { setCompanyId } = useAuth();
   const navigate = useNavigate();
 
   const [values, setValues] = useState(EMPTY_VALUES);
+  const [location, setLocation] = useState(EMPTY_LOCATION);
   // TIN is used only to verify the organisation (POST verify-organisation/); the
   // company model doesn't store it, so it's kept out of `values` / the create
   // payload and persisted under its own draft key.
@@ -146,12 +200,28 @@ const CompanyForm = () => {
     image_front_view: null,
   });
   const [submitting, setSubmitting] = useState(false);
-  const [categoryChoices, setCategoryChoices] = useState([]);
-  const [categoryLoading, setCategoryLoading] = useState(false);
+
+  // Enum sources (all backend-owned).
+  const [countryChoices, setCountryChoices] = useState([]);
+  const [countryLoading, setCountryLoading] = useState(false);
+  const [typeChoices, setTypeChoices] = useState(FALLBACK_TYPE_CHOICES);
+  const [typeLoading, setTypeLoading] = useState(false);
+  const [supplierTypeChoices, setSupplierTypeChoices] = useState([]);
+  const [supplierTypeLoading, setSupplierTypeLoading] = useState(false);
   const [industryChoices, setIndustryChoices] = useState([]);
   const [industryLoading, setIndustryLoading] = useState(false);
+  const [subCategoryChoices, setSubCategoryChoices] = useState([]);
+  const [subCategoryLoading, setSubCategoryLoading] = useState(false);
+  const [regionChoices, setRegionChoices] = useState([]);
+  const [regionLoading, setRegionLoading] = useState(false);
+  const [districtChoices, setDistrictChoices] = useState([]);
+  const [districtLoading, setDistrictLoading] = useState(false);
 
   const isSupplier = values.type === "supplier";
+
+  const persistValues = (next) => storage.setJSON("companyFormValues", next);
+  const persistLocation = (next) =>
+    storage.setJSON("companyFormLocation", next);
 
   // Restore any in-progress draft from a previous session.
   useEffect(() => {
@@ -159,6 +229,10 @@ const CompanyForm = () => {
     if (parsedValues && validateStoredData(parsedValues, VALUE_KEYS)) {
       setValues(parsedValues);
       toast.info("Form data restored from previous session.");
+    }
+    const parsedLocation = storage.getJSON("companyFormLocation");
+    if (parsedLocation && validateStoredData(parsedLocation, LOCATION_KEYS)) {
+      setLocation(parsedLocation);
     }
     const parsedPreviews = storage.getJSON("companyFormFilePreviews");
     if (
@@ -171,50 +245,100 @@ const CompanyForm = () => {
     if (storedTin) setTin(storedTin);
   }, []);
 
-  // Category options depend on the company type (buyers and suppliers have
-  // different categories). Runs on type change and on draft restore.
+  // Static enums: country, company type, supplier type, region. Country gets a
+  // default (Ghana / first option) once loaded, unless a draft already set one.
   useEffect(() => {
-    if (!values.type) {
-      setCategoryChoices([]);
-      return undefined;
-    }
     let cancelled = false;
-    setCategoryLoading(true);
-    getCategoryChoices(values.type)
-      .then((data) => {
-        if (!cancelled) setCategoryChoices(normalizeChoices(data));
+
+    setCountryLoading(true);
+    getCountryChoices()
+      .then((d) => {
+        if (cancelled) return;
+        const list = normalizeChoices(d);
+        setCountryChoices(list.length ? list : FALLBACK_COUNTRY_CHOICES);
+      })
+      .catch(() => {
+        if (!cancelled) setCountryChoices(FALLBACK_COUNTRY_CHOICES);
+      })
+      .finally(() => {
+        if (!cancelled) setCountryLoading(false);
+      });
+
+    setTypeLoading(true);
+    getCompanyTypeChoices()
+      .then((d) => {
+        if (cancelled) return;
+        const list = normalizeChoices(d);
+        setTypeChoices(list.length ? list : FALLBACK_TYPE_CHOICES);
+      })
+      .catch(() => {
+        if (!cancelled) setTypeChoices(FALLBACK_TYPE_CHOICES);
+      })
+      .finally(() => {
+        if (!cancelled) setTypeLoading(false);
+      });
+
+    setSupplierTypeLoading(true);
+    getSupplierTypeChoices()
+      .then((d) => {
+        if (!cancelled) setSupplierTypeChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setSupplierTypeChoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSupplierTypeLoading(false);
+      });
+
+    setRegionLoading(true);
+    getRegionChoices()
+      .then((d) => {
+        if (!cancelled) setRegionChoices(normalizeChoices(d));
       })
       .catch(() => {
         if (!cancelled) {
-          setCategoryChoices([]);
-          toast.error("Couldn't load categories for that type.");
+          setRegionChoices([]);
+          toast.error("Couldn't load regions.");
         }
       })
       .finally(() => {
-        if (!cancelled) setCategoryLoading(false);
+        if (!cancelled) setRegionLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
-  }, [values.type]);
+  }, []);
 
-  // Suppliers additionally pick an industry, whose options depend on the
-  // selected category. Buyers don't use this.
+  // Apply the country default after the options resolve (the draft, if any, has
+  // already been restored by then).
   useEffect(() => {
-    if (!isSupplier || !values.category) {
+    if (!countryChoices.length) return;
+    setValues((v) => {
+      if (v.country) return v;
+      const next = { ...v, country: defaultCountry(countryChoices) };
+      persistValues(next);
+      return next;
+    });
+  }, [countryChoices]);
+
+  // Industry is required for both types and keyed by the company type
+  // (/industry-choices/?type=…). Runs on type change and on draft restore.
+  useEffect(() => {
+    if (!values.type) {
       setIndustryChoices([]);
       return undefined;
     }
     let cancelled = false;
     setIndustryLoading(true);
-    getIndustryChoices(values.category)
+    getIndustryChoices(values.type)
       .then((data) => {
         if (!cancelled) setIndustryChoices(normalizeChoices(data));
       })
       .catch(() => {
         if (!cancelled) {
           setIndustryChoices([]);
-          toast.error("Couldn't load industries for that category.");
+          toast.error("Couldn't load industries for that type.");
         }
       })
       .finally(() => {
@@ -223,9 +347,60 @@ const CompanyForm = () => {
     return () => {
       cancelled = true;
     };
-  }, [isSupplier, values.category]);
+  }, [values.type]);
 
-  const persistValues = (next) => storage.setJSON("companyFormValues", next);
+  // Suppliers additionally pick a sub-category, which depends on the industry
+  // (/supplier/sub-category-choices/?type=&industry=). Buyers don't use this.
+  useEffect(() => {
+    if (!isSupplier || !values.industry) {
+      setSubCategoryChoices([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setSubCategoryLoading(true);
+    getSubCategoryChoices(values.type, values.industry)
+      .then((data) => {
+        if (!cancelled) setSubCategoryChoices(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSubCategoryChoices([]);
+          toast.error("Couldn't load sub-categories for that industry.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setSubCategoryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSupplier, values.type, values.industry]);
+
+  // Districts depend on the selected region (/district-choices/?region=…).
+  useEffect(() => {
+    if (!location.region) {
+      setDistrictChoices([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setDistrictLoading(true);
+    getDistrictChoices(location.region)
+      .then((d) => {
+        if (!cancelled) setDistrictChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDistrictChoices([]);
+          toast.error("Couldn't load districts.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDistrictLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [location.region]);
 
   const handleTinChange = (next) => {
     setTin(next);
@@ -255,46 +430,53 @@ const CompanyForm = () => {
     });
   };
 
-  // Type drives the category options, so reset the whole dependent chain.
+  // Simple enum fields (country, supplier_type).
+  const handleSelectChange = (name, value) => {
+    setValues((v) => {
+      const next = { ...v, [name]: value };
+      persistValues(next);
+      return next;
+    });
+  };
+
+  // Type drives the industry options (and the supplier-only fields), so reset
+  // the whole dependent chain.
   const handleTypeChange = (value) => {
     setValues((v) => {
       const next = {
         ...v,
         type: value,
-        category: "",
-        sector: "",
         industry: "",
-        field: "",
+        sub_category: "",
+        supplier_type: value === "supplier" ? v.supplier_type : "",
       };
       persistValues(next);
       return next;
     });
   };
 
-  // For suppliers, the category is mirrored into `sector` and drives the
-  // industry options. For buyers it's just the category.
-  const handleCategoryChange = (value) => {
-    setValues((v) => {
-      const supplier = v.type === "supplier";
-      const next = {
-        ...v,
-        category: value,
-        sector: supplier ? value : "",
-        industry: "",
-        field: "",
-      };
-      persistValues(next);
-      return next;
-    });
-  };
-
-  // The selected industry is mirrored into `field` (suppliers only).
+  // Industry drives the supplier sub-category options.
   const handleIndustryChange = (value) => {
     setValues((v) => {
-      const next = { ...v, industry: value, field: value };
+      const next = { ...v, industry: value, sub_category: "" };
       persistValues(next);
       return next;
     });
+  };
+
+  // Region drives the district options, so a new region clears the district.
+  const setLocationField = (name, value) => {
+    setLocation((l) => {
+      const next = { ...l, [name]: value };
+      if (name === "region" && value !== l.region) next.district = "";
+      persistLocation(next);
+      return next;
+    });
+  };
+
+  const handleLocationChange = (e) => {
+    const { name, value } = e.target;
+    setLocationField(name, value);
   };
 
   const handleFileChange = async (e) => {
@@ -325,22 +507,48 @@ const CompanyForm = () => {
     });
   };
 
-  const handleReset = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setValues(EMPTY_VALUES);
+  const clearDraft = () => {
+    storage.remove("companyFormValues");
+    storage.remove("companyFormLocation");
+    storage.remove("companyFormFilePreviews");
+    storage.remove("companyFormTin");
+  };
+
+  const resetState = () => {
+    setValues({ ...EMPTY_VALUES, country: defaultCountry(countryChoices) });
+    setLocation(EMPTY_LOCATION);
     setTin("");
     setFiles({ logo: null, image_front_view: null });
     setFilePreviews({ logo: null, image_front_view: null });
-    storage.remove("companyFormValues");
-    storage.remove("companyFormFilePreviews");
-    storage.remove("companyFormTin");
+  };
+
+  const handleReset = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    resetState();
+    clearDraft();
     toast.success("Form reset successfully.");
+  };
+
+  // Returns the first validation problem, or null when the form is complete.
+  const validate = () => {
+    if (!values.name.trim()) return "Please enter the company name.";
+    if (!values.type) return "Please select a company type.";
+    if (!values.country) return "Please select a country.";
+    if (!values.industry) return "Please select an industry.";
+    if (isSupplier && !values.supplier_type)
+      return "Please select a supplier type.";
+    if (!values.email.trim()) return "Please enter the company email.";
+    if (!values.office_line.trim()) return "Please enter the primary phone.";
+    if (values.momo_number && !MOMO_RE.test(values.momo_number.trim()))
+      return "Mobile money number must start with 0 and be 10 digits (e.g. 0241234567), not +233.";
+    return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!values.type) {
-      toast.error("Please select a company type.");
+    const problem = validate();
+    if (problem) {
+      toast.error(problem);
       return;
     }
     const totalUpload = Object.values(files).reduce(
@@ -357,7 +565,14 @@ const CompanyForm = () => {
     try {
       const formData = new FormData();
       Object.entries(values).forEach(([k, v]) => {
-        if (v) formData.append(k, v);
+        if (!v) return;
+        // supplier_type / sub_category are omitted entirely for buyers.
+        if (SUPPLIER_ONLY_KEYS.includes(k) && !isSupplier) return;
+        formData.append(k, v);
+      });
+      // Nested location via bracket notation: location[region]=…
+      Object.entries(location).forEach(([k, v]) => {
+        if (v) formData.append(`location[${k}]`, v);
       });
       Object.entries(files).forEach(([k, file]) => {
         if (file) formData.append(k, file);
@@ -369,13 +584,8 @@ const CompanyForm = () => {
       toast.success("Company registered successfully!");
       setCompanyId(data.id);
       storage.set("company_id", data.id);
-      storage.remove("companyFormValues");
-      storage.remove("companyFormFilePreviews");
-      storage.remove("companyFormTin");
-      setValues(EMPTY_VALUES);
-      setTin("");
-      setFiles({ logo: null, image_front_view: null });
-      setFilePreviews({ logo: null, image_front_view: null });
+      clearDraft();
+      resetState();
       navigate("/dashboard/company/edit");
     } catch (err) {
       console.error("Registration failed:", err);
@@ -420,76 +630,80 @@ const CompanyForm = () => {
             <label className={labelClass}>
               Type <span className="text-destructive">*</span>
             </label>
-            <Select
-              value={values.type || undefined}
+            <ChoiceSelect
+              value={values.type}
               onValueChange={handleTypeChange}
-            >
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="buyer">Buyer</SelectItem>
-                <SelectItem value="supplier">Supplier</SelectItem>
-              </SelectContent>
-            </Select>
+              options={withCurrent(typeChoices, values.type)}
+              loading={typeLoading}
+              placeholder="Select type"
+            />
           </div>
 
           <div>
-            <label className={labelClass}>Category</label>
-            <Select
-              value={values.category || undefined}
-              onValueChange={handleCategoryChange}
-              disabled={!values.type || categoryLoading}
-            >
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue
-                  placeholder={
-                    !values.type
-                      ? "Select a type first"
-                      : categoryLoading
-                        ? "Loading categories…"
-                        : "Select category"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {categoryChoices.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <label className={labelClass}>
+              Country <span className="text-destructive">*</span>
+            </label>
+            <ChoiceSelect
+              value={values.country}
+              onValueChange={(v) => handleSelectChange("country", v)}
+              options={withCurrent(countryChoices, values.country)}
+              loading={countryLoading}
+              placeholder="Select a country"
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              Industry <span className="text-destructive">*</span>
+            </label>
+            <ChoiceSelect
+              value={values.industry}
+              onValueChange={handleIndustryChange}
+              options={withCurrent(industryChoices, values.industry)}
+              loading={industryLoading}
+              disabled={!values.type}
+              placeholder={
+                values.type ? "Select industry" : "Select a type first"
+              }
+              emptyText="No industries available"
+            />
           </div>
 
           {isSupplier && (
-            <div>
-              <label className={labelClass}>Industry</label>
-              <Select
-                value={values.industry || undefined}
-                onValueChange={handleIndustryChange}
-                disabled={!values.category || industryLoading}
-              >
-                <SelectTrigger className="h-10 w-full">
-                  <SelectValue
-                    placeholder={
-                      !values.category
-                        ? "Select a category first"
-                        : industryLoading
-                          ? "Loading industries…"
-                          : "Select industry"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {industryChoices.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div>
+                <label className={labelClass}>
+                  Supplier type <span className="text-destructive">*</span>
+                </label>
+                <ChoiceSelect
+                  value={values.supplier_type}
+                  onValueChange={(v) => handleSelectChange("supplier_type", v)}
+                  options={withCurrent(
+                    supplierTypeChoices,
+                    values.supplier_type,
+                  )}
+                  loading={supplierTypeLoading}
+                  placeholder="Select supplier type"
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Sub-category</label>
+                <ChoiceSelect
+                  value={values.sub_category}
+                  onValueChange={(v) => handleSelectChange("sub_category", v)}
+                  options={withCurrent(subCategoryChoices, values.sub_category)}
+                  loading={subCategoryLoading}
+                  disabled={!values.industry}
+                  placeholder={
+                    values.industry
+                      ? "Select sub-category"
+                      : "Select an industry first"
+                  }
+                  emptyText="No sub-categories available"
+                />
+              </div>
+            </>
           )}
 
           <div className="sm:col-span-2">
@@ -572,6 +786,118 @@ const CompanyForm = () => {
               value={values.web_address}
               onChange={handleChange}
               placeholder="https://example.com"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Payment details */}
+      <section className="border-b border-border pb-6">
+        <h2 className="mb-4 font-display text-base font-semibold">
+          Payment details
+        </h2>
+        <p className="-mt-2 mb-4 text-sm text-muted-foreground">
+          Optional. Used for settlements and escrow payouts.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>Bank account name</label>
+            <Input
+              name="bank_account_name"
+              value={values.bank_account_name}
+              onChange={handleChange}
+              placeholder="Name on the account"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Bank account number</label>
+            <Input
+              name="bank_account_number"
+              value={values.bank_account_number}
+              onChange={handleChange}
+              inputMode="numeric"
+              placeholder="Account number"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Mobile money number</label>
+            <Input
+              type="tel"
+              name="momo_number"
+              value={values.momo_number}
+              onChange={handleChange}
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="0241234567"
+              autoComplete="off"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Local format starting with 0 (10 digits), not +233.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Location */}
+      <section className="border-b border-border pb-6">
+        <h2 className="mb-4 font-display text-base font-semibold">Location</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>Region</label>
+            <ChoiceSelect
+              value={location.region}
+              onValueChange={(v) => setLocationField("region", v)}
+              options={withCurrent(regionChoices, location.region)}
+              loading={regionLoading}
+              placeholder="Select a region"
+              emptyText="No regions available"
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>District</label>
+            <ChoiceSelect
+              value={location.district}
+              onValueChange={(v) => setLocationField("district", v)}
+              options={withCurrent(districtChoices, location.district)}
+              loading={districtLoading}
+              disabled={!location.region}
+              placeholder={
+                location.region ? "Select a district" : "Select a region first"
+              }
+              emptyText="No districts available"
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Popular area name</label>
+            <Input
+              name="popular_area_name"
+              value={location.popular_area_name}
+              onChange={handleLocationChange}
+              placeholder="e.g. East Legon"
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>GPS address</label>
+            <Input
+              name="gps"
+              value={location.gps}
+              onChange={handleLocationChange}
+              placeholder="e.g. GA-123-4567"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className={labelClass}>Street address</label>
+            <Input
+              name="street_address"
+              value={location.street_address}
+              onChange={handleLocationChange}
+              placeholder="Street, building, landmark"
             />
           </div>
         </div>

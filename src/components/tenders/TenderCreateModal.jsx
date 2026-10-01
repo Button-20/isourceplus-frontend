@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -29,30 +29,53 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getRegionChoices } from "@/services/api/waitlist.service";
+import { getDistrictChoices } from "@/services/api/transporters.service";
+import {
+  getMethodChoices,
+  getPriorityChoices,
+  getProcedureChoices,
+  getProcurementTypeChoices,
+  getSpendCategoryChoices,
+  getTenderTypeChoices,
+  getUnitOfMeasureChoices,
+} from "@/services/api/choices.service";
+import { normalizeChoices } from "@/utils/choices";
 
+// Fallback only — the live list comes from GET spend-category-choices/.
 const SPEND_CATEGORIES = [
-  { value: "communications", label: "Communications" },
-  { value: "IT", label: "IT" },
-  { value: "Construction", label: "Construction" },
-  { value: "Healthcare", label: "Healthcare" },
-  { value: "Other", label: "Other" },
+  { value: "construction", label: "Construction" },
+  { value: "technology", label: "Technology" },
+  { value: "healthcare", label: "Healthcare" },
+  { value: "professional_services", label: "Professional Services" },
 ];
+// Fallback only — the live list comes from GET tender/type-choices/.
 const TYPES = [
-  { value: "nct", label: "NCT" },
-  { value: "other", label: "Other" },
+  { value: "nct", label: "National competitive tendering" },
+  { value: "ict", label: "International competitive tendering" },
 ];
+// Fallback only — the live list comes from GET procedure-choices/.
 const PROCEDURES = [
   { value: "open", label: "Open" },
-  { value: "closed", label: "Closed" },
+  { value: "sealed", label: "Sealed" },
 ];
+// Fallback only — the live list comes from GET method-choices/.
 const METHODS = [
   { value: "general sourcing", label: "General Sourcing" },
-  { value: "other", label: "Other" },
+  { value: "client sourcing", label: "Client Sourcing" },
 ];
+// Fallback only — the live list comes from GET priority-choices/.
 const PRIORITIES = [
-  { value: "non urgent", label: "Non Urgent" },
+  { value: "non urgent", label: "Non-Urgent" },
   { value: "urgent", label: "Urgent" },
 ];
+// Fallback only — the live list comes from GET procurement/type-choices/.
+const PROCUREMENT_TYPES = [
+  { value: "product", label: "Product" },
+  { value: "project", label: "Project" },
+  { value: "service", label: "Service" },
+];
+// Fallback only — the live list comes from GET item/unit-of-measure-choices/.
 const UNITS = [
   { value: "pc", label: "Piece (pc)" },
   { value: "kg", label: "Kilogram (kg)" },
@@ -68,39 +91,243 @@ const UNITS = [
 const STEPS = ["Details", "Reach", "Items", "Attachments"];
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
-const emptyItem = () => ({
+// Default unit for a new item: "pc" when the loaded list has it, else the
+// first loaded option.
+const defaultUnit = (opts) =>
+  opts.some((o) => o.value === "pc") ? "pc" : (opts[0]?.value ?? "pc");
+
+const emptyItem = (unit = "pc") => ({
   name: "",
   description: "",
-  unit_of_measure: "pc",
+  unit_of_measure: unit,
   quantity: 1,
+  discount: "",
+  attachment: null,
   special_handling: [],
 });
 
-const initialValues = () => ({
+const initialValues = (unit) => ({
   title: "",
+  description: "",
   note: "",
-  spend_category: "communications",
+  spend_category: "construction",
   type: "nct",
   procedure: "open",
   method: "general sourcing",
   priority: "non urgent",
+  procurement_type: "product",
   start_datetime: new Date().toISOString().slice(0, 16),
   submission_datetime: new Date().toISOString().slice(0, 16),
-  delivery_datetime: new Date().toISOString().slice(0, 16),
+  delivery_deadline: new Date().toISOString().slice(0, 16),
   is_approved: true,
   region: "",
   district: "",
-  city: "",
-  town: "",
-  items: [emptyItem()],
+  items: [emptyItem(unit)],
   attachments: [],
 });
+
+// Backend expects full ISO strings; datetime-local inputs give "YYYY-MM-DDTHH:mm".
+const toIso = (v) => new Date(v).toISOString();
+const isValidDate = (v) => v && !Number.isNaN(new Date(v).getTime());
 
 export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
   const { authAxios } = useAuth();
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(initialValues);
   const [loading, setLoading] = useState(false);
+  const [regionChoices, setRegionChoices] = useState([]);
+  const [regionLoading, setRegionLoading] = useState(false);
+  const [districtChoices, setDistrictChoices] = useState([]);
+  const [districtLoading, setDistrictLoading] = useState(false);
+  const [unitChoices, setUnitChoices] = useState(UNITS);
+  const [spendCategoryChoices, setSpendCategoryChoices] =
+    useState(SPEND_CATEGORIES);
+  const [procurementTypeChoices, setProcurementTypeChoices] =
+    useState(PROCUREMENT_TYPES);
+  const [priorityChoices, setPriorityChoices] = useState(PRIORITIES);
+  const [typeChoices, setTypeChoices] = useState(TYPES);
+  const [methodChoices, setMethodChoices] = useState(METHODS);
+  const [procedureChoices, setProcedureChoices] = useState(PROCEDURES);
+
+  // Backend enums (type, method, procedure, spend category, procurement type,
+  // priority, unit) load when the dialog opens; each falls back to its
+  // hardcoded list so the form still works if a request fails.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
+    getTenderTypeChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setTypeChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.type)
+              ? v
+              : { ...v, type: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTypeChoices(TYPES);
+      });
+
+    getMethodChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setMethodChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.method)
+              ? v
+              : { ...v, method: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMethodChoices(METHODS);
+      });
+
+    getProcedureChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setProcedureChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.procedure)
+              ? v
+              : { ...v, procedure: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setProcedureChoices(PROCEDURES);
+      });
+
+    getProcurementTypeChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setProcurementTypeChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.procurement_type)
+              ? v
+              : { ...v, procurement_type: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setProcurementTypeChoices(PROCUREMENT_TYPES);
+      });
+
+    getPriorityChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setPriorityChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.priority)
+              ? v
+              : { ...v, priority: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPriorityChoices(PRIORITIES);
+      });
+
+    getSpendCategoryChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setSpendCategoryChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.spend_category)
+              ? v
+              : { ...v, spend_category: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSpendCategoryChoices(SPEND_CATEGORIES);
+      });
+
+    getUnitOfMeasureChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setUnitChoices(opts);
+          const fallback = defaultUnit(opts);
+          setValues((v) => ({
+            ...v,
+            items: v.items.map((it) =>
+              opts.some((o) => o.value === it.unit_of_measure)
+                ? it
+                : { ...it, unit_of_measure: fallback },
+            ),
+          }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setUnitChoices(UNITS);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  // Regions come from the shared /region-choices/ endpoint (backend slugs).
+  useEffect(() => {
+    if (!open || regionChoices.length) return;
+    let cancelled = false;
+    setRegionLoading(true);
+    getRegionChoices()
+      .then((d) => {
+        if (!cancelled) setRegionChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Couldn't load regions.");
+      })
+      .finally(() => {
+        if (!cancelled) setRegionLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, regionChoices.length]);
+
+  // Districts depend on the selected region (/district-choices/?region=…).
+  useEffect(() => {
+    if (!values.region) {
+      setDistrictChoices([]);
+      return;
+    }
+    let cancelled = false;
+    setDistrictLoading(true);
+    getDistrictChoices(values.region)
+      .then((d) => {
+        if (!cancelled) setDistrictChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDistrictChoices([]);
+          toast.error("Couldn't load districts.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDistrictLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [values.region]);
 
   const set = (patch) => setValues((v) => ({ ...v, ...patch }));
   const setItem = (i, patch) =>
@@ -111,7 +338,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
     });
 
   const reset = () => {
-    setValues(initialValues());
+    setValues(initialValues(defaultUnit(unitChoices)));
     setStep(0);
   };
 
@@ -126,25 +353,38 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
         toast.error("Title is required");
         return false;
       }
+      if (!values.description.trim()) {
+        toast.error("Description is required");
+        return false;
+      }
+      if (
+        !isValidDate(values.start_datetime) ||
+        !isValidDate(values.submission_datetime) ||
+        !isValidDate(values.delivery_deadline)
+      ) {
+        toast.error("Start, submission and delivery dates are required");
+        return false;
+      }
       const start = new Date(values.start_datetime);
       const submission = new Date(values.submission_datetime);
-      const delivery = new Date(values.delivery_datetime);
+      const delivery = new Date(values.delivery_deadline);
       if (submission < start) {
         toast.error("Submission date must be after the start date");
         return false;
       }
       if (delivery < submission) {
-        toast.error("Delivery date must be after the submission date");
+        toast.error("Delivery deadline must not be before the submission date");
         return false;
       }
     }
     if (step === 1) {
-      const reachFields = ["region", "district", "city", "town"];
-      for (const f of reachFields) {
-        if (!values[f].trim()) {
-          toast.error(`${f.charAt(0).toUpperCase() + f.slice(1)} is required`);
-          return false;
-        }
+      if (!values.region) {
+        toast.error("Region is required");
+        return false;
+      }
+      if (!values.district) {
+        toast.error("District is required");
+        return false;
       }
     }
     if (step === 2) {
@@ -190,22 +430,22 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
       const data = new FormData();
       [
         "title",
+        "description",
         "spend_category",
         "type",
         "procedure",
         "method",
         "priority",
+        "procurement_type",
         "note",
-        "start_datetime",
-        "submission_datetime",
-        "delivery_datetime",
       ].forEach((k) => data.append(k, values[k]));
+      data.append("start_datetime", toIso(values.start_datetime));
+      data.append("submission_datetime", toIso(values.submission_datetime));
+      data.append("delivery_deadline", toIso(values.delivery_deadline));
       data.append("is_approved", values.is_approved);
 
-      data.append("reach[region]", values.region);
-      data.append("reach[district]", values.district);
-      data.append("reach[city]", values.city);
-      data.append("reach[town]", values.town);
+      if (values.region) data.append("reach[region]", values.region);
+      if (values.district) data.append("reach[district]", values.district);
 
       values.items.forEach((item, index) => {
         data.append(`items[${index}][name]`, item.name);
@@ -213,6 +453,10 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
           data.append(`items[${index}][description]`, item.description);
         data.append(`items[${index}][quantity]`, item.quantity);
         data.append(`items[${index}][unit_of_measure]`, item.unit_of_measure);
+        if (item.discount !== "" && item.discount != null)
+          data.append(`items[${index}][discount]`, item.discount);
+        if (item.attachment instanceof File)
+          data.append(`items[${index}][attachment]`, item.attachment);
         item.special_handling.forEach((h, hi) => {
           data.append(
             `items[${index}][special_handling][${hi}][handling_description]`,
@@ -299,6 +543,36 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                   maxLength={128}
                 />
               </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>
+                  Description <span className="text-destructive">*</span>
+                </label>
+                <Textarea
+                  rows={3}
+                  value={values.description}
+                  onChange={(e) => set({ description: e.target.value })}
+                  placeholder="Describe what this tender is for"
+                  maxLength={2000}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Procurement type</label>
+                <Select
+                  value={values.procurement_type}
+                  onValueChange={(v) => set({ procurement_type: v })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {procurementTypeChoices.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <label className={labelClass}>Supplier market</label>
                 <Select
@@ -309,7 +583,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SPEND_CATEGORIES.map((o) => (
+                    {spendCategoryChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -327,7 +601,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TYPES.map((o) => (
+                    {typeChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -345,7 +619,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROCEDURES.map((o) => (
+                    {procedureChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -363,7 +637,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {METHODS.map((o) => (
+                    {methodChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -381,7 +655,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PRIORITIES.map((o) => (
+                    {priorityChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -406,11 +680,11 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                 />
               </div>
               <div>
-                <label className={labelClass}>Delivery date</label>
+                <label className={labelClass}>Delivery deadline</label>
                 <Input
                   type="datetime-local"
-                  value={values.delivery_datetime}
-                  onChange={(e) => set({ delivery_datetime: e.target.value })}
+                  value={values.delivery_deadline}
+                  onChange={(e) => set({ delivery_deadline: e.target.value })}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -446,19 +720,81 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
               <p className="text-sm text-muted-foreground sm:col-span-2">
                 Define the location this tender reaches.
               </p>
-              {["region", "district", "city", "town"].map((f) => (
-                <div key={f}>
-                  <label className={cn(labelClass, "capitalize")}>
-                    {f} <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    value={values[f]}
-                    onChange={(e) => set({ [f]: e.target.value })}
-                    placeholder={`Enter ${f}`}
-                    maxLength={100}
-                  />
-                </div>
-              ))}
+              <div>
+                <label className={labelClass}>
+                  Region <span className="text-destructive">*</span>
+                </label>
+                <Select
+                  value={values.region || undefined}
+                  onValueChange={(v) => set({ region: v, district: "" })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue
+                      placeholder={
+                        regionLoading ? "Loading regions…" : "Select a region"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regionLoading ? (
+                      <div className="flex items-center justify-center py-2 text-sm">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                        Loading…
+                      </div>
+                    ) : regionChoices.length ? (
+                      regionChoices.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="py-2 text-center text-sm text-muted-foreground">
+                        No regions available
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className={labelClass}>
+                  District <span className="text-destructive">*</span>
+                </label>
+                <Select
+                  value={values.district || undefined}
+                  onValueChange={(v) => set({ district: v })}
+                  disabled={!values.region}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue
+                      placeholder={
+                        !values.region
+                          ? "Select a region first"
+                          : districtLoading
+                            ? "Loading districts…"
+                            : "Select a district"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districtLoading && !districtChoices.length ? (
+                      <div className="flex items-center justify-center py-2 text-sm">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                        Loading…
+                      </div>
+                    ) : districtChoices.length ? (
+                      districtChoices.map((d) => (
+                        <SelectItem key={d.value} value={d.value}>
+                          {d.label}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="py-2 text-center text-sm text-muted-foreground">
+                        No districts available
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
@@ -526,13 +862,42 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {UNITS.map((o) => (
+                          {unitChoices.map((o) => (
                             <SelectItem key={o.value} value={o.value}>
                               {o.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Discount</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="any"
+                        value={item.discount}
+                        onChange={(e) =>
+                          setItem(i, { discount: e.target.value })
+                        }
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Attachment</label>
+                      <Input
+                        type="file"
+                        onChange={(e) =>
+                          setItem(i, {
+                            attachment: e.target.files?.[0] || null,
+                          })
+                        }
+                      />
+                      {item.attachment && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.attachment.name}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -594,7 +959,10 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  setValues((v) => ({ ...v, items: [...v.items, emptyItem()] }))
+                  setValues((v) => ({
+                    ...v,
+                    items: [...v.items, emptyItem(defaultUnit(unitChoices))],
+                  }))
                 }
                 className="w-full gap-1.5"
               >

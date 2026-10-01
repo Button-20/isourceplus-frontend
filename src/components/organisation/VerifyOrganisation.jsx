@@ -10,13 +10,18 @@ const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 // Inline TIN verification field. `value`/`onChange` keep the TIN controlled by
 // the parent (so it can persist to a draft); `onVerified({ tin, organisationName })`
-// fires when the backend confirms the organisation.
+// fires when the backend confirms the organisation. `verified` renders the
+// already-verified state (green check, no prompt) and `disabled` locks the
+// input and the Verify button — used once the organisation is verified so the
+// TIN can't be changed from the form.
 export default function VerifyOrganisation({
   value,
   onChange,
   onVerified,
   label = "Tax Identification Number (TIN)",
   hint = "Verify your organisation to pull its official registered name.",
+  verified = false,
+  disabled = false,
 }) {
   const [loading, setLoading] = useState(false);
   // result: null | { ok: true, name } | { ok: false, message }
@@ -70,12 +75,14 @@ export default function VerifyOrganisation({
             placeholder="12345678-0001"
             className="pl-9"
             aria-label={label}
+            disabled={disabled}
+            readOnly={disabled}
           />
         </div>
         <Button
           type="button"
           onClick={handleVerify}
-          disabled={loading || !tin}
+          disabled={disabled || loading || !tin}
           variant="outline"
           className="shrink-0"
         >
@@ -93,6 +100,11 @@ export default function VerifyOrganisation({
         <p className="mt-1.5 flex items-center gap-1.5 text-sm text-emerald-400">
           <BadgeCheck className="h-4 w-4 shrink-0" />
           Verified{result.name ? `: ${result.name}` : ""}
+        </p>
+      ) : verified ? (
+        <p className="mt-1.5 flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
+          <BadgeCheck className="h-4 w-4 shrink-0" />
+          {hint}
         </p>
       ) : result ? (
         <p className="mt-1.5 flex items-center gap-1.5 text-sm text-destructive">

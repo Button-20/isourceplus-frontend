@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -10,6 +10,19 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/services/context/app.context";
+import { getRfxTypeChoices } from "@/services/api/rfx.service";
+import {
+  getDeliveryChoices,
+  getMethodChoices,
+  getPriorityChoices,
+  getProcedureChoices,
+  getProcurementTypeChoices,
+  getSpendCategoryChoices,
+  getUnitOfMeasureChoices,
+} from "@/services/api/choices.service";
+import { getRegionChoices } from "@/services/api/waitlist.service";
+import { getDistrictChoices } from "@/services/api/transporters.service";
+import { normalizeChoices } from "@/utils/choices";
 import {
   Dialog,
   DialogContent,
@@ -29,25 +42,43 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
+// Fallback only — the live list comes from GET spend-category-choices/.
 const SPEND_CATEGORIES = [
-  { value: "communications", label: "Communications" },
-  { value: "it", label: "IT" },
+  { value: "construction", label: "Construction" },
+  { value: "technology", label: "Technology" },
   { value: "logistics", label: "Logistics" },
-  { value: "consulting", label: "Consulting" },
+  { value: "professional_services", label: "Professional Services" },
 ];
+// Fallback only — the live list comes from GET rfx/type-choices/.
 const TYPES = [
   { value: "information", label: "Information" },
   { value: "quotation", label: "Quotation" },
   { value: "proposal", label: "Proposal" },
 ];
+// Fallback only — the live list comes from GET method-choices/.
+const METHODS = [
+  { value: "general sourcing", label: "General Sourcing" },
+  { value: "client sourcing", label: "Client Sourcing" },
+];
+// Fallback only — the live list comes from GET procurement/type-choices/.
+const PROCUREMENT_TYPES = [
+  { value: "product", label: "Product" },
+  { value: "project", label: "Project" },
+  { value: "service", label: "Service" },
+];
+// Fallback only — the live list comes from GET delivery-choices/.
+const DELIVERY_OPTIONS = [{ value: "self", label: "Self delivery" }];
+// Fallback only — the live list comes from GET procedure-choices/.
 const PROCEDURES = [
   { value: "open", label: "Open" },
   { value: "sealed", label: "Sealed" },
 ];
+// Fallback only — the live list comes from GET priority-choices/.
 const PRIORITIES = [
-  { value: "non urgent", label: "Non Urgent" },
+  { value: "non urgent", label: "Non-Urgent" },
   { value: "urgent", label: "Urgent" },
 ];
+// Fallback only — the live list comes from GET item/unit-of-measure-choices/.
 const UNITS = [
   { value: "pc", label: "Piece" },
   { value: "kg", label: "Kilogram" },
@@ -58,29 +89,43 @@ const UNITS = [
 const STEPS = ["Details", "Reach", "Items"];
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
-const emptyItem = () => ({
+// Backend expects full ISO strings; datetime-local gives "YYYY-MM-DDTHH:mm".
+const toISO = (v) => (v ? new Date(v).toISOString() : "");
+
+// Default unit for a new item: "pc" when the loaded list has it, else the
+// first loaded option.
+const defaultUnit = (opts) =>
+  opts.some((o) => o.value === "pc") ? "pc" : (opts[0]?.value ?? "pc");
+
+const emptyItem = (unit = "pc") => ({
   name: "",
   description: "",
-  unit_of_measure: "pc",
+  unit_of_measure: unit,
   quantity: 1,
+  discount: "",
+  attachment: null,
   special_handles: [],
 });
 
-const initialValues = () => ({
+const initialValues = (unit) => ({
   title: "",
+  description: "",
   note: "",
-  type: "information",
+  type: "quotation",
+  method: "general sourcing",
   procedure: "open",
-  spend_category: "communications",
+  spend_category: "construction",
+  procurement_type: "product",
   priority: "non urgent",
+  do_delivery: "self",
+  delivery_address: "",
+  delivery_deadline: "",
   start_datetime: new Date().toISOString().slice(0, 16),
   submission_datetime: new Date().toISOString().slice(0, 16),
   is_approved: true,
   region: "",
   district: "",
-  city: "",
-  town: "",
-  items: [emptyItem()],
+  items: [emptyItem(unit)],
 });
 
 export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
@@ -88,6 +133,19 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState(initialValues);
   const [loading, setLoading] = useState(false);
+  const [typeChoices, setTypeChoices] = useState(TYPES);
+  const [unitChoices, setUnitChoices] = useState(UNITS);
+  const [spendCategoryChoices, setSpendCategoryChoices] =
+    useState(SPEND_CATEGORIES);
+  const [procurementTypeChoices, setProcurementTypeChoices] =
+    useState(PROCUREMENT_TYPES);
+  const [priorityChoices, setPriorityChoices] = useState(PRIORITIES);
+  const [deliveryChoices, setDeliveryChoices] = useState(DELIVERY_OPTIONS);
+  const [methodChoices, setMethodChoices] = useState(METHODS);
+  const [procedureChoices, setProcedureChoices] = useState(PROCEDURES);
+  const [regionChoices, setRegionChoices] = useState([]);
+  const [districtChoices, setDistrictChoices] = useState([]);
+  const [districtLoading, setDistrictLoading] = useState(false);
 
   const set = (patch) => setValues((v) => ({ ...v, ...patch }));
   const setItem = (i, patch) =>
@@ -97,8 +155,192 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
       return { ...v, items };
     });
 
+  // Load the backend enums (type, method, procedure, spend category,
+  // procurement type, priority, delivery, unit) + regions once when the dialog
+  // opens. Each falls back to its hardcoded list so the form still works if a
+  // request fails.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
+    getMethodChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setMethodChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.method)
+              ? v
+              : { ...v, method: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMethodChoices(METHODS);
+      });
+
+    getProcedureChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setProcedureChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.procedure)
+              ? v
+              : { ...v, procedure: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setProcedureChoices(PROCEDURES);
+      });
+
+    getDeliveryChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setDeliveryChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.do_delivery)
+              ? v
+              : { ...v, do_delivery: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDeliveryChoices(DELIVERY_OPTIONS);
+      });
+
+    getProcurementTypeChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setProcurementTypeChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.procurement_type)
+              ? v
+              : { ...v, procurement_type: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setProcurementTypeChoices(PROCUREMENT_TYPES);
+      });
+
+    getPriorityChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setPriorityChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.priority)
+              ? v
+              : { ...v, priority: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPriorityChoices(PRIORITIES);
+      });
+
+    getSpendCategoryChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setSpendCategoryChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.spend_category)
+              ? v
+              : { ...v, spend_category: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSpendCategoryChoices(SPEND_CATEGORIES);
+      });
+
+    getRfxTypeChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setTypeChoices(opts);
+          setValues((v) =>
+            opts.some((o) => o.value === v.type)
+              ? v
+              : { ...v, type: opts[0].value },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTypeChoices(TYPES);
+      });
+
+    getUnitOfMeasureChoices()
+      .then((data) => {
+        if (cancelled) return;
+        const opts = normalizeChoices(data);
+        if (opts.length) {
+          setUnitChoices(opts);
+          const fallback = defaultUnit(opts);
+          setValues((v) => ({
+            ...v,
+            items: v.items.map((it) =>
+              opts.some((o) => o.value === it.unit_of_measure)
+                ? it
+                : { ...it, unit_of_measure: fallback },
+            ),
+          }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setUnitChoices(UNITS);
+      });
+
+    getRegionChoices()
+      .then((data) => {
+        if (!cancelled) setRegionChoices(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) setRegionChoices([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  // Districts depend on the selected region.
+  useEffect(() => {
+    if (!values.region) {
+      setDistrictChoices([]);
+      return;
+    }
+    let cancelled = false;
+    setDistrictLoading(true);
+    getDistrictChoices(values.region)
+      .then((data) => {
+        if (!cancelled) setDistrictChoices(normalizeChoices(data));
+      })
+      .catch(() => {
+        if (!cancelled) setDistrictChoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDistrictLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [values.region]);
+
   const reset = () => {
-    setValues(initialValues());
+    setValues(initialValues(defaultUnit(unitChoices)));
     setStep(0);
   };
 
@@ -113,15 +355,27 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
         toast.error("Title is required");
         return false;
       }
+      if (!values.description.trim()) {
+        toast.error("Description is required");
+        return false;
+      }
       if (
         new Date(values.start_datetime) > new Date(values.submission_datetime)
       ) {
         toast.error("Submission date must be after the start date");
         return false;
       }
+      if (
+        values.delivery_deadline &&
+        new Date(values.delivery_deadline) <
+          new Date(values.submission_datetime)
+      ) {
+        toast.error("Delivery deadline must not be before the submission date");
+        return false;
+      }
     }
     if (step === 1) {
-      const reachFields = ["region", "district", "city", "town"];
+      const reachFields = ["region", "district"];
       if (reachFields.some((f) => values[f]) && !values.region) {
         toast.error("Region is required when providing reach details");
         return false;
@@ -158,17 +412,26 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
       const data = new FormData();
       [
         "title",
+        "description",
         "note",
         "type",
+        "method",
         "procedure",
         "spend_category",
+        "procurement_type",
         "priority",
-        "start_datetime",
-        "submission_datetime",
+        "do_delivery",
+        "delivery_address",
       ].forEach((k) => data.append(k, values[k]));
+      ["start_datetime", "submission_datetime", "delivery_deadline"].forEach(
+        (k) => {
+          const iso = toISO(values[k]);
+          if (iso) data.append(k, iso);
+        },
+      );
       data.append("is_approved", values.is_approved);
 
-      const reachFields = ["region", "district", "city", "town"];
+      const reachFields = ["region", "district"];
       if (reachFields.some((f) => values[f])) {
         reachFields.forEach((f) => {
           if (values[f]) data.append(`reach[${f}]`, values[f]);
@@ -180,6 +443,12 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
         data.append(`items[${index}][description]`, item.description || "");
         data.append(`items[${index}][quantity]`, item.quantity);
         data.append(`items[${index}][unit_of_measure]`, item.unit_of_measure);
+        if (item.discount !== "" && item.discount != null) {
+          data.append(`items[${index}][discount]`, item.discount);
+        }
+        if (item.attachment instanceof File) {
+          data.append(`items[${index}][attachment]`, item.attachment);
+        }
         item.special_handles.forEach((h, hi) => {
           data.append(
             `items[${index}][special_handles][${hi}][handling_description]`,
@@ -252,6 +521,17 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                   placeholder="Enter RFx title"
                 />
               </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>
+                  Description <span className="text-destructive">*</span>
+                </label>
+                <Textarea
+                  rows={3}
+                  value={values.description}
+                  onChange={(e) => set({ description: e.target.value })}
+                  placeholder="Describe what you are sourcing"
+                />
+              </div>
               <div>
                 <label className={labelClass}>Spend category</label>
                 <Select
@@ -262,7 +542,7 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SPEND_CATEGORIES.map((o) => (
+                    {spendCategoryChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -280,7 +560,43 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TYPES.map((o) => (
+                    {typeChoices.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className={labelClass}>Method</label>
+                <Select
+                  value={values.method}
+                  onValueChange={(v) => set({ method: v })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {methodChoices.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className={labelClass}>Procurement type</label>
+                <Select
+                  value={values.procurement_type}
+                  onValueChange={(v) => set({ procurement_type: v })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {procurementTypeChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -298,7 +614,7 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROCEDURES.map((o) => (
+                    {procedureChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -316,7 +632,7 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PRIORITIES.map((o) => (
+                    {priorityChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -338,6 +654,40 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                   type="datetime-local"
                   value={values.submission_datetime}
                   onChange={(e) => set({ submission_datetime: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Delivery</label>
+                <Select
+                  value={values.do_delivery}
+                  onValueChange={(v) => set({ do_delivery: v })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deliveryChoices.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className={labelClass}>Delivery deadline</label>
+                <Input
+                  type="datetime-local"
+                  value={values.delivery_deadline}
+                  onChange={(e) => set({ delivery_deadline: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Delivery address</label>
+                <Input
+                  value={values.delivery_address}
+                  onChange={(e) => set({ delivery_address: e.target.value })}
+                  placeholder="Where should items be delivered?"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -372,16 +722,51 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
               <p className="text-sm text-muted-foreground sm:col-span-2">
                 Optional — narrow who can see this RFx by location.
               </p>
-              {["region", "district", "city", "town"].map((f) => (
-                <div key={f}>
-                  <label className={cn(labelClass, "capitalize")}>{f}</label>
-                  <Input
-                    value={values[f]}
-                    onChange={(e) => set({ [f]: e.target.value })}
-                    placeholder={`Enter ${f}`}
-                  />
-                </div>
-              ))}
+              <div>
+                <label className={labelClass}>Region</label>
+                <Select
+                  value={values.region}
+                  onValueChange={(v) => set({ region: v, district: "" })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="Select region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regionChoices.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className={labelClass}>District</label>
+                <Select
+                  value={values.district}
+                  onValueChange={(v) => set({ district: v })}
+                  disabled={!values.region || districtLoading}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue
+                      placeholder={
+                        !values.region
+                          ? "Select a region first"
+                          : districtLoading
+                            ? "Loading districts…"
+                            : "Select district"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districtChoices.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
@@ -452,13 +837,42 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {UNITS.map((o) => (
+                          {unitChoices.map((o) => (
                             <SelectItem key={o.value} value={o.value}>
                               {o.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Discount</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="any"
+                        value={item.discount}
+                        onChange={(e) =>
+                          setItem(i, { discount: e.target.value })
+                        }
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Attachment</label>
+                      <Input
+                        type="file"
+                        onChange={(e) =>
+                          setItem(i, {
+                            attachment: e.target.files?.[0] ?? null,
+                          })
+                        }
+                      />
+                      {item.attachment && (
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                          {item.attachment.name}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -519,7 +933,10 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  setValues((v) => ({ ...v, items: [...v.items, emptyItem()] }))
+                  setValues((v) => ({
+                    ...v,
+                    items: [...v.items, emptyItem(defaultUnit(unitChoices))],
+                  }))
                 }
                 className="w-full gap-1.5"
               >

@@ -6,23 +6,183 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getPurchaseOrderTypeChoices,
+  getPaymentMethodChoices,
+  getCurrencyChoices,
+  getFundEscrowChoices,
+} from "@/services/api/choices.service";
+import { normalizeChoices } from "@/utils/choices";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
+
+// Fallbacks so the form still works when a choices endpoint is unavailable.
+const FALLBACK_TYPES = [{ value: "npo", label: "NPO" }];
+const FALLBACK_PAYMENT_CHANNELS = [
+  { value: "MoMo", label: "MoMo" },
+  { value: "Bank", label: "Bank" },
+];
+const FALLBACK_CURRENCIES = [
+  { value: "GHS", label: "GHS" },
+  { value: "NGN", label: "NGN" },
+];
+const FALLBACK_FUND_ESCROW = [
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
+];
+
+// Spec item keys carried from auto-population through to the POST.
+const ITEM_KEYS = [
+  "name",
+  "description",
+  "unit_of_measure",
+  "quantity",
+  "unit_price",
+  "extra_value",
+  "extra_value_TnCs",
+];
+
+const hasValue = (v) => v !== undefined && v !== null && v !== "";
+
+// Normalize special handles to [{ handling_description }] (backend may send
+// objects or plain strings).
+const normalizeSpecialHandles = (handles) =>
+  (Array.isArray(handles) ? handles : [])
+    .map((h) =>
+      typeof h === "string"
+        ? { handling_description: h }
+        : h && typeof h === "object"
+          ? { handling_description: h.handling_description ?? h.description ?? "" }
+          : null,
+    )
+    .filter((h) => h && hasValue(h.handling_description));
+
+// Only spec item keys that are present in the auto-population data are sent;
+// attachment is included only when it is an actual File.
+const toPayloadItem = (item) => {
+  const out = {};
+  ITEM_KEYS.forEach((key) => {
+    if (hasValue(item?.[key])) out[key] = item[key];
+  });
+  const handles = normalizeSpecialHandles(item?.special_handles);
+  if (handles.length) out.special_handles = handles;
+  if (item?.attachment instanceof File) out.attachment = item.attachment;
+  return out;
+};
+
+const itemsHaveFile = (items) =>
+  items.some((item) => item?.attachment instanceof File);
+
+// multipart keys: items[N][name], items[N][special_handles][M][handling_description], …
+const buildFormData = (fields, items) => {
+  const data = new FormData();
+  Object.entries(fields).forEach(([k, v]) => {
+    if (hasValue(v)) data.append(k, v);
+  });
+  items.forEach((item, i) => {
+    Object.entries(item).forEach(([key, value]) => {
+      if (key === "special_handles") {
+        value.forEach((h, m) =>
+          data.append(
+            `items[${i}][special_handles][${m}][handling_description]`,
+            h.handling_description,
+          ),
+        );
+      } else {
+        data.append(`items[${i}][${key}]`, value);
+      }
+    });
+  });
+  return data;
+};
 
 const PurchaseOrderCreationPage = () => {
   const { authAxios, BASE_URL } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
+    title: "",
+    type: "",
     spend_category: "",
-    quantity: "",
-    total_cost: "",
+    preferred_payment_channel: "",
+    currency: "GHS",
+    fund_escrow: "no",
     items: [],
   });
+  const [typeChoices, setTypeChoices] = useState(FALLBACK_TYPES);
+  const [paymentChannelChoices, setPaymentChannelChoices] = useState(
+    FALLBACK_PAYMENT_CHANNELS,
+  );
+  const [currencyChoices, setCurrencyChoices] = useState(FALLBACK_CURRENCIES);
+  const [fundEscrowChoices, setFundEscrowChoices] =
+    useState(FALLBACK_FUND_ESCROW);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { redirectUrl } = location.state || {};
+
+  const set = (patch) => setFormData((prev) => ({ ...prev, ...patch }));
+
+  // Load backend enums; keep the hardcoded fallbacks on failure. Defaults are
+  // reconciled so each Select always holds a valid option.
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = (fetcher, fallback, setChoices, field) => {
+      fetcher()
+        .then((data) => {
+          if (cancelled) return;
+          const opts = normalizeChoices(data);
+          const next = opts.length ? opts : fallback;
+          setChoices(next);
+          setFormData((prev) => {
+            if (!field) return prev;
+            const current = prev[field];
+            if (current && next.some((o) => o.value === current)) return prev;
+            // Prefer a case-insensitive match of the current default, else
+            // the first option (for required enums) or empty.
+            const match =
+              current &&
+              next.find(
+                (o) => o.value.toLowerCase() === String(current).toLowerCase(),
+              );
+            return {
+              ...prev,
+              [field]: match ? match.value : (next[0]?.value ?? ""),
+            };
+          });
+        })
+        .catch(() => {
+          if (!cancelled) setChoices(fallback);
+        });
+    };
+
+    load(getPurchaseOrderTypeChoices, FALLBACK_TYPES, setTypeChoices, "type");
+    load(
+      getPaymentMethodChoices,
+      FALLBACK_PAYMENT_CHANNELS,
+      setPaymentChannelChoices,
+      "preferred_payment_channel",
+    );
+    load(getCurrencyChoices, FALLBACK_CURRENCIES, setCurrencyChoices, "currency");
+    load(
+      getFundEscrowChoices,
+      FALLBACK_FUND_ESCROW,
+      setFundEscrowChoices,
+      "fund_escrow",
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const fetchAutoPopulationData = async () => {
@@ -61,33 +221,64 @@ const PurchaseOrderCreationPage = () => {
       toast.error("Invalid document creation URL.");
       return;
     }
-    if (formData.quantity <= 0) {
-      toast.error("Quantity must be a positive integer.");
+    if (!formData.title.trim()) {
+      toast.error("Title is required.");
       return;
     }
-    if (formData.total_cost <= 0) {
-      toast.error("Total cost must be a positive number.");
+    if (!formData.type) {
+      toast.error("Type is required.");
       return;
     }
     setSubmitting(true);
     try {
       const cleanUrl = redirectUrl.replace(/^\/api\/v1/, "");
-      await authAxios.post(cleanUrl, {
+      const fields = {
+        title: formData.title.trim(),
+        type: formData.type,
         spend_category: formData.spend_category,
-        quantity: parseInt(formData.quantity, 10),
-        total_cost: parseFloat(formData.total_cost),
-      });
+        preferred_payment_channel: formData.preferred_payment_channel,
+        currency: formData.currency,
+        fund_escrow: formData.fund_escrow,
+      };
+      const items = formData.items.map(toPayloadItem);
+      // JSON unless an item carries a File, in which case multipart is required.
+      const payload = itemsHaveFile(formData.items)
+        ? buildFormData(fields, items)
+        : { ...fields, items };
+      await authAxios.post(cleanUrl, payload);
       toast.success("Purchase order created successfully!");
       navigate("/dashboard/proforma-invoices");
     } catch (err) {
+      const data = err.response?.data;
       toast.error(
-        err.response?.data?.detail || "Failed to create purchase order.",
+        data?.detail ||
+          data?.title?.[0] ||
+          data?.type?.[0] ||
+          data?.preferred_payment_channel?.[0] ||
+          data?.currency?.[0] ||
+          data?.fund_escrow?.[0] ||
+          "Failed to create purchase order.",
       );
       console.error("Create purchase order error:", err);
     } finally {
       setSubmitting(false);
     }
   };
+
+  const renderSelect = (field, options, placeholder) => (
+    <Select value={formData[field]} onValueChange={(v) => set({ [field]: v })}>
+      <SelectTrigger className="h-10 w-full">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o) => (
+          <SelectItem key={o.value} value={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 
   if (loading) {
     return (
@@ -145,42 +336,52 @@ const PurchaseOrderCreationPage = () => {
         className="space-y-5 rounded-2xl border border-border/70 bg-card p-6"
       >
         <div>
-          <label className={labelClass}>
-            Spend category
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
-              <Sparkles className="h-3 w-3" /> Auto-populated
-            </span>
-          </label>
+          <label className={labelClass}>Title</label>
           <Input
-            value={formData.spend_category}
-            readOnly
-            className="bg-muted/40"
-          />
-        </div>
-        <div>
-          <label className={labelClass}>Total quantity</label>
-          <Input
-            type="number"
-            min={1}
-            value={formData.quantity}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, quantity: e.target.value }))
-            }
+            value={formData.title}
+            onChange={(e) => set({ title: e.target.value })}
+            placeholder="e.g. Office supplies — Q3"
             required
           />
         </div>
-        <div>
-          <label className={labelClass}>Total cost</label>
-          <Input
-            type="number"
-            min={0}
-            step="0.01"
-            value={formData.total_cost}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, total_cost: e.target.value }))
-            }
-            required
-          />
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>Type</label>
+            {renderSelect("type", typeChoices, "Select type")}
+          </div>
+          <div>
+            <label className={labelClass}>
+              Spend category
+              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
+                <Sparkles className="h-3 w-3" /> Auto-populated
+              </span>
+            </label>
+            <Input
+              value={formData.spend_category}
+              readOnly
+              className="bg-muted/40"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-3">
+          <div>
+            <label className={labelClass}>Preferred payment channel</label>
+            {renderSelect(
+              "preferred_payment_channel",
+              paymentChannelChoices,
+              "Select channel",
+            )}
+          </div>
+          <div>
+            <label className={labelClass}>Currency</label>
+            {renderSelect("currency", currencyChoices, "Select currency")}
+          </div>
+          <div>
+            <label className={labelClass}>Fund escrow</label>
+            {renderSelect("fund_escrow", fundEscrowChoices, "Select")}
+          </div>
         </div>
 
         <div>
@@ -200,20 +401,48 @@ const PurchaseOrderCreationPage = () => {
                     <th className="px-4 py-2.5 font-medium">Qty</th>
                     <th className="px-4 py-2.5 font-medium">Unit</th>
                     <th className="px-4 py-2.5 font-medium">Unit price</th>
+                    <th className="px-4 py-2.5 font-medium">Extra value</th>
+                    <th className="px-4 py-2.5 font-medium">Special handling</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {formData.items.map((item, index) => (
-                    <tr key={index}>
-                      <td className="px-4 py-2.5 font-medium">{item.name}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {item.description || "N/A"}
-                      </td>
-                      <td className="px-4 py-2.5">{item.quantity}</td>
-                      <td className="px-4 py-2.5">{item.unit_of_measure}</td>
-                      <td className="px-4 py-2.5">{item.unit_price}</td>
-                    </tr>
-                  ))}
+                  {formData.items.map((item, index) => {
+                    const handles = normalizeSpecialHandles(
+                      item.special_handles,
+                    );
+                    return (
+                      <tr key={index}>
+                        <td className="px-4 py-2.5 font-medium">{item.name}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">
+                          {item.description || "N/A"}
+                        </td>
+                        <td className="px-4 py-2.5">{item.quantity}</td>
+                        <td className="px-4 py-2.5">{item.unit_of_measure}</td>
+                        <td className="px-4 py-2.5">{item.unit_price}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">
+                          {hasValue(item.extra_value) ? (
+                            <>
+                              {item.extra_value}
+                              {hasValue(item.extra_value_TnCs) && (
+                                <span className="block text-xs">
+                                  {item.extra_value_TnCs}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            "N/A"
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-muted-foreground">
+                          {handles.length
+                            ? handles
+                                .map((h) => h.handling_description)
+                                .join("; ")
+                            : "N/A"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
