@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Coins,
+  Download,
+  FileSpreadsheet,
   Loader2,
   MessageSquare,
   RefreshCw,
   Send,
   ShoppingBag,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +25,12 @@ import {
   purchaseSmsUnits,
   sendSms,
 } from "@/services/api/sms.service";
+import {
+  RECIPIENT_FILE_ACCEPT,
+  RecipientFileError,
+  downloadRecipientTemplate,
+  readRecipientFile,
+} from "@/utils/recipient-file";
 
 // SMS resale: buy units from a plan, then send single or bulk messages.
 // The API response shapes weren't specified, so every field is read
@@ -97,7 +106,16 @@ const readBalance = (d) =>
 const normalizePlan = (p) => ({
   id: pick(p, ["id", "plan_id", "uuid", "code"]),
   name: pick(p, ["name", "title", "plan_name"], "SMS plan"),
-  units: num(pick(p, ["sms_count", "units", "sms_units", "credits", "quantity", "number_of_sms"])),
+  units: num(
+    pick(p, [
+      "sms_count",
+      "units",
+      "sms_units",
+      "credits",
+      "quantity",
+      "number_of_sms",
+    ]),
+  ),
   pricePerSms: pick(p, ["price_per_sms", "unit_price"]),
   price: pick(p, ["price", "amount", "cost"]),
   currency: pick(p, ["currency"], "GHS"),
@@ -109,7 +127,9 @@ const normalizeTransaction = (t) => ({
   date: pick(t, ["created_at", "created", "date", "timestamp"]),
   type: pick(t, ["transaction_type", "type"], ""),
   description: pick(t, ["description", "detail", "note"], "—"),
-  units: num(pick(t, ["sms_count", "units", "sms_units", "credits", "quantity"])),
+  units: num(
+    pick(t, ["sms_count", "units", "sms_units", "credits", "quantity"]),
+  ),
 });
 
 // PURCHASE adds units (credit), everything else (SEND) consumes them (debit).
@@ -124,7 +144,9 @@ const normalizeSent = (s) => {
     recipients,
     message: pick(s, ["message", "text", "body"], ""),
     status: pick(s, ["status", "state"], "—"),
-    units: num(pick(s, ["sms_count", "units", "units_used", "cost", "credits_used"])),
+    units: num(
+      pick(s, ["sms_count", "units", "units_used", "cost", "credits_used"]),
+    ),
   };
 };
 
@@ -146,7 +168,8 @@ const parseRecipients = (raw) => {
 
 // A standard GSM-7 SMS segment is 160 characters.
 const SEGMENT = 160;
-const segmentsFor = (text) => (text.length ? Math.ceil(text.length / SEGMENT) : 0);
+const segmentsFor = (text) =>
+  text.length ? Math.ceil(text.length / SEGMENT) : 0;
 
 const statusTone = (s) => {
   const v = String(s || "").toLowerCase();
@@ -179,7 +202,9 @@ function EmptyState({ icon: Icon, title, hint }) {
         <Icon className="h-6 w-6 text-brand" />
       </div>
       <p className="mt-4 font-semibold">{title}</p>
-      {hint && <p className="mt-1 max-w-xs text-sm text-muted-foreground">{hint}</p>}
+      {hint && (
+        <p className="mt-1 max-w-xs text-sm text-muted-foreground">{hint}</p>
+      )}
     </div>
   );
 }
@@ -211,6 +236,11 @@ export default function SmsPage() {
 
   const [message, setMessage] = useState("");
   const [recipientsRaw, setRecipientsRaw] = useState("");
+  // CSV / Excel recipient upload.
+  const fileInputRef = useRef(null);
+  const [importing, setImporting] = useState(false);
+  const [lastImport, setLastImport] = useState(null); // { name, added }
+  const [dragOver, setDragOver] = useState(false);
   const [sending, setSending] = useState(false);
 
   const loadBalance = useCallback(async () => {
@@ -238,7 +268,9 @@ export default function SmsPage() {
   const loadTransactions = useCallback(async () => {
     setTxLoading(true);
     try {
-      setTransactions(asList(await getSmsTransactions()).map(normalizeTransaction));
+      setTransactions(
+        asList(await getSmsTransactions()).map(normalizeTransaction),
+      );
     } catch {
       toast.error("Couldn't load SMS transactions.");
     } finally {
@@ -265,7 +297,68 @@ export default function SmsPage() {
   }, [loadBalance, loadPlans, loadTransactions, loadHistory]);
 
   // --- send ---
-  const recipients = useMemo(() => parseRecipients(recipientsRaw), [recipientsRaw]);
+  const recipients = useMemo(
+    () => parseRecipients(recipientsRaw),
+    [recipientsRaw],
+  );
+
+  // Read numbers from a CSV / .xlsx file and merge them into the recipients
+  // box (the same parser then validates, normalises and de-duplicates them).
+  const importRecipientFile = async (file) => {
+    if (!file || importing) return;
+    setImporting(true);
+    try {
+      const { tokens, scientific, column } = await readRecipientFile(file);
+      const existing = new Set(parseRecipients(recipientsRaw));
+      const fromFile = parseRecipients(tokens.join("\n"));
+      const added = fromFile.filter((n) => !existing.has(n));
+      const invalid = tokens.filter((t) => !parseRecipients(t).length).length;
+      const duplicates = fromFile.length - added.length;
+
+      if (!fromFile.length) {
+        toast.error(
+          scientific
+            ? "No usable numbers found — the file stores them in scientific notation (e.g. 2.33E+11). Format the phone column as Text and export again."
+            : `No valid phone numbers found in ${file.name}.`,
+        );
+        return;
+      }
+      if (added.length) {
+        setRecipientsRaw((prev) =>
+          [prev.trim(), added.join("\n")].filter(Boolean).join("\n"),
+        );
+      }
+      setLastImport({ name: file.name, added: added.length });
+
+      const skipped = [
+        duplicates && `${duplicates} already listed`,
+        invalid && `${invalid} invalid`,
+        scientific && `${scientific} in scientific notation`,
+      ].filter(Boolean);
+      toast.success(
+        `Imported ${added.length} number${added.length === 1 ? "" : "s"} from ${file.name}` +
+          (column ? ` (column: ${column})` : "") +
+          (skipped.length ? ` — skipped ${skipped.join(", ")}.` : "."),
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof RecipientFileError
+          ? err.message
+          : "Couldn't read that file. Try a .csv or .xlsx export.",
+      );
+      console.error("Recipient import error:", err);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const onRecipientDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) importRecipientFile(file);
+  };
   const segments = segmentsFor(message);
   const estimatedUnits = recipients.length * segments;
   const overBalance = balance !== null && estimatedUnits > balance;
@@ -285,13 +378,14 @@ export default function SmsPage() {
       // We submitted `recipients`, so that's the reliable count. Only override
       // with an explicit POSITIVE sent-count from the response (avoid ambiguous
       // "count", and never let a 0/absent field report "Sent to 0 recipients").
-      const reported = num(pick(res, ["sent", "sent_count", "total_sent", "recipient_count"]));
-      const sent = reported && reported > 0 ? reported : recipients.length;
-      toast.success(
-        `Sent to ${sent} recipient${sent === 1 ? "" : "s"}.`,
+      const reported = num(
+        pick(res, ["sent", "sent_count", "total_sent", "recipient_count"]),
       );
+      const sent = reported && reported > 0 ? reported : recipients.length;
+      toast.success(`Sent to ${sent} recipient${sent === 1 ? "" : "s"}.`);
       setMessage("");
       setRecipientsRaw("");
+      setLastImport(null);
       loadBalance();
       loadHistory();
     } catch (err) {
@@ -428,7 +522,22 @@ export default function SmsPage() {
                 />
               </div>
 
-              <div>
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (!dragOver) setDragOver(true);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget))
+                    setDragOver(false);
+                }}
+                onDrop={onRecipientDrop}
+                className={cn(
+                  "rounded-xl transition-colors",
+                  dragOver &&
+                    "bg-brand/5 ring-2 ring-brand/40 ring-offset-4 ring-offset-card",
+                )}
+              >
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className="text-sm font-medium">Recipients</label>
                   <span className="text-xs text-muted-foreground">
@@ -446,6 +555,61 @@ export default function SmsPage() {
                   One or many — separate with commas, spaces or new lines. Local
                   numbers (0XX…) are converted to 233… automatically.
                 </p>
+
+                {/* Bulk upload from CSV / Excel */}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={RECIPIENT_FILE_ACCEPT}
+                    className="hidden"
+                    onChange={(e) => importRecipientFile(e.target.files?.[0])}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={importing}
+                  >
+                    {importing ? (
+                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="mr-1.5 h-4 w-4" />
+                    )}
+                    {importing ? "Reading file…" : "Upload CSV or Excel"}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={downloadRecipientTemplate}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download template
+                  </button>
+                  {recipientsRaw.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecipientsRaw("");
+                        setLastImport(null);
+                      }}
+                      className="ml-auto text-xs font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  .csv or .xlsx, up to 5 MB — or drop the file here. A column
+                  headed “phone”, “mobile”, “number” or “contacts” is used if
+                  present.
+                </p>
+                {lastImport && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                    {lastImport.name} · {lastImport.added} added
+                  </p>
+                )}
                 {recipients.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {recipients.slice(0, 8).map((r) => (
