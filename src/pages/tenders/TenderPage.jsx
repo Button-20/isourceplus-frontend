@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Plus, Gavel, ArrowRight, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  Plus,
+  Gavel,
+  ArrowRight,
+  Trash2,
+} from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   format,
@@ -21,7 +28,9 @@ import {
 import { isOpenStatus } from "@/utils/status";
 
 const TenderPage = () => {
-  const { authAxios, jobTitle } = useAuth();
+  const { authAxios, jobTitle, viewMode } = useAuth();
+  // Suppliers respond to tenders rather than manage them (matches the sidebar).
+  const isSupplierView = viewMode === "supplier";
   const navigate = useNavigate();
   const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,13 +131,16 @@ const TenderPage = () => {
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
-              <Gavel className="h-3.5 w-3.5" /> Tender management
+              <Gavel className="h-3.5 w-3.5" />{" "}
+              {isSupplierView ? "Tender" : "Tender management"}
             </span>
             <h1 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
-              Tenders
+              {isSupplierView ? "Tender invitations" : "Tenders"}
             </h1>
             <p className="mt-2 max-w-lg text-sm text-white/85">
-              Publish tenders to the market and review supplier submissions.
+              {isSupplierView
+                ? "Browse tenders published to the market and submit your competitive bid."
+                : "Publish tenders to the market and review supplier submissions."}
             </p>
           </div>
           {jobTitle === "lead buyer" && (

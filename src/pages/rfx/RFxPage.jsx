@@ -14,7 +14,9 @@ import RFxCreateModal from "@/components/rfx/RFxCreateModal";
 import { isDraftStatus } from "@/utils/status";
 
 const RFxPage = () => {
-  const { authAxios, jobTitle } = useAuth();
+  const { authAxios, jobTitle, viewMode } = useAuth();
+  // Suppliers respond to RFxs rather than manage them (matches the sidebar).
+  const isSupplierView = viewMode === "supplier";
   const navigate = useNavigate();
   const [rfxs, setRfxs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,13 +103,16 @@ const RFxPage = () => {
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
-              <FileText className="h-3.5 w-3.5" /> RFx management
+              <FileText className="h-3.5 w-3.5" />{" "}
+              {isSupplierView ? "RFx" : "RFx management"}
             </span>
             <h1 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
-              Requests for quotation
+              {isSupplierView ? "RFx invitations" : "Requests for quotation"}
             </h1>
             <p className="mt-2 max-w-lg text-sm text-white/85">
-              Track your RFQs, RFPs, and RFIs and compare supplier responses.
+              {isSupplierView
+                ? "Browse RFQs, RFPs and RFIs from buyers and respond competitively with your proforma invoice."
+                : "Track your RFQs, RFPs, and RFIs and compare supplier responses."}
             </p>
           </div>
           {jobTitle === "lead buyer" && (
@@ -125,7 +130,8 @@ const RFxPage = () => {
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
         {loading ? (
           <div className="flex items-center justify-center gap-3 py-20 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin text-brand" /> Loading RFxs…
+            <Loader2 className="h-6 w-6 animate-spin text-brand" /> Loading
+            RFxs…
           </div>
         ) : (
           <div className="overflow-x-auto">

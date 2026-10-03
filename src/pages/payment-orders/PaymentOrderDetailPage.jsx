@@ -45,7 +45,8 @@ import {
   StatusBadge,
   DetailFooter,
 } from "@/components/detail/DetailShell";
-import { isDraftStatus } from "@/utils/status";
+import { isDraftStatus, normalizeStatus } from "@/utils/status";
+import WaybillPanel from "@/components/waybills/WaybillPanel";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -335,8 +336,18 @@ const PaymentOrderDetailPage = () => {
           subtitle={paymentOrder.ref_num}
           badge={
             <StatusBadge
-              label={isDraft ? "Open" : "Closed"}
-              tone={isDraft ? "open" : "closed"}
+              label={
+                isDraft
+                  ? "Open"
+                  : prettify(normalizeStatus(paymentOrder.status) || "closed")
+              }
+              tone={
+                isDraft
+                  ? "open"
+                  : normalizeStatus(paymentOrder.status) === "dispatched"
+                    ? "warn"
+                    : "closed"
+              }
             />
           }
         />
@@ -495,6 +506,11 @@ const PaymentOrderDetailPage = () => {
           </DetailFooter>
         )}
       </DetailCard>
+
+      {/* Waybill attached on dispatch (the payload's `wb` object). */}
+      {paymentOrder.wb && typeof paymentOrder.wb === "object" && (
+        <WaybillPanel waybill={paymentOrder.wb} />
+      )}
 
       {/* Dispatch form */}
       <Dialog
