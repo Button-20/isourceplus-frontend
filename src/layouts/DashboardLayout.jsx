@@ -158,6 +158,8 @@ export function DashboardLayout() {
     },
     {
       label: "Procurement",
+      // Suppliers sell rather than procure.
+      supplierLabel: "Sales Management",
       items: [
         {
           title: "RFx Management",
@@ -334,6 +336,10 @@ export function DashboardLayout() {
   const isSupplierView = !isTransporter && viewMode === "supplier";
   const navSections = NAV_SECTIONS.map((section) => ({
     ...section,
+    label:
+      isSupplierView && section.supplierLabel
+        ? section.supplierLabel
+        : section.label,
     items: section.items
       .filter((item) => !item.key || !hidden.has(item.key))
       .map((item) => {
