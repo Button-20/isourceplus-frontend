@@ -3,7 +3,15 @@ import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { getPriorityChoices } from "@/services/api/choices.service";
 import { normalizeChoices, prettify } from "@/utils/choices";
-import { Loader2, ArrowLeft, Trash2, Wallet, Save } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  Trash2,
+  Wallet,
+  Save,
+  Truck,
+  CheckCircle2,
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
@@ -37,8 +45,41 @@ import {
   StatusBadge,
   DetailFooter,
 } from "@/components/detail/DetailShell";
+import { isDraftStatus } from "@/utils/status";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
+
+// Dispatch form (POST payment-orders/{ref}/dispatch/). All fields required.
+const DISPATCH_FIELDS = [
+  {
+    name: "waybill_ref",
+    label: "Waybill reference",
+    placeholder: "WB-2026-00001",
+  },
+  {
+    name: "vehicle_number",
+    label: "Vehicle number",
+    placeholder: "GT-1234-24",
+  },
+  { name: "driver_name", label: "Driver name", placeholder: "Full name" },
+  {
+    name: "driver_phone",
+    label: "Driver phone",
+    placeholder: "0241234567",
+    type: "tel",
+    inputMode: "numeric",
+    maxLength: 10,
+    hint: "Local format starting with 0 (10 digits), not +233.",
+  },
+];
+const EMPTY_DISPATCH = {
+  waybill_ref: "",
+  vehicle_number: "",
+  driver_name: "",
+  driver_phone: "",
+};
+// Local Ghanaian mobile format: leading 0 + 9 digits.
+const PHONE_RE = /^0\d{9}$/;
 
 // Fallback only — the live list comes from GET priority-choices/.
 const PRIORITY_FALLBACK = [
@@ -54,6 +95,10 @@ const PaymentOrderDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [modalLoading, setModalLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchForm, setDispatchForm] = useState(EMPTY_DISPATCH);
+  const [dispatchErrors, setDispatchErrors] = useState({});
   const [formData, setFormData] = useState({
     title: "",
     priority: "",
@@ -134,6 +179,87 @@ const PaymentOrderDetailPage = () => {
     }
   };
 
+  const openDispatch = () => {
+    // Pre-fill the waybill ref if the order already references one.
+    setDispatchForm({
+      ...EMPTY_DISPATCH,
+      waybill_ref: typeof paymentOrder?.wb === "string" ? paymentOrder.wb : "",
+    });
+    setDispatchErrors({});
+    setShowDispatchModal(true);
+  };
+
+  const setDispatchField = (name, value) => {
+    setDispatchForm((f) => ({ ...f, [name]: value }));
+    setDispatchErrors((e) => (e[name] ? { ...e, [name]: undefined } : e));
+  };
+
+  const validateDispatch = () => {
+    const errors = {};
+    DISPATCH_FIELDS.forEach(({ name, label }) => {
+      if (!dispatchForm[name].trim()) errors[name] = `${label} is required.`;
+    });
+    const phone = dispatchForm.driver_phone.trim();
+    if (phone && !PHONE_RE.test(phone))
+      errors.driver_phone =
+        "Driver phone must start with 0 and be 10 digits (e.g. 0241234567).";
+    setDispatchErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // POST payment-orders/{ref}/dispatch/ with the waybill + driver details. The
+  // backend then attaches the goods delivery note / waybill; the order is
+  // reloaded so the page flips to "Dispatched". Irreversible.
+  const handleDispatch = async (e) => {
+    e?.preventDefault();
+    if (!canManage) {
+      toast.error("You cannot dispatch payment orders.");
+      setShowDispatchModal(false);
+      return;
+    }
+    if (!validateDispatch()) return;
+    setDispatching(true);
+    try {
+      const payload = Object.fromEntries(
+        Object.entries(dispatchForm).map(([k, v]) => [k, v.trim()]),
+      );
+      const { data } = await authAxios.post(
+        `payment-orders/${refNum}/dispatch/`,
+        payload,
+      );
+      toast.success(
+        data?.message || data?.detail || "Payment order dispatched.",
+      );
+      setShowDispatchModal(false);
+      try {
+        const fresh = await authAxios.get(`payment-orders/${refNum}/`);
+        setPaymentOrder(fresh.data);
+      } catch {
+        // The dispatch succeeded; a failed refresh just leaves stale data.
+      }
+    } catch (error) {
+      const data = error.response?.data;
+      // Field errors ({ driver_phone: ["…"] }) go inline; keep the form open.
+      const fieldErrors = {};
+      if (data && typeof data === "object") {
+        DISPATCH_FIELDS.forEach(({ name }) => {
+          const v = data[name] ?? data.errors?.[name];
+          if (v) fieldErrors[name] = Array.isArray(v) ? v[0] : String(v);
+        });
+      }
+      setDispatchErrors(fieldErrors);
+      toast.error(
+        data?.message ||
+          data?.detail ||
+          Object.values(fieldErrors)[0] ||
+          "Failed to dispatch payment order.",
+      );
+      console.error("Dispatch error:", error);
+    } finally {
+      setDispatching(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!canManage) {
       toast.error("You cannot delete payment orders.");
@@ -192,7 +318,10 @@ const PaymentOrderDetailPage = () => {
 
   const created = formatDateTime(paymentOrder.created_at);
   const updated = formatDateTime(paymentOrder.updated_at);
-  const isDraft = paymentOrder.status === "draft";
+  const isDraft = isDraftStatus(paymentOrder.status);
+  // Dispatched once the backend has attached a goods delivery note or waybill.
+  const isDispatched = Boolean(paymentOrder.gdn || paymentOrder.wb);
+  const canDispatch = canManage && isDraft && !isDispatched;
 
   return (
     <DetailPage
@@ -333,9 +462,129 @@ const PaymentOrderDetailPage = () => {
             >
               <Trash2 className="mr-1.5 h-4 w-4" /> Delete
             </Button>
+            {isDispatched ? (
+              <Button
+                disabled
+                className="bg-emerald-600 text-white disabled:opacity-100"
+              >
+                <CheckCircle2 className="mr-1.5 h-4 w-4" /> Dispatched
+              </Button>
+            ) : (
+              <Button
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+                onClick={openDispatch}
+                disabled={modalLoading || dispatching || !canDispatch}
+                title={
+                  !isDraft
+                    ? "Only open payment orders can be dispatched"
+                    : undefined
+                }
+              >
+                {dispatching ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Dispatching…
+                  </>
+                ) : (
+                  <>
+                    <Truck className="mr-1.5 h-4 w-4" /> Dispatch
+                  </>
+                )}
+              </Button>
+            )}
           </DetailFooter>
         )}
       </DetailCard>
+
+      {/* Dispatch form */}
+      <Dialog
+        open={showDispatchModal}
+        onOpenChange={(o) => !dispatching && setShowDispatchModal(o)}
+      >
+        <DialogContent className="font-montserrat sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Dispatch goods</DialogTitle>
+            <DialogDescription>
+              Enter the waybill and driver details for{" "}
+              <span className="font-medium text-foreground">
+                {paymentOrder.title || paymentOrder.ref_num}
+              </span>
+              . The buyer will be notified and this can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            id="dispatch-form"
+            onSubmit={handleDispatch}
+            noValidate
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+          >
+            {DISPATCH_FIELDS.map((f) => (
+              <div key={f.name}>
+                <label htmlFor={`dispatch-${f.name}`} className={labelClass}>
+                  {f.label} <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  id={`dispatch-${f.name}`}
+                  name={f.name}
+                  type={f.type || "text"}
+                  inputMode={f.inputMode}
+                  maxLength={f.maxLength}
+                  placeholder={f.placeholder}
+                  autoComplete="off"
+                  value={dispatchForm[f.name]}
+                  onChange={(e) => setDispatchField(f.name, e.target.value)}
+                  aria-invalid={Boolean(dispatchErrors[f.name])}
+                  className={
+                    dispatchErrors[f.name]
+                      ? "border-destructive focus-visible:ring-destructive"
+                      : undefined
+                  }
+                  disabled={dispatching}
+                />
+                {dispatchErrors[f.name] ? (
+                  <p className="mt-1 text-xs text-destructive">
+                    {dispatchErrors[f.name]}
+                  </p>
+                ) : (
+                  f.hint && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {f.hint}
+                    </p>
+                  )
+                )}
+              </div>
+            ))}
+          </form>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDispatchModal(false)}
+              disabled={dispatching}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="dispatch-form"
+              className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              disabled={dispatching}
+            >
+              {dispatching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Dispatching…
+                </>
+              ) : (
+                <>
+                  <Truck className="mr-1.5 h-4 w-4" /> Dispatch
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>

@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import VerifyOrganisation from "@/components/organisation/VerifyOrganisation";
 import { getCountryChoices } from "@/services/api/choices.service";
 import {
   createCompany,
@@ -193,7 +192,6 @@ const CompanyForm = () => {
   // TIN is used only to verify the organisation (POST verify-organisation/); the
   // company model doesn't store it, so it's kept out of `values` / the create
   // payload and persisted under its own draft key.
-  const [tin, setTin] = useState("");
   const [files, setFiles] = useState({ logo: null, image_front_view: null });
   const [filePreviews, setFilePreviews] = useState({
     logo: null,
@@ -241,8 +239,9 @@ const CompanyForm = () => {
     ) {
       setFilePreviews(parsedPreviews);
     }
-    const storedTin = storage.get("companyFormTin");
-    if (storedTin) setTin(storedTin);
+    // Clean up the TIN draft left by older builds (the TIN field no longer
+    // exists on registration — see note above the Company information section).
+    storage.remove("companyFormTin");
   }, []);
 
   // Static enums: country, company type, supplier type, region. Country gets a
@@ -402,25 +401,6 @@ const CompanyForm = () => {
     };
   }, [location.region]);
 
-  const handleTinChange = (next) => {
-    setTin(next);
-    if (next) storage.set("companyFormTin", next);
-    else storage.remove("companyFormTin");
-  };
-
-  // When the organisation is verified, adopt its official registered name if the
-  // user hasn't already typed a company name.
-  const handleOrganisationVerified = ({ organisationName }) => {
-    if (organisationName && !values.name.trim()) {
-      setValues((v) => {
-        const next = { ...v, name: organisationName };
-        persistValues(next);
-        return next;
-      });
-      toast.success("Company name filled from the verified organisation.");
-    }
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setValues((v) => {
@@ -511,13 +491,11 @@ const CompanyForm = () => {
     storage.remove("companyFormValues");
     storage.remove("companyFormLocation");
     storage.remove("companyFormFilePreviews");
-    storage.remove("companyFormTin");
   };
 
   const resetState = () => {
     setValues({ ...EMPTY_VALUES, country: defaultCountry(countryChoices) });
     setLocation(EMPTY_LOCATION);
-    setTin("");
     setFiles({ logo: null, image_front_view: null });
     setFilePreviews({ logo: null, image_front_view: null });
   };
@@ -601,19 +579,15 @@ const CompanyForm = () => {
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Company information */}
+      {/* Company information. TIN verification is deliberately NOT here: the
+          backend's verify-organisation endpoint needs an existing organisation
+          ("Register an organisation to verify"), so it can only succeed after
+          registration — it lives on the Edit company page instead. */}
       <section className="border-b border-border pb-6">
         <h2 className="mb-4 font-display text-base font-semibold">
           Company information
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <VerifyOrganisation
-              value={tin}
-              onChange={handleTinChange}
-              onVerified={handleOrganisationVerified}
-            />
-          </div>
-
           <div className="sm:col-span-2">
             <label className={labelClass}>
               Company name <span className="text-destructive">*</span>

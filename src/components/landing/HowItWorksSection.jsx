@@ -16,12 +16,36 @@ const ROLES = [
     label: "Buyers",
     image: "/image-1790564192757.webp",
     steps: [
-      "Register",
-      "Issue an RFx & engage the supplier market",
-      "Analyze proforma and issue a purchase order",
-      "Receive a sales invoice",
-      "Receive Goods Received Note and make payments",
-      "Receive payment receipt",
+      {
+        title: "Register",
+        description:
+          "Create your verified buyer account in minutes and set up your organisation.",
+      },
+      {
+        title: "RFx",
+        description:
+          "Issue a request for quotation, proposal or information and engage the whole supplier market at once.",
+      },
+      {
+        title: "Proforma Invoice",
+        description:
+          "Compare the competitive proforma offers you receive and award the best one with a purchase order.",
+      },
+      {
+        title: "Sales Invoice",
+        description:
+          "Receive the supplier's sales invoice and lodge funds securely into escrow against it.",
+      },
+      {
+        title: "Goods Received Note",
+        description:
+          "Confirm delivery with a Goods Received Note so payment is released only for what arrived.",
+      },
+      {
+        title: "Payment Receipts",
+        description:
+          "Get a payment receipt for every settlement, all kept in one place for your records.",
+      },
     ],
   },
   {
@@ -29,12 +53,36 @@ const ROLES = [
     label: "Suppliers",
     image: "/image-1790564184330.webp",
     steps: [
-      "Register",
-      "Receive and respond competitively to RFx",
-      "Receive purchase order and issue sales invoice",
-      "Supply goods with a waybill",
-      "Issue Goods Delivery Note and serve payment order",
-      "Issue payment receipt",
+      {
+        title: "Register",
+        description:
+          "Create your verified supplier profile and showcase the goods and services you offer.",
+      },
+      {
+        title: "RFx Response",
+        description:
+          "Receive RFx invitations from buyers and respond competitively with a proforma invoice.",
+      },
+      {
+        title: "Purchase Order",
+        description:
+          "Win the award, receive the purchase order and issue your sales invoice against it.",
+      },
+      {
+        title: "Waybill",
+        description:
+          "Raise a waybill and invite cargo transporters to bid for the delivery, or deliver it yourself.",
+      },
+      {
+        title: "Goods Delivery Note",
+        description:
+          "Issue a Goods Delivery Note on delivery and serve the payment order to trigger release from escrow.",
+      },
+      {
+        title: "Payment Receipts",
+        description:
+          "Issue a payment receipt once funds land and keep every receipt on record.",
+      },
     ],
   },
   {
@@ -42,12 +90,36 @@ const ROLES = [
     label: "Cargo Transporters",
     image: "/image-1790564198373.webp",
     steps: [
-      "Register",
-      "Receive and respond competitively to waybill offers",
-      "Receive purchase order and issue sales invoice",
-      "Use Google Maps to transport cargo with a waybill",
-      "Issue Goods Delivery Note and serve payment order",
-      "Issue payment receipt",
+      {
+        title: "Register",
+        description:
+          "Create your verified transporter profile with your fleet, routes and transport modes.",
+      },
+      {
+        title: "Waybill Offer",
+        description:
+          "Receive waybill invitations from suppliers and respond competitively with your delivery offer.",
+      },
+      {
+        title: "Purchase Order & Sales Invoice",
+        description:
+          "Win the job, receive the purchase order and issue your sales invoice for the haul.",
+      },
+      {
+        title: "Google Maps",
+        description:
+          "Navigate the delivery with Google Maps while the waybill tracks the cargo end to end.",
+      },
+      {
+        title: "Goods Received Note",
+        description:
+          "Hand over the cargo and have the buyer confirm it with a Goods Received Note.",
+      },
+      {
+        title: "Payment Receipt",
+        description:
+          "Issue a payment receipt once you are paid and keep it on record for every trip.",
+      },
     ],
   },
 ];
@@ -119,13 +191,18 @@ export default function HowItWorksSection() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {role.steps.map((step, i) => (
               <div
-                key={step}
+                key={step.title}
                 className="relative rounded-2xl border border-border/70 bg-card p-5"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-gradient font-display text-base font-bold text-brand-foreground">
                   {i + 1}
                 </div>
-                <p className="mt-4 text-sm font-medium">{step}</p>
+                <h3 className="mt-4 font-display text-lg font-semibold">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {step.description}
+                </p>
               </div>
             ))}
           </div>

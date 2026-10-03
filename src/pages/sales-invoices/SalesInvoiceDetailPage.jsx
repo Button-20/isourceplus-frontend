@@ -47,6 +47,8 @@ import {
   DetailFooter,
 } from "@/components/detail/DetailShell";
 import { isDraftStatus } from "@/utils/status";
+import LineItemsTable from "@/components/detail/LineItemsTable";
+import { formatMoney } from "@/utils/money";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -123,6 +125,10 @@ const SalesInvoiceDetailPage = () => {
   const handleUpdate = async () => {
     if (!canManage) {
       toast.error("You cannot update sales invoices.");
+      return;
+    }
+    if (!isDraftStatus(salesInvoice?.status)) {
+      toast.error("Published sales invoices can't be updated.");
       return;
     }
     setModalLoading(true);
@@ -249,6 +255,10 @@ const SalesInvoiceDetailPage = () => {
   const created = formatDateTime(salesInvoice.created_at);
   const updated = formatDateTime(salesInvoice.updated_at);
   const isDraft = isDraftStatus(salesInvoice.status);
+  // Once published (no longer a draft) the invoice is locked: its fields are
+  // read-only and Update is disabled.
+  const isPublished = !isDraft;
+  const canEdit = canManage && !isPublished;
 
   return (
     <DetailPage
@@ -278,7 +288,7 @@ const SalesInvoiceDetailPage = () => {
                   onChange={(e) =>
                     setFormData((p) => ({ ...p, title: e.target.value }))
                   }
-                  disabled={!canManage}
+                  disabled={!canEdit}
                 />
               </div>
               <div>
@@ -289,7 +299,7 @@ const SalesInvoiceDetailPage = () => {
                   onChange={(e) =>
                     setFormData((p) => ({ ...p, notes: e.target.value }))
                   }
-                  disabled={!canManage}
+                  disabled={!canEdit}
                 />
               </div>
               <div>
@@ -299,7 +309,7 @@ const SalesInvoiceDetailPage = () => {
                   onValueChange={(v) =>
                     setFormData((p) => ({ ...p, priority: v }))
                   }
-                  disabled={!canManage}
+                  disabled={!canEdit}
                 >
                   <SelectTrigger className="h-10 w-full">
                     <SelectValue />
@@ -317,7 +327,12 @@ const SalesInvoiceDetailPage = () => {
             <div className="space-y-1">
               <Row label="Reference">{salesInvoice.ref_num}</Row>
               <Row label="Spend category">{salesInvoice.spend_category}</Row>
-              <Row label="Total cost">{salesInvoice.total_cost}</Row>
+              <Row label="Total sales value">
+                {formatMoney(
+                  salesInvoice.total_sales_value ?? salesInvoice.total_cost,
+                  salesInvoice.currency,
+                )}
+              </Row>
               <Row label="Purchase order ref">{salesInvoice.po_ref_num}</Row>
               <Row label="Issuing company">
                 {salesInvoice.issuing_company_name}
@@ -359,48 +374,31 @@ const SalesInvoiceDetailPage = () => {
         </Section>
 
         <Section title="Items">
-          {salesInvoice.items?.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-border/70">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-4 py-2.5 font-medium">#</th>
-                    <th className="px-4 py-2.5 font-medium">Name</th>
-                    <th className="px-4 py-2.5 font-medium">Description</th>
-                    <th className="px-4 py-2.5 font-medium">Quantity</th>
-                    <th className="px-4 py-2.5 font-medium">Unit</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {salesInvoice.items.map((item, i) => (
-                    <tr key={item.id}>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {i + 1}
-                      </td>
-                      <td className="px-4 py-2.5 font-medium">{item.name}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {item.description || "N/A"}
-                      </td>
-                      <td className="px-4 py-2.5">{item.quantity}</td>
-                      <td className="px-4 py-2.5">{item.unit_of_measure}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No items available.
-            </p>
-          )}
+          <LineItemsTable
+            items={salesInvoice.items}
+            total={salesInvoice.total_sales_value ?? salesInvoice.total_cost}
+            totalLabel="Total sales value"
+            currency={salesInvoice.currency}
+          />
         </Section>
 
         {canManage && (
           <DetailFooter>
+            {isPublished && (
+              <p className="mr-auto text-xs text-muted-foreground">
+                This sales invoice has been published and can no longer be
+                edited.
+              </p>
+            )}
             <Button
               variant="outline"
               onClick={handleUpdate}
-              disabled={modalLoading}
+              disabled={modalLoading || isPublished}
+              title={
+                isPublished
+                  ? "Published sales invoices can't be updated"
+                  : undefined
+              }
             >
               <Save className="mr-1.5 h-4 w-4" /> Update
             </Button>

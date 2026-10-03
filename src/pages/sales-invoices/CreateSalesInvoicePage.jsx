@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { getCurrencyChoices } from "@/services/api/choices.service";
 import { normalizeChoices } from "@/utils/choices";
+import LineItemsTable from "@/components/detail/LineItemsTable";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -46,6 +47,8 @@ const normalizeItem = (item) => ({
   unit_of_measure: item?.unit_of_measure ?? "",
   quantity: item?.quantity ?? "",
   unit_price: item?.unit_price ?? "",
+  // Display only (not in ITEM_SCALAR_KEYS, so never posted back).
+  extended_value: item?.extended_value ?? "",
   extra_value: item?.extra_value ?? "",
   extra_value_TnCs: item?.extra_value_TnCs ?? "",
   // Auto-population returns a URL/string for existing attachments; only a
@@ -74,6 +77,9 @@ const CreateSalesInvoicePage = () => {
     items: [],
   });
   const [currencyOptions, setCurrencyOptions] = useState(FALLBACK_CURRENCIES);
+  // Total carried over from the purchase order, when the backend provides one;
+  // otherwise the items table sums the rows' extended values.
+  const [autoTotal, setAutoTotal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -105,6 +111,7 @@ const CreateSalesInvoicePage = () => {
           `/sales-invoices/create-sales-invoice/?event_ref_num=${eventRefNum}&mn=${mn}`,
         );
         const auto = response.data.auto_population_data || {};
+        setAutoTotal(auto.total_sales_value ?? auto.total_cost ?? null);
         setFormData((prev) => ({
           ...prev,
           spend_category: auto.spend_category || "",
@@ -177,7 +184,11 @@ const CreateSalesInvoicePage = () => {
           ? `Sales invoice created. ${body.message}`
           : "Sales invoice created successfully!",
       );
-      navigate(refNum ? `/dashboard/sales-invoices/${refNum}` : "/dashboard/sales-invoices");
+      navigate(
+        refNum
+          ? `/dashboard/sales-invoices/${refNum}`
+          : "/dashboard/sales-invoices",
+      );
     } catch (error) {
       toast.error(
         error.response?.data?.detail ||
@@ -306,67 +317,12 @@ const CreateSalesInvoicePage = () => {
               <Sparkles className="h-3 w-3" /> Auto-populated
             </span>
           </h2>
-          {formData.items.length > 0 ? (
-            <div className="space-y-4">
-              {formData.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl border border-border/70 p-4 text-sm"
-                >
-                  <p>
-                    <span className="font-medium text-muted-foreground">
-                      Name:
-                    </span>{" "}
-                    {item.name || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium text-muted-foreground">
-                      Description:
-                    </span>{" "}
-                    {item.description || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium text-muted-foreground">
-                      Quantity:
-                    </span>{" "}
-                    {item.quantity} {item.unit_of_measure}
-                  </p>
-                  <p>
-                    <span className="font-medium text-muted-foreground">
-                      Unit price:
-                    </span>{" "}
-                    {item.unit_price !== "" ? item.unit_price : "N/A"}
-                  </p>
-                  {item.extra_value !== "" && (
-                    <p>
-                      <span className="font-medium text-muted-foreground">
-                        Extra value:
-                      </span>{" "}
-                      {item.extra_value}
-                      {item.extra_value_TnCs !== "" && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          ({item.extra_value_TnCs})
-                        </span>
-                      )}
-                    </p>
-                  )}
-                  <p>
-                    <span className="font-medium text-muted-foreground">
-                      Special handling:
-                    </span>{" "}
-                    {item.special_handles.length > 0
-                      ? item.special_handles
-                          .map((h) => h.handling_description)
-                          .join(", ")
-                      : "None"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No items available.</p>
-          )}
+          <LineItemsTable
+            items={formData.items}
+            total={autoTotal}
+            totalLabel="Total sales value"
+            currency={formData.currency}
+          />
         </div>
 
         <div className="flex justify-end gap-3 border-t border-border pt-5">

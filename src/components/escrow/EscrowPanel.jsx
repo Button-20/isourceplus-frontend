@@ -89,7 +89,11 @@ const conditionLabel = (type) =>
   CONDITION_LABELS[type] || { title: prettify(type || ""), hint: "" };
 
 // Party type -> icon.
-const PARTY_ICONS = { buyer: Building2, supplier: Building2, transporter: Truck };
+const PARTY_ICONS = {
+  buyer: Building2,
+  supplier: Building2,
+  transporter: Truck,
+};
 
 // Show only the tail of an account number: "•••• 5242".
 const maskAccount = (value) => {
@@ -112,10 +116,20 @@ function Stat({ label, value, accent }) {
 function FeeRow({ label, value, currency, strong }) {
   return (
     <div className="flex items-center justify-between py-1.5 text-sm">
-      <span className={cn("text-muted-foreground", strong && "font-medium text-foreground")}>
+      <span
+        className={cn(
+          "text-muted-foreground",
+          strong && "font-medium text-foreground",
+        )}
+      >
         {label}
       </span>
-      <span className={cn("tabular-nums", strong && "font-semibold text-foreground")}>
+      <span
+        className={cn(
+          "tabular-nums",
+          strong && "font-semibold text-foreground",
+        )}
+      >
         {money(value, currency)}
       </span>
     </div>
@@ -317,6 +331,14 @@ export default function EscrowPanel({ escrow }) {
 
                     <dl className="mt-3 space-y-1.5 text-sm">
                       <div className="flex justify-between gap-3">
+                        <dt className="text-muted-foreground">Party type</dt>
+                        <dd className="text-right">
+                          {party.party_type
+                            ? prettify(String(party.party_type).toLowerCase())
+                            : "—"}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-3">
                         <dt className="text-muted-foreground">TIN</dt>
                         <dd className="text-right tabular-nums">
                           {party.tin_number || "—"}
@@ -366,12 +388,20 @@ export default function EscrowPanel({ escrow }) {
                       </div>
                       {party.id && (
                         <div className="flex justify-between gap-3">
-                          <dt className="text-muted-foreground">Verification ID</dt>
+                          <dt className="text-muted-foreground">
+                            Verification ID
+                          </dt>
                           <dd className="text-right text-xs text-muted-foreground">
                             {party.id}
                           </dd>
                         </div>
                       )}
+                      <div className="flex justify-between gap-3">
+                        <dt className="text-muted-foreground">Escrow ID</dt>
+                        <dd className="text-right text-xs text-muted-foreground">
+                          {party.escrow || escrow.escrow_id || "—"}
+                        </dd>
+                      </div>
                     </dl>
                   </div>
                 );
@@ -469,9 +499,7 @@ export default function EscrowPanel({ escrow }) {
                           <span
                             className={cn(
                               "inline-flex items-center gap-1 font-medium",
-                              isCredit
-                                ? "text-emerald-400"
-                                : "text-rose-400",
+                              isCredit ? "text-emerald-400" : "text-rose-400",
                             )}
                           >
                             {isCredit ? (

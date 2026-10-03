@@ -20,6 +20,7 @@ import {
   getFundEscrowChoices,
 } from "@/services/api/choices.service";
 import { normalizeChoices } from "@/utils/choices";
+import LineItemsTable from "@/components/detail/LineItemsTable";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -59,7 +60,10 @@ const normalizeSpecialHandles = (handles) =>
       typeof h === "string"
         ? { handling_description: h }
         : h && typeof h === "object"
-          ? { handling_description: h.handling_description ?? h.description ?? "" }
+          ? {
+              handling_description:
+                h.handling_description ?? h.description ?? "",
+            }
           : null,
     )
     .filter((h) => h && hasValue(h.handling_description));
@@ -121,6 +125,9 @@ const PurchaseOrderCreationPage = () => {
     FALLBACK_PAYMENT_CHANNELS,
   );
   const [currencyChoices, setCurrencyChoices] = useState(FALLBACK_CURRENCIES);
+  // Total carried over from the proforma, when the backend provides one;
+  // otherwise the items table sums the rows' extended values.
+  const [autoTotal, setAutoTotal] = useState(null);
   const [fundEscrowChoices, setFundEscrowChoices] =
     useState(FALLBACK_FUND_ESCROW);
   const [error, setError] = useState(null);
@@ -171,7 +178,12 @@ const PurchaseOrderCreationPage = () => {
       setPaymentChannelChoices,
       "preferred_payment_channel",
     );
-    load(getCurrencyChoices, FALLBACK_CURRENCIES, setCurrencyChoices, "currency");
+    load(
+      getCurrencyChoices,
+      FALLBACK_CURRENCIES,
+      setCurrencyChoices,
+      "currency",
+    );
     load(
       getFundEscrowChoices,
       FALLBACK_FUND_ESCROW,
@@ -188,7 +200,9 @@ const PurchaseOrderCreationPage = () => {
     const fetchAutoPopulationData = async () => {
       if (
         !redirectUrl ||
-        !redirectUrl.startsWith("/api/v1/purchase-orders/create-business-award/")
+        !redirectUrl.startsWith(
+          "/api/v1/purchase-orders/create-business-award/",
+        )
       ) {
         setError("Invalid document creation URL.");
         setLoading(false);
@@ -197,10 +211,12 @@ const PurchaseOrderCreationPage = () => {
       try {
         const cleanUrl = redirectUrl.replace(/^\/api\/v1/, "");
         const response = await authAxios.get(cleanUrl);
+        const auto = response.data.auto_population_data || {};
+        setAutoTotal(auto.total_sales_value ?? auto.total_cost ?? null);
         setFormData((prev) => ({
           ...prev,
-          spend_category: response.data.auto_population_data?.spend_category || "",
-          items: response.data.auto_population_data?.items || [],
+          spend_category: auto.spend_category || "",
+          items: auto.items || [],
         }));
       } catch (err) {
         const errorMessage =
@@ -391,64 +407,12 @@ const PurchaseOrderCreationPage = () => {
               <Sparkles className="h-3 w-3" /> Auto-populated
             </span>
           </h2>
-          {formData.items.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-border/70">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-4 py-2.5 font-medium">Name</th>
-                    <th className="px-4 py-2.5 font-medium">Description</th>
-                    <th className="px-4 py-2.5 font-medium">Qty</th>
-                    <th className="px-4 py-2.5 font-medium">Unit</th>
-                    <th className="px-4 py-2.5 font-medium">Unit price</th>
-                    <th className="px-4 py-2.5 font-medium">Extra value</th>
-                    <th className="px-4 py-2.5 font-medium">Special handling</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {formData.items.map((item, index) => {
-                    const handles = normalizeSpecialHandles(
-                      item.special_handles,
-                    );
-                    return (
-                      <tr key={index}>
-                        <td className="px-4 py-2.5 font-medium">{item.name}</td>
-                        <td className="px-4 py-2.5 text-muted-foreground">
-                          {item.description || "N/A"}
-                        </td>
-                        <td className="px-4 py-2.5">{item.quantity}</td>
-                        <td className="px-4 py-2.5">{item.unit_of_measure}</td>
-                        <td className="px-4 py-2.5">{item.unit_price}</td>
-                        <td className="px-4 py-2.5 text-muted-foreground">
-                          {hasValue(item.extra_value) ? (
-                            <>
-                              {item.extra_value}
-                              {hasValue(item.extra_value_TnCs) && (
-                                <span className="block text-xs">
-                                  {item.extra_value_TnCs}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            "N/A"
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5 text-muted-foreground">
-                          {handles.length
-                            ? handles
-                                .map((h) => h.handling_description)
-                                .join("; ")
-                            : "N/A"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No items available.</p>
-          )}
+          <LineItemsTable
+            items={formData.items}
+            total={autoTotal}
+            totalLabel="Total sales value"
+            currency={formData.currency}
+          />
         </div>
 
         <div className="flex justify-end gap-3 border-t border-border pt-5">

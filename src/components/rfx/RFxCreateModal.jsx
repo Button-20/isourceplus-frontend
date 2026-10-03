@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  Pencil,
+  Paperclip,
 } from "lucide-react";
 
 import { useAuth } from "@/services/context/app.context";
@@ -86,8 +88,48 @@ const UNITS = [
   { value: "l", label: "Liter" },
 ];
 
-const STEPS = ["Details", "Reach", "Items"];
+const STEPS = ["Details", "Reach", "Items", "Review"];
+const REVIEW_STEP = STEPS.length - 1;
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
+
+// Review-step helpers: show the option label (not the raw enum value) and
+// readable dates.
+const labelFor = (options, value) =>
+  options.find((o) => o.value === value)?.label ?? (value || "—");
+const fmtDateTime = (v) => {
+  if (!v) return "—";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime())
+    ? String(v)
+    : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+};
+
+function ReviewSection({ title, onEdit, children }) {
+  return (
+    <section className="rounded-xl border border-border/70 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="font-display text-sm font-semibold">{title}</h3>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+        >
+          <Pencil className="h-3.5 w-3.5" /> Edit
+        </button>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ReviewRow({ label, children, wide = false }) {
+  return (
+    <div className={wide ? "sm:col-span-2" : undefined}>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 break-words text-sm font-medium">{children}</dd>
+    </div>
+  );
+}
 
 // Backend expects full ISO strings; datetime-local gives "YYYY-MM-DDTHH:mm".
 const toISO = (v) => (v ? new Date(v).toISOString() : "");
@@ -349,8 +391,8 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
     if (!o) reset();
   };
 
-  const validateStep = () => {
-    if (step === 0) {
+  const validateDetails = () => {
+    {
       if (!values.title.trim()) {
         toast.error("Title is required");
         return false;
@@ -374,14 +416,22 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
         return false;
       }
     }
-    if (step === 1) {
+    return true;
+  };
+
+  const validateReach = () => {
+    {
       const reachFields = ["region", "district"];
       if (reachFields.some((f) => values[f]) && !values.region) {
         toast.error("Region is required when providing reach details");
         return false;
       }
     }
-    if (step === 2) {
+    return true;
+  };
+
+  const validateItems = () => {
+    {
       if (!values.items.length) {
         toast.error("Add at least one item");
         return false;
@@ -399,6 +449,12 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
     }
     return true;
   };
+
+  // The review step re-runs every earlier step's checks (stopping at the first
+  // failure so only one toast shows) before the RFx is created.
+  const validators = [validateDetails, validateReach, validateItems];
+  const validateStep = () =>
+    step === REVIEW_STEP ? validators.every((v) => v()) : validators[step]();
 
   const next = () => {
     if (validateStep()) setStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -942,6 +998,156 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
               >
                 <Plus className="h-4 w-4" /> Add item
               </Button>
+            </div>
+          )}
+
+          {step === REVIEW_STEP && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Check everything below before creating the RFx. Use Edit to jump
+                back to a step.
+              </p>
+
+              <ReviewSection title="Details" onEdit={() => setStep(0)}>
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                  <ReviewRow label="Title" wide>
+                    {values.title || "—"}
+                  </ReviewRow>
+                  <ReviewRow label="Description" wide>
+                    <span className="whitespace-pre-wrap font-normal">
+                      {values.description || "—"}
+                    </span>
+                  </ReviewRow>
+                  <ReviewRow label="Spend category">
+                    {labelFor(spendCategoryChoices, values.spend_category)}
+                  </ReviewRow>
+                  <ReviewRow label="Type">
+                    {labelFor(typeChoices, values.type)}
+                  </ReviewRow>
+                  <ReviewRow label="Method">
+                    {labelFor(methodChoices, values.method)}
+                  </ReviewRow>
+                  <ReviewRow label="Procurement type">
+                    {labelFor(procurementTypeChoices, values.procurement_type)}
+                  </ReviewRow>
+                  <ReviewRow label="Procedure">
+                    {labelFor(procedureChoices, values.procedure)}
+                  </ReviewRow>
+                  <ReviewRow label="Priority">
+                    {labelFor(priorityChoices, values.priority)}
+                  </ReviewRow>
+                  <ReviewRow label="Start date">
+                    {fmtDateTime(values.start_datetime)}
+                  </ReviewRow>
+                  <ReviewRow label="Submission date">
+                    {fmtDateTime(values.submission_datetime)}
+                  </ReviewRow>
+                  <ReviewRow label="Delivery">
+                    {labelFor(deliveryChoices, values.do_delivery)}
+                  </ReviewRow>
+                  <ReviewRow label="Delivery deadline">
+                    {fmtDateTime(values.delivery_deadline)}
+                  </ReviewRow>
+                  <ReviewRow label="Delivery address" wide>
+                    {values.delivery_address || "—"}
+                  </ReviewRow>
+                  {values.note && (
+                    <ReviewRow label="Note" wide>
+                      <span className="whitespace-pre-wrap font-normal">
+                        {values.note}
+                      </span>
+                    </ReviewRow>
+                  )}
+                  <ReviewRow label="Approval">
+                    {values.is_approved ? "Marked as approved" : "Not approved"}
+                  </ReviewRow>
+                </dl>
+              </ReviewSection>
+
+              <ReviewSection title="Reach" onEdit={() => setStep(1)}>
+                {values.region ? (
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                    <ReviewRow label="Region">
+                      {labelFor(regionChoices, values.region)}
+                    </ReviewRow>
+                    <ReviewRow label="District">
+                      {values.district
+                        ? labelFor(districtChoices, values.district)
+                        : "All districts"}
+                    </ReviewRow>
+                  </dl>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No reach restriction — open to the whole market.
+                  </p>
+                )}
+              </ReviewSection>
+
+              <ReviewSection
+                title={`Items (${values.items.length})`}
+                onEdit={() => setStep(2)}
+              >
+                <div className="overflow-x-auto rounded-lg border border-border/60">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                        <th className="px-3 py-2 font-medium">#</th>
+                        <th className="px-3 py-2 font-medium">Item</th>
+                        <th className="px-3 py-2 text-right font-medium">Qty</th>
+                        <th className="px-3 py-2 font-medium">Unit</th>
+                        <th className="px-3 py-2 text-right font-medium">
+                          Discount
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {values.items.map((it, i) => (
+                        <tr key={i} className="align-top">
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {i + 1}
+                          </td>
+                          <td className="px-3 py-2">
+                            <p className="font-medium">{it.name || "—"}</p>
+                            {it.description && (
+                              <p className="text-xs text-muted-foreground">
+                                {it.description}
+                              </p>
+                            )}
+                            {it.special_handles?.length > 0 && (
+                              <ul className="mt-1 list-disc pl-4 text-xs text-muted-foreground">
+                                {it.special_handles.map((h, j) => (
+                                  <li key={j}>
+                                    {typeof h === "string"
+                                      ? h
+                                      : h?.handling_description || ""}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            {it.attachment && (
+                              <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                <Paperclip className="h-3 w-3" />
+                                {it.attachment.name || "Attachment"}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {it.quantity}
+                          </td>
+                          <td className="px-3 py-2">
+                            {labelFor(unitChoices, it.unit_of_measure)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {it.discount !== "" && it.discount != null
+                              ? it.discount
+                              : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </ReviewSection>
             </div>
           )}
         </div>

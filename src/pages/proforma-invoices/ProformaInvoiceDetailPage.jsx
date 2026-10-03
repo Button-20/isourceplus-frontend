@@ -21,6 +21,8 @@ import {
   DetailFooter,
 } from "@/components/detail/DetailShell";
 import { isDraftStatus } from "@/utils/status";
+import LineItemsTable from "@/components/detail/LineItemsTable";
+import { formatMoney } from "@/utils/money";
 
 const ProformaInvoiceDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -168,7 +170,9 @@ const ProformaInvoiceDetailPage = () => {
             </Row>
             <Row label="Active">{invoice.is_active ? "Yes" : "No"}</Row>
             <Row label="Approved">{invoice.is_approved ? "Yes" : "No"}</Row>
-            <Row label="Total cost">{invoice.total_cost}</Row>
+            <Row label="Total cost">
+              {formatMoney(invoice.total_cost, invoice.currency)}
+            </Row>
             <Row label="Waybill reference">
               {invoice.external_event_ref_num || "N/A"}
             </Row>
@@ -176,57 +180,11 @@ const ProformaInvoiceDetailPage = () => {
         </Section>
 
         <Section title="Items">
-          {invoice.items?.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-border/70">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-4 py-2.5 font-medium">#</th>
-                    <th className="px-4 py-2.5 font-medium">Name</th>
-                    <th className="px-4 py-2.5 font-medium">Description</th>
-                    <th className="px-4 py-2.5 font-medium">Qty</th>
-                    <th className="px-4 py-2.5 font-medium">Unit</th>
-                    <th className="px-4 py-2.5 font-medium">Special handling</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {invoice.items.map((item, i) => (
-                    <tr key={item.id}>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {i + 1}
-                      </td>
-                      <td className="px-4 py-2.5 font-medium">{item.name}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {item.description || "N/A"}
-                      </td>
-                      <td className="px-4 py-2.5">{item.quantity}</td>
-                      <td className="px-4 py-2.5">{item.unit_of_measure}</td>
-                      <td className="px-4 py-2.5">
-                        {item.special_handles?.length > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            {item.special_handles.map((sh) => (
-                              <span
-                                key={sh.id}
-                                className="text-muted-foreground"
-                              >
-                                {sh.handling_description}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          "N/A"
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No items available.
-            </p>
-          )}
+          <LineItemsTable
+            items={invoice.items}
+            total={invoice.total_cost}
+            currency={invoice.currency}
+          />
         </Section>
 
         {canSendPurchaseOrder && (

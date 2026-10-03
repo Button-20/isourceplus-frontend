@@ -24,6 +24,8 @@ import {
   StatusBadge,
   DetailFooter,
 } from "@/components/detail/DetailShell";
+import LineItemsTable from "@/components/detail/LineItemsTable";
+import { formatMoney } from "@/utils/money";
 
 const statusTone = (status) => {
   const s = String(status || "").toLowerCase();
@@ -160,7 +162,10 @@ const PurchaseOrderDetailPage = () => {
     jobTitle === "sales manager" || jobTitle === "logistics manager";
 
   return (
-    <DetailPage onBack={() => navigate(backTo)} backLabel="Back to purchase orders">
+    <DetailPage
+      onBack={() => navigate(backTo)}
+      backLabel="Back to purchase orders"
+    >
       <DetailCard>
         <DetailHeader
           icon={ShoppingCart}
@@ -194,7 +199,12 @@ const PurchaseOrderDetailPage = () => {
                 : "N/A"}
             </Row>
             <Row label="VAT type">{purchaseOrder.vat_type || "N/A"}</Row>
-            <Row label="Total cost">{purchaseOrder.total_cost}</Row>
+            <Row label="Total sales value">
+              {formatMoney(
+                purchaseOrder.total_sales_value ?? purchaseOrder.total_cost,
+                purchaseOrder.currency,
+              )}
+            </Row>
             <Row label="Proforma reference">
               {purchaseOrder.proforma_ref_num || "N/A"}
             </Row>
@@ -202,40 +212,12 @@ const PurchaseOrderDetailPage = () => {
         </Section>
 
         <Section title="Items">
-          {purchaseOrder.items?.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-border/70">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-4 py-2.5 font-medium">#</th>
-                    <th className="px-4 py-2.5 font-medium">Name</th>
-                    <th className="px-4 py-2.5 font-medium">Description</th>
-                    <th className="px-4 py-2.5 font-medium">Quantity</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {purchaseOrder.items.map((item, i) => (
-                    <tr key={item.id}>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {i + 1}
-                      </td>
-                      <td className="px-4 py-2.5 font-medium">{item.name}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">
-                        {item.description || "N/A"}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {item.quantity} {item.unit_of_measure}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No items available.
-            </p>
-          )}
+          <LineItemsTable
+            items={purchaseOrder.items}
+            total={purchaseOrder.total_sales_value ?? purchaseOrder.total_cost}
+            totalLabel="Total sales value"
+            currency={purchaseOrder.currency}
+          />
         </Section>
 
         {(canFundEscrow || canSendSalesInvoice) && (
@@ -259,7 +241,8 @@ const PurchaseOrderDetailPage = () => {
               >
                 {modalLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Processing…
                   </>
                 ) : (
                   <>
@@ -303,7 +286,11 @@ const PurchaseOrderDetailPage = () => {
         )
       )}
 
-      <QuestionsForum entity="purchase-order" refNum={refNum} className="mt-6" />
+      <QuestionsForum
+        entity="purchase-order"
+        refNum={refNum}
+        className="mt-6"
+      />
 
       <FundEscrowModal
         open={fundOpen}

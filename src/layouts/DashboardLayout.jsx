@@ -161,6 +161,8 @@ export function DashboardLayout() {
       items: [
         {
           title: "RFx Management",
+          // Suppliers don't manage RFxs/tenders, they respond to them.
+          supplierTitle: "RFx",
           icon: FileText,
           key: "rfx",
           submenu: [
@@ -175,6 +177,7 @@ export function DashboardLayout() {
         },
         {
           title: "Tender Management",
+          supplierTitle: "Tender",
           icon: Gavel,
           key: "tenders",
           submenu: [
@@ -333,11 +336,15 @@ export function DashboardLayout() {
     ...section,
     items: section.items
       .filter((item) => !item.key || !hidden.has(item.key))
-      .map((item) =>
-        item.submenu && isSupplierView
-          ? { ...item, submenu: item.submenu.filter((sub) => !sub.buyerOnly) }
-          : item,
-      ),
+      .map((item) => {
+        if (!isSupplierView) return item;
+        const next = item.supplierTitle
+          ? { ...item, title: item.supplierTitle }
+          : item;
+        return next.submenu
+          ? { ...next, submenu: next.submenu.filter((sub) => !sub.buyerOnly) }
+          : next;
+      }),
   })).filter((section) => section.items.length > 0);
 
   // Redirecting to /login (see effect above).
