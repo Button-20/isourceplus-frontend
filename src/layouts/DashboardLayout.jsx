@@ -224,12 +224,15 @@ export function DashboardLayout() {
       ],
     },
     {
-      // Supplier-only: RFxs / tenders / waybills the supplier was invited to
-      // (business-invites/?biz_type=…). One page; the types are tabs.
+      // Suppliers: RFxs / tenders / waybills they were invited to
+      // (business-invites/?biz_type=…), one page with the types as tabs.
+      // Transporters: waybill invitations only (biz_type=waybill).
       label: "Business Invitations",
       items: [
         {
           title: "Received Invitations",
+          // Transporters are only invited to waybills.
+          transporterTitle: "Waybill Invitations",
           icon: MailOpen,
           key: "business-invites",
           url: "/dashboard/business-invites",
@@ -315,7 +318,6 @@ export function DashboardLayout() {
       "waybills",
       "business-offers",
       "awarded-businesses",
-      "business-invites",
     ],
   };
   // Buyer/Supplier view toggle visibility: only suppliers (sales managers) see
@@ -338,6 +340,9 @@ export function DashboardLayout() {
     items: section.items
       .filter((item) => !item.key || !hidden.has(item.key))
       .map((item) => {
+        if (isTransporter && item.transporterTitle) {
+          return { ...item, title: item.transporterTitle };
+        }
         if (!isSupplierView) return item;
         const next = item.supplierTitle
           ? { ...item, title: item.supplierTitle }

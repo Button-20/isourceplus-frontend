@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { prettify } from "@/utils/choices";
 import { normalizeStatus } from "@/utils/status";
+import { useAuth } from "@/services/context/app.context";
 import {
   INVITE_TYPES,
   isMissingRoute,
@@ -72,10 +73,31 @@ const fmtDate = (v) => {
     : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 };
 
+// Header copy: suppliers get all three types; transporters only waybills.
+const COPY = {
+  supplier: {
+    title: "Received invitations",
+    blurb:
+      "RFxs, tenders and waybills buyers have invited you to. Open one to respond with your offer.",
+  },
+  transporter: {
+    title: "Waybill invitations",
+    blurb:
+      "Waybills you've been invited to deliver. Open one to submit your delivery offer.",
+  },
+};
+
 export default function BusinessInvitesPage() {
+  const { jobTitle, transporterId } = useAuth();
+  // Transporters are only ever invited to waybills (biz_type=waybill).
+  const isTransporter =
+    Boolean(transporterId) ||
+    String(jobTitle ?? "").toLowerCase() === "logistics manager";
+  const types = isTransporter ? ["waybill"] : TAB_ORDER;
+  const copy = COPY[isTransporter ? "transporter" : "supplier"];
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get("biz_type");
-  const bizType = TAB_ORDER.includes(requested) ? requested : "rfx";
+  const bizType = types.includes(requested) ? requested : types[0];
   const cfg = INVITE_TYPES[bizType];
 
   const [rows, setRows] = useState([]);
@@ -143,12 +165,9 @@ export default function BusinessInvitesPage() {
               <MailOpen className="h-3.5 w-3.5" /> Business invitations
             </span>
             <h1 className="mt-4 font-display text-2xl font-bold sm:text-3xl">
-              Received invitations
+              {copy.title}
             </h1>
-            <p className="mt-2 max-w-lg text-sm text-white/85">
-              RFxs, tenders and waybills buyers have invited you to. Open one to
-              respond with your offer.
-            </p>
+            <p className="mt-2 max-w-lg text-sm text-white/85">{copy.blurb}</p>
           </div>
           <Button
             variant="outline"
@@ -164,37 +183,39 @@ export default function BusinessInvitesPage() {
         </div>
       </div>
 
-      {/* Type tabs */}
-      <div
-        role="tablist"
-        aria-label="Invitation type"
-        className="flex flex-wrap gap-2"
-      >
-        {TAB_ORDER.map((key) => {
-          const active = key === bizType;
-          const Icon = TAB_ICONS[key];
-          return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() =>
-                setSearchParams({ biz_type: key }, { replace: true })
-              }
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-                active
-                  ? "bg-brand text-brand-foreground shadow-sm"
-                  : "border border-border/70 bg-card text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {INVITE_TYPES[key].label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Type tabs (hidden when only one type applies, e.g. transporters) */}
+      {types.length > 1 && (
+        <div
+          role="tablist"
+          aria-label="Invitation type"
+          className="flex flex-wrap gap-2"
+        >
+          {types.map((key) => {
+            const active = key === bizType;
+            const Icon = TAB_ICONS[key];
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() =>
+                  setSearchParams({ biz_type: key }, { replace: true })
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-brand text-brand-foreground shadow-sm"
+                    : "border border-border/70 bg-card text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {INVITE_TYPES[key].label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
         {loading ? (
