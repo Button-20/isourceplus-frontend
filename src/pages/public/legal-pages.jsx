@@ -1,17 +1,24 @@
 // Public legal pages — Terms of Use and Privacy Policy. Branded shell (landing
 // nav + footer) with a simple sectioned layout. The body copy is a concise,
 // generic scaffold for the platform and should be reviewed/finalized by legal.
-import { useEffect } from "react";
 import { ScrollText, ShieldCheck } from "lucide-react";
 
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
+import useHashScroll from "@/components/landing/useHashScroll";
+
+// Stable section anchors ("Disclaimers and liability" → disclaimers-and-liability)
+// so other pages can deep-link, e.g. /terms#disclaimers-and-liability.
+const sectionId = (heading) =>
+  heading
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
 function LegalPage({ icon: Icon, title, updated, intro, sections }) {
-  // Land at the top when navigating in from a same-page link.
-  useEffect(() => {
-    window.scrollTo({ top: 0 });
-  }, []);
+  // Land on the linked section (e.g. #disclaimers-and-liability), else the top.
+  useHashScroll();
 
   return (
     <div className="font-montserrat">
@@ -27,7 +34,9 @@ function LegalPage({ icon: Icon, title, updated, intro, sections }) {
             <h1 className="mt-5 font-display text-3xl font-bold sm:text-4xl">
               {title}
             </h1>
-            <p className="mt-2 text-sm text-white/80">Last updated: {updated}</p>
+            <p className="mt-2 text-sm text-white/80">
+              Last updated: {updated}
+            </p>
           </div>
         </section>
 
@@ -37,7 +46,11 @@ function LegalPage({ icon: Icon, title, updated, intro, sections }) {
             <p className="text-muted-foreground">{intro}</p>
             <div className="mt-10 space-y-8">
               {sections.map((s, i) => (
-                <div key={s.heading}>
+                <div
+                  key={s.heading}
+                  id={sectionId(s.heading)}
+                  className="scroll-mt-24"
+                >
                   <h2 className="font-display text-lg font-semibold">
                     {i + 1}. {s.heading}
                   </h2>

@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 
+import { setLenis } from "@/components/common/lenis-store";
+
 // Clears the sticky landing nav (h-16 = 64px) with a little breathing room.
 const NAV_OFFSET = 80;
 const DURATION_MS = 900;
@@ -23,6 +25,8 @@ export default function SmoothScroll({ children }) {
       smoothWheel: true,
       touchMultiplier: 2,
     });
+    // Share it so programmatic jumps (e.g. useHashScroll) go through Lenis.
+    setLenis(lenis);
 
     let rafId;
     const raf = (time) => {
@@ -105,6 +109,7 @@ export default function SmoothScroll({ children }) {
       document.removeEventListener("click", handleAnchorClick);
       cancelAnimationFrame(animFrame);
       cancelAnimationFrame(rafId);
+      setLenis(null);
       lenis.destroy();
     };
   }, []);

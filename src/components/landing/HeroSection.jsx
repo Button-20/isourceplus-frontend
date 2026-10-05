@@ -56,14 +56,26 @@ export default function HeroSection() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            {["TIN-verified companies", "GRA E-VAT integrated", "Secured transactions"].map(
-              (item) => (
-                <span key={item} className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-brand" /> {item}
-                </span>
-              ),
-            )}
+            {[
+              "TIN-verified companies",
+              "GRA E-VAT integrated",
+              "Secured transactions",
+            ].map((item) => (
+              <span key={item} className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-brand" /> {item}
+              </span>
+            ))}
           </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            By using iSourcePlus you agree to our{" "}
+            <Link
+              to="/terms#use-of-the-platform"
+              className="font-medium text-brand hover:underline"
+            >
+              Acceptable Use Policy
+            </Link>
+            .
+          </p>
         </div>
 
         <div className="relative">

@@ -229,7 +229,13 @@ export default function HowItWorksSection() {
                 </Link>
               </Button>
               <p className="mt-4 text-xs text-white/75">
-                Escrow terms &amp; conditions apply.
+                <Link
+                  to="/terms#transactions-invoicing-and-escrow"
+                  className="font-medium text-white underline-offset-2 hover:underline"
+                >
+                  Escrow Terms &amp; Conditions
+                </Link>{" "}
+                apply.
               </p>
             </div>
             <div className="p-8 lg:col-span-3">

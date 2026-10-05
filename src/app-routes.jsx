@@ -103,6 +103,8 @@ import { SubscriptionCallbackPage } from "./pages/subscription/SubscriptionCallb
 
 // legal
 import { TermsPage, PrivacyPage } from "./pages/public/legal-pages";
+import { FaqPage } from "./pages/public/FaqPage";
+import { UseCasesPage } from "./pages/public/UseCasesPage";
 
 const fullRoutes = [
   { path: "/", element: <LandingPage /> },
@@ -113,6 +115,8 @@ const fullRoutes = [
   { path: "/about", element: <AboutPage /> },
   { path: "/terms", element: <TermsPage /> },
   { path: "/privacy", element: <PrivacyPage /> },
+  { path: "/faq", element: <FaqPage /> },
+  { path: "/use-cases", element: <UseCasesPage /> },
   { path: "/subscription/callback", element: <SubscriptionCallbackPage /> },
 
   {
@@ -167,7 +171,10 @@ const fullRoutes = [
       { path: "employees/:id", element: <EmployeeDetailPage /> },
       { path: "transporter/employees", element: <AllTransporterEmployees /> },
       { path: "company/employees", element: <CompanyEmployees /> },
-      { path: "user/verification-docs", element: <ManageUserVerificationDocs /> },
+      {
+        path: "user/verification-docs",
+        element: <ManageUserVerificationDocs />,
+      },
       { path: "reviews", element: <ReviewsPage /> },
       { path: "sms", element: <SmsPage /> },
       { path: "rfxs", element: <RFxPage /> },
@@ -180,23 +187,50 @@ const fullRoutes = [
       { path: "tenders/issued", element: <TenderPage /> },
       { path: "tenders/:refNum", element: <TenderDetailPage /> },
       { path: "proforma-invoices", element: <ProformaInvoicesPage /> },
-      { path: "proforma-invoices/issued", element: <IssuedProformaInvoicesPage /> },
-      { path: "proforma-invoices/:refNum", element: <ProformaInvoiceDetailPage /> },
-      { path: "proforma-invoices/issued/:refNum", element: <ProformaInvoiceIssuedDetailPage /> },
-      { path: "proforma-invoices/create-offer", element: <CreateProformaInvoicePage /> },
-      { path: "proforma-invoices/create-offer-rfx", element: <CreateProformaInvoiceForRFxPage /> },
-      { path: "proforma-invoices/create-offer-tender", element: <CreateProformaInvoiceForTenderPage /> },
+      {
+        path: "proforma-invoices/issued",
+        element: <IssuedProformaInvoicesPage />,
+      },
+      {
+        path: "proforma-invoices/:refNum",
+        element: <ProformaInvoiceDetailPage />,
+      },
+      {
+        path: "proforma-invoices/issued/:refNum",
+        element: <ProformaInvoiceIssuedDetailPage />,
+      },
+      {
+        path: "proforma-invoices/create-offer",
+        element: <CreateProformaInvoicePage />,
+      },
+      {
+        path: "proforma-invoices/create-offer-rfx",
+        element: <CreateProformaInvoiceForRFxPage />,
+      },
+      {
+        path: "proforma-invoices/create-offer-tender",
+        element: <CreateProformaInvoiceForTenderPage />,
+      },
       { path: "purchase-orders", element: <PurchaseOrdersPage /> },
       { path: "purchase-orders/issued", element: <IssuedPurchaseOrdersPage /> },
       { path: "purchase-orders/:refNum", element: <PurchaseOrderDetailPage /> },
-      { path: "purchase-orders/create-business-award/*", element: <PurchaseOrderCreationPage /> },
+      {
+        path: "purchase-orders/create-business-award/*",
+        element: <PurchaseOrderCreationPage />,
+      },
       { path: "sales-invoices", element: <SalesInvoicesPage /> },
       { path: "sales-invoices/issued", element: <IssuedSalesInvoicesPage /> },
       { path: "sales-invoices/:refNum", element: <SalesInvoiceDetailPage /> },
-      { path: "sales-invoices/create-sales-invoice", element: <CreateSalesInvoicePage /> },
+      {
+        path: "sales-invoices/create-sales-invoice",
+        element: <CreateSalesInvoicePage />,
+      },
       { path: "payment-orders/issued", element: <PaymentOrdersPage /> },
       { path: "payment-orders/:refNum", element: <PaymentOrderDetailPage /> },
-      { path: "payment-orders/create-payment-order", element: <CreatePaymentOrderPage /> },
+      {
+        path: "payment-orders/create-payment-order",
+        element: <CreatePaymentOrderPage />,
+      },
     ],
   },
   { path: "/watch-now", element: <WatchNow /> },
@@ -209,6 +243,11 @@ const fullRoutes = [
 const prelaunchRoutes = [
   { path: "/", element: <LandingPage /> },
   { path: "/waitlist", element: <WaitlistPage /> },
+  // Public information pages linked from the landing page stay reachable.
+  { path: "/faq", element: <FaqPage /> },
+  { path: "/use-cases", element: <UseCasesPage /> },
+  { path: "/terms", element: <TermsPage /> },
+  { path: "/privacy", element: <PrivacyPage /> },
   { path: "*", element: <Navigate to="/" replace /> },
 ];
 

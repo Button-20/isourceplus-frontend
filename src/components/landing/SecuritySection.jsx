@@ -11,7 +11,7 @@ const items = [
       "Provides the 1st layer of due diligence for your transactions. Further diligence is required by you.",
     links: [
       { label: "Terms of Use", to: "/terms" },
-      { label: "Disclaimer Policy", to: "/terms" },
+      { label: "Disclaimer Policy", to: "/terms#disclaimers-and-liability" },
     ],
   },
   {
@@ -70,8 +70,13 @@ export default function SecuritySection() {
               {it.links && (
                 <p className="mt-3 flex flex-wrap items-center gap-x-1.5 text-xs font-medium">
                   {it.links.map((lnk, i) => (
-                    <span key={lnk.label} className="inline-flex items-center gap-1.5">
-                      {i > 0 && <span className="text-muted-foreground/50">·</span>}
+                    <span
+                      key={lnk.label}
+                      className="inline-flex items-center gap-1.5"
+                    >
+                      {i > 0 && (
+                        <span className="text-muted-foreground/50">·</span>
+                      )}
                       <Link to={lnk.to} className="text-brand hover:underline">
                         {lnk.label}
                       </Link>
