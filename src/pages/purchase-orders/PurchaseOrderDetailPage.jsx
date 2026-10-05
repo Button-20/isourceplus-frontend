@@ -25,6 +25,7 @@ import {
   DetailFooter,
 } from "@/components/detail/DetailShell";
 import LineItemsTable from "@/components/detail/LineItemsTable";
+import ArchiveButton from "@/components/archive/ArchiveButton";
 import { formatMoney } from "@/utils/money";
 
 const statusTone = (status) => {
@@ -111,8 +112,9 @@ const PurchaseOrderDetailPage = () => {
 
   const backTo =
     jobTitle === "lead buyer"
-      ? "/dashboard/purchase-orders/issued"
+      ? "/dashboard/purchase-orders?filter=draft"
       : "/dashboard/purchase-orders";
+  const canArchive = jobTitle === "lead buyer";
 
   // Escrow is a buyer action, and only relevant to POs that require it. Once the
   // escrow is secured (or beyond), funding is a no-op, so hide the CTA.
@@ -220,11 +222,19 @@ const PurchaseOrderDetailPage = () => {
           />
         </Section>
 
-        {(canFundEscrow || canSendSalesInvoice) && (
+        {(canFundEscrow || canSendSalesInvoice || canArchive) && (
           <DetailFooter>
             <Button variant="outline" onClick={() => navigate(backTo)}>
               Cancel
             </Button>
+            {canArchive && (
+              <ArchiveButton
+                kind="purchaseOrder"
+                refNum={purchaseOrder.ref_num}
+                title={purchaseOrder.title}
+                onArchived={() => navigate(backTo)}
+              />
+            )}
             {canFundEscrow && (
               <Button
                 onClick={() => setFundOpen(true)}

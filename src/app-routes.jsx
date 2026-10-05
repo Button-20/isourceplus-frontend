@@ -59,43 +59,31 @@ import ReviewsPage from "./pages/reviews/ReviewsPage";
 import SmsPage from "./pages/sms/SmsPage";
 
 // rfx
-import RFxPage from "./pages/rfx/RFxPage";
-import RFxIssuedPage from "./pages/rfx/RFxIssuedPage";
 import RFxDetailPage from "./pages/rfx/RFxDetailPage";
 
 // tenders
-import TenderPage from "./pages/tenders/TenderPage";
 import TenderDetailPage from "./pages/tenders/TenderDetailPage";
 
 // proforma invoices
-import ProformaInvoicesPage from "./pages/proforma-invoices/ProformaInvoicesPage";
 import ProformaInvoiceDetailPage from "./pages/proforma-invoices/ProformaInvoiceDetailPage";
 import ProformaInvoiceIssuedDetailPage from "./pages/proforma-invoices/ProformaInvoiceIssuedDetailPage";
-import IssuedProformaInvoicesPage from "./pages/proforma-invoices/IssuedProformaInvoicesPage";
 import CreateProformaInvoicePage from "./pages/proforma-invoices/CreateProformaInvoicePage";
 import CreateProformaInvoiceForRFxPage from "./pages/proforma-invoices/CreateProformaInvoiceForRFxPage";
 import CreateProformaInvoiceForTenderPage from "./pages/proforma-invoices/CreateProformaInvoiceForTenderPage";
 
 // purchase orders
-import PurchaseOrdersPage from "./pages/purchase-orders/PurchaseOrdersPage";
 import PurchaseOrderCreationPage from "./pages/purchase-orders/PurchaseOrderCreationPage";
 import PurchaseOrderDetailPage from "./pages/purchase-orders/PurchaseOrderDetailPage";
-import IssuedPurchaseOrdersPage from "./pages/purchase-orders/IssuedPurchaseOrdersPage";
 
 // sales invoices
-import SalesInvoicesPage from "./pages/sales-invoices/SalesInvoicesPage";
 import SalesInvoiceDetailPage from "./pages/sales-invoices/SalesInvoiceDetailPage";
 import CreateSalesInvoicePage from "./pages/sales-invoices/CreateSalesInvoicePage";
-import IssuedSalesInvoicesPage from "./pages/sales-invoices/IssuedSalesInvoicesPage";
 
 // payment orders
-import PaymentOrdersPage from "./pages/payment-orders/PaymentOrdersPage";
 import CreatePaymentOrderPage from "./pages/payment-orders/CreatePaymentOrderPage";
 import PaymentOrderDetailPage from "./pages/payment-orders/PaymentOrderDetailPage";
 
 // waybills
-import AllWaybillsPage from "./pages/waybills/AllWaybillsPage";
-import IssuedWaybillsPage from "./pages/waybills/IssuedWaybillsPage";
 import WaybillDetailPage from "./pages/waybills/WaybillDetailPage";
 
 // subscription
@@ -103,6 +91,10 @@ import { SubscriptionCallbackPage } from "./pages/subscription/SubscriptionCallb
 
 // legal
 import { TermsPage, PrivacyPage } from "./pages/public/legal-pages";
+import { BusinessOffersPage } from "./pages/business-offers/ReceivedOffersPage";
+import BusinessInvitesPage from "./pages/business-invites/BusinessInvitesPage";
+import EventManagementPage from "./pages/event-lists/EventManagementPage";
+import FilterRedirect from "./pages/event-lists/FilterRedirect";
 import { FaqPage } from "./pages/public/FaqPage";
 import { UseCasesPage } from "./pages/public/UseCasesPage";
 
@@ -177,19 +169,101 @@ const fullRoutes = [
       },
       { path: "reviews", element: <ReviewsPage /> },
       { path: "sms", element: <SmsPage /> },
-      { path: "rfxs", element: <RFxPage /> },
-      { path: "rfxs/issued", element: <RFxIssuedPage /> },
+      // RFx / waybill / tender lists: one page each with filter tabs
+      // (All · Draft · Published · Expired); old per-filter URLs redirect.
+      { path: "rfxs", element: <EventManagementPage key="rfx" kind="rfx" /> },
+      {
+        path: "rfxs/issued",
+        element: <FilterRedirect to="/dashboard/rfxs" filter="draft" />,
+      },
+      {
+        path: "rfxs/published",
+        element: <FilterRedirect to="/dashboard/rfxs" filter="published" />,
+      },
+      {
+        path: "rfxs/expired",
+        element: <FilterRedirect to="/dashboard/rfxs" filter="expired" />,
+      },
       { path: "rfxs/:refNum", element: <RFxDetailPage /> },
-      { path: "waybills", element: <AllWaybillsPage /> },
-      { path: "waybills/issued", element: <IssuedWaybillsPage /> },
+      {
+        path: "waybills",
+        element: <EventManagementPage key="waybill" kind="waybill" />,
+      },
+      {
+        path: "waybills/issued",
+        element: <FilterRedirect to="/dashboard/waybills" filter="draft" />,
+      },
+      {
+        path: "waybills/published",
+        element: <FilterRedirect to="/dashboard/waybills" filter="published" />,
+      },
+      {
+        path: "waybills/expired",
+        element: <FilterRedirect to="/dashboard/waybills" filter="expired" />,
+      },
       { path: "waybills/:refNum", element: <WaybillDetailPage /> },
-      { path: "tenders", element: <TenderPage /> },
-      { path: "tenders/issued", element: <TenderPage /> },
+      {
+        path: "tenders",
+        element: <EventManagementPage key="tender" kind="tender" />,
+      },
+      {
+        path: "tenders/issued",
+        element: <FilterRedirect to="/dashboard/tenders" filter="draft" />,
+      },
+      {
+        path: "tenders/published",
+        element: <FilterRedirect to="/dashboard/tenders" filter="published" />,
+      },
+      {
+        path: "tenders/expired",
+        element: <FilterRedirect to="/dashboard/tenders" filter="expired" />,
+      },
       { path: "tenders/:refNum", element: <TenderDetailPage /> },
-      { path: "proforma-invoices", element: <ProformaInvoicesPage /> },
+      // Business Offers (buyer): offers received per RFx / waybill / tender.
+      // `key` remounts the page when switching kinds.
+      { path: "business-offers", element: <BusinessOffersPage /> },
+      // Supplier: business-invites/?biz_type=<rfx|tender|waybill> as tabs.
+      { path: "business-invites", element: <BusinessInvitesPage /> },
+      {
+        path: "business-offers/rfx",
+        element: (
+          <FilterRedirect
+            to="/dashboard/business-offers"
+            param="type"
+            filter="rfx"
+          />
+        ),
+      },
+      {
+        path: "business-offers/waybills",
+        element: (
+          <FilterRedirect
+            to="/dashboard/business-offers"
+            param="type"
+            filter="waybill"
+          />
+        ),
+      },
+      {
+        path: "business-offers/tenders",
+        element: (
+          <FilterRedirect
+            to="/dashboard/business-offers"
+            param="type"
+            filter="tender"
+          />
+        ),
+      },
+      // Proforma / sales invoices: one page each with tabs (All · Draft).
+      {
+        path: "proforma-invoices",
+        element: <EventManagementPage key="proforma" kind="proforma" />,
+      },
       {
         path: "proforma-invoices/issued",
-        element: <IssuedProformaInvoicesPage />,
+        element: (
+          <FilterRedirect to="/dashboard/proforma-invoices" filter="draft" />
+        ),
       },
       {
         path: "proforma-invoices/:refNum",
@@ -211,21 +285,50 @@ const fullRoutes = [
         path: "proforma-invoices/create-offer-tender",
         element: <CreateProformaInvoiceForTenderPage />,
       },
-      { path: "purchase-orders", element: <PurchaseOrdersPage /> },
-      { path: "purchase-orders/issued", element: <IssuedPurchaseOrdersPage /> },
+      // Purchase orders: one page with filter tabs (All · Draft).
+      {
+        path: "purchase-orders",
+        element: (
+          <EventManagementPage key="purchaseOrder" kind="purchaseOrder" />
+        ),
+      },
+      {
+        path: "purchase-orders/issued",
+        element: (
+          <FilterRedirect to="/dashboard/purchase-orders" filter="draft" />
+        ),
+      },
       { path: "purchase-orders/:refNum", element: <PurchaseOrderDetailPage /> },
       {
         path: "purchase-orders/create-business-award/*",
         element: <PurchaseOrderCreationPage />,
       },
-      { path: "sales-invoices", element: <SalesInvoicesPage /> },
-      { path: "sales-invoices/issued", element: <IssuedSalesInvoicesPage /> },
+      {
+        path: "sales-invoices",
+        element: <EventManagementPage key="salesInvoice" kind="salesInvoice" />,
+      },
+      {
+        path: "sales-invoices/issued",
+        element: (
+          <FilterRedirect to="/dashboard/sales-invoices" filter="draft" />
+        ),
+      },
       { path: "sales-invoices/:refNum", element: <SalesInvoiceDetailPage /> },
       {
         path: "sales-invoices/create-sales-invoice",
         element: <CreateSalesInvoicePage />,
       },
-      { path: "payment-orders/issued", element: <PaymentOrdersPage /> },
+      // Payment orders: one page with tabs (All · Draft).
+      {
+        path: "payment-orders",
+        element: <EventManagementPage key="paymentOrder" kind="paymentOrder" />,
+      },
+      {
+        path: "payment-orders/issued",
+        element: (
+          <FilterRedirect to="/dashboard/payment-orders" filter="draft" />
+        ),
+      },
       { path: "payment-orders/:refNum", element: <PaymentOrderDetailPage /> },
       {
         path: "payment-orders/create-payment-order",

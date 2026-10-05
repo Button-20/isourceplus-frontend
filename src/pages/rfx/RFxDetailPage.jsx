@@ -22,6 +22,7 @@ import {
   DetailFooter,
 } from "@/components/detail/DetailShell";
 import { isDraftStatus } from "@/utils/status";
+import ArchiveButton from "@/components/archive/ArchiveButton";
 
 const RFxDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -131,9 +132,13 @@ const RFxDetailPage = () => {
   const created = formatDateTime(rfx.created_at);
   const updated = formatDateTime(rfx.updated_at);
   const isSalesManager = jobTitle === "sales manager";
+  const isLeadBuyer = jobTitle === "lead buyer";
 
   return (
-    <DetailPage onBack={() => navigate("/dashboard/rfxs")} backLabel="Back to RFxs">
+    <DetailPage
+      onBack={() => navigate("/dashboard/rfxs")}
+      backLabel="Back to RFxs"
+    >
       <DetailCard>
         <DetailHeader
           icon={Building2}
@@ -187,10 +192,14 @@ const RFxDetailPage = () => {
                 <thead>
                   <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-4 py-2.5 font-medium">#</th>
-                    <th className="px-4 py-2.5 font-medium">Item description</th>
+                    <th className="px-4 py-2.5 font-medium">
+                      Item description
+                    </th>
                     <th className="px-4 py-2.5 font-medium">Qty</th>
                     <th className="px-4 py-2.5 font-medium">Unit</th>
-                    <th className="px-4 py-2.5 font-medium">Special handling</th>
+                    <th className="px-4 py-2.5 font-medium">
+                      Special handling
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -200,7 +209,9 @@ const RFxDetailPage = () => {
                         {i + 1}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="font-medium">{item.name || "N/A"}</span>
+                        <span className="font-medium">
+                          {item.name || "N/A"}
+                        </span>
                         {item.description && (
                           <span className="block text-xs text-muted-foreground">
                             {item.description}
@@ -228,7 +239,7 @@ const RFxDetailPage = () => {
           )}
         </Section>
 
-        {isSalesManager && (
+        {(isSalesManager || isLeadBuyer) && (
           <DetailFooter>
             <Button
               variant="outline"
@@ -236,21 +247,32 @@ const RFxDetailPage = () => {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleSendOffer}
-              disabled={modalLoading}
-              className="bg-brand-gradient text-brand-foreground hover:opacity-90"
-            >
-              {modalLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
-                </>
-              ) : (
-                <>
-                  <Send className="mr-1.5 h-4 w-4" /> Send offer
-                </>
-              )}
-            </Button>
+            {isLeadBuyer && (
+              <ArchiveButton
+                kind="rfx"
+                refNum={rfx.ref_num}
+                title={rfx.title}
+                onArchived={() => navigate("/dashboard/rfxs/issued")}
+              />
+            )}
+            {isSalesManager && (
+              <Button
+                onClick={handleSendOffer}
+                disabled={modalLoading}
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              >
+                {modalLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Processing…
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-1.5 h-4 w-4" /> Send offer
+                  </>
+                )}
+              </Button>
+            )}
           </DetailFooter>
         )}
       </DetailCard>

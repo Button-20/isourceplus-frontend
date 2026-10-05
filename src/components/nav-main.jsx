@@ -22,6 +22,9 @@ import { cn } from "@/lib/utils";
 function NavItem({ item, pathname }) {
   const isTopLevelActive =
     item.url === pathname ||
+    (item.matchPrefix &&
+      (pathname === item.matchPrefix ||
+        pathname.startsWith(`${item.matchPrefix}/`))) ||
     (item.submenu && item.submenu.some((sub) => pathname.startsWith(sub.url)));
 
   // Active AND hover both use the bright-blue accent (#008ffe, white text) via

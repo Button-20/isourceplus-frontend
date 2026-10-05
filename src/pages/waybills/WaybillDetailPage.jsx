@@ -28,6 +28,7 @@ import {
   StatusBadge,
   DetailFooter,
 } from "@/components/detail/DetailShell";
+import ArchiveButton from "@/components/archive/ArchiveButton";
 
 const statusTone = (status) => {
   const value = (status || "").toLowerCase();
@@ -117,7 +118,9 @@ const WaybillDetailPage = () => {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center justify-center py-24 text-center font-montserrat">
         <div className="rounded-2xl border border-border/70 bg-card p-8">
-          <p className="font-display text-lg font-semibold">Waybill not found</p>
+          <p className="font-display text-lg font-semibold">
+            Waybill not found
+          </p>
           <Button
             variant="outline"
             className="mt-5"
@@ -215,10 +218,14 @@ const WaybillDetailPage = () => {
                 <thead>
                   <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-4 py-2.5 font-medium">#</th>
-                    <th className="px-4 py-2.5 font-medium">Item description</th>
+                    <th className="px-4 py-2.5 font-medium">
+                      Item description
+                    </th>
                     <th className="px-4 py-2.5 font-medium">Qty</th>
                     <th className="px-4 py-2.5 font-medium">Unit</th>
-                    <th className="px-4 py-2.5 font-medium">Special handling</th>
+                    <th className="px-4 py-2.5 font-medium">
+                      Special handling
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -228,7 +235,9 @@ const WaybillDetailPage = () => {
                         {i + 1}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="font-medium">{item.name || "N/A"}</span>
+                        <span className="font-medium">
+                          {item.name || "N/A"}
+                        </span>
                         {item.description && (
                           <span className="block text-xs text-muted-foreground">
                             {item.description}
@@ -272,6 +281,14 @@ const WaybillDetailPage = () => {
                 <Trash2 className="mr-1.5 h-4 w-4" /> Delete
               </Button>
             )}
+            {canCreateWaybill && (
+              <ArchiveButton
+                kind="waybill"
+                refNum={waybill.ref_num}
+                title={waybill.title}
+                onArchived={() => navigate("/dashboard/waybills/issued")}
+              />
+            )}
             {isLogisticsManager && (
               <Button
                 onClick={handleSendOffer}
@@ -280,7 +297,8 @@ const WaybillDetailPage = () => {
               >
                 {modalLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Processing…
                   </>
                 ) : (
                   <>

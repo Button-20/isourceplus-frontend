@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Building2, Send, Trash2, FileText } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  Building2,
+  Send,
+  Trash2,
+  FileText,
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
@@ -28,6 +35,7 @@ import {
   StatusBadge,
   DetailFooter,
 } from "@/components/detail/DetailShell";
+import ArchiveButton from "@/components/archive/ArchiveButton";
 
 const statusTone = (status) => {
   const value = (status || "").toLowerCase();
@@ -233,10 +241,14 @@ const TenderDetailPage = () => {
                 <thead>
                   <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-4 py-2.5 font-medium">#</th>
-                    <th className="px-4 py-2.5 font-medium">Item description</th>
+                    <th className="px-4 py-2.5 font-medium">
+                      Item description
+                    </th>
                     <th className="px-4 py-2.5 font-medium">Qty</th>
                     <th className="px-4 py-2.5 font-medium">Unit</th>
-                    <th className="px-4 py-2.5 font-medium">Special handling</th>
+                    <th className="px-4 py-2.5 font-medium">
+                      Special handling
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -246,7 +258,9 @@ const TenderDetailPage = () => {
                         {i + 1}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="font-medium">{item.name || "N/A"}</span>
+                        <span className="font-medium">
+                          {item.name || "N/A"}
+                        </span>
                         {item.description && (
                           <span className="block text-xs text-muted-foreground">
                             {item.description}
@@ -317,6 +331,14 @@ const TenderDetailPage = () => {
                 <Trash2 className="mr-1.5 h-4 w-4" /> Delete
               </Button>
             )}
+            {isLeadBuyer && (
+              <ArchiveButton
+                kind="tender"
+                refNum={tender.ref_num}
+                title={tender.title}
+                onArchived={() => navigate("/dashboard/tenders")}
+              />
+            )}
             {isSalesManager && (
               <Button
                 onClick={handleSendOffer}
@@ -325,7 +347,8 @@ const TenderDetailPage = () => {
               >
                 {modalLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Processing…
                   </>
                 ) : (
                   <>

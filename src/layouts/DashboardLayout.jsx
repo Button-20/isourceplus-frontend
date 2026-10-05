@@ -14,6 +14,7 @@ import {
   FilePlus,
   Gavel,
   ReceiptText,
+  MailOpen,
   Wallet,
   Star,
   MessageSquare,
@@ -167,83 +168,72 @@ export function DashboardLayout() {
           supplierTitle: "RFx",
           icon: FileText,
           key: "rfx",
-          submenu: [
-            { title: "View All RFxs", url: "/dashboard/rfxs" },
-            // Only buyers issue RFxs; suppliers just browse and respond.
-            {
-              title: "Issued RFxs",
-              url: "/dashboard/rfxs/issued",
-              buyerOnly: true,
-            },
-          ],
+          url: "/dashboard/rfxs",
+          // One page with filter tabs (All · Draft · Published · Expired).
+          matchPrefix: "/dashboard/rfxs",
         },
         {
           title: "Tender Management",
           supplierTitle: "Tender",
           icon: Gavel,
           key: "tenders",
-          submenu: [
-            { title: "View All Tenders", url: "/dashboard/tenders" },
-            {
-              title: "Issued Tenders",
-              url: "/dashboard/tenders/issued",
-              buyerOnly: true,
-            },
-          ],
+          url: "/dashboard/tenders",
+          // One page with filter tabs (All · Draft · Published · Expired).
+          matchPrefix: "/dashboard/tenders",
         },
         {
           title: "Proforma Invoices",
           icon: ReceiptText,
           key: "proforma",
-          submenu: [
-            {
-              title: "All Proforma Invoices",
-              url: "/dashboard/proforma-invoices",
-            },
-            {
-              title: "Issued Proforma Invoices",
-              url: "/dashboard/proforma-invoices/issued",
-            },
-          ],
+          url: "/dashboard/proforma-invoices",
+          // One page with filter tabs (All · Draft).
+          matchPrefix: "/dashboard/proforma-invoices",
         },
         {
           title: "Purchase Orders",
           icon: FilePlus,
           key: "purchase-orders",
-          submenu: [
-            { title: "All Purchase Orders", url: "/dashboard/purchase-orders" },
-            {
-              title: "Issued Purchase Orders",
-              url: "/dashboard/purchase-orders/issued",
-            },
-          ],
+          url: "/dashboard/purchase-orders",
+          // One page with filter tabs (All · Draft).
+          matchPrefix: "/dashboard/purchase-orders",
         },
         {
           title: "Sales Invoices",
           icon: Wallet,
           key: "sales-invoices",
-          submenu: [
-            { title: "All Sales Invoices", url: "/dashboard/sales-invoices" },
-            {
-              title: "Issued Sales Invoices",
-              url: "/dashboard/sales-invoices/issued",
-            },
-          ],
+          url: "/dashboard/sales-invoices",
+          // One page with filter tabs (All · Draft).
+          matchPrefix: "/dashboard/sales-invoices",
         },
         {
           title: "Waybills",
           icon: TruckIcon,
           key: "waybills",
-          submenu: [
-            { title: "All Waybills", url: "/dashboard/waybills" },
-            { title: "Issued Waybills", url: "/dashboard/waybills/issued" },
-          ],
+          url: "/dashboard/waybills",
+          // One page with filter tabs (All · Draft · Published · Expired).
+          matchPrefix: "/dashboard/waybills",
         },
         {
           title: "Payment Orders",
           icon: Wallet,
           key: "payment-orders",
-          url: "/dashboard/payment-orders/issued",
+          url: "/dashboard/payment-orders",
+          // One page with filter tabs (All · Draft).
+          matchPrefix: "/dashboard/payment-orders",
+        },
+      ],
+    },
+    {
+      // Supplier-only: RFxs / tenders / waybills the supplier was invited to
+      // (business-invites/?biz_type=…). One page; the types are tabs.
+      label: "Business Invitations",
+      items: [
+        {
+          title: "Received Invitations",
+          icon: MailOpen,
+          key: "business-invites",
+          url: "/dashboard/business-invites",
+          matchPrefix: "/dashboard/business-invites",
         },
       ],
     },
@@ -257,20 +247,23 @@ export function DashboardLayout() {
           icon: FilePlus,
           key: "awarded-businesses",
           url: "/dashboard/purchase-orders",
+          matchPrefix: "/dashboard/purchase-orders",
         },
       ],
     },
     {
-      // Buyer-only: the offers (proforma invoices) suppliers/transporters have
-      // sent in response to this buyer's RFxs, tenders and waybills. Opening
-      // one lets a lead buyer award it (create the purchase order).
-      label: "Business Orders",
+      // Buyer-only: offers (proforma invoices) received against this buyer's
+      // RFxs, waybills and tenders — each page lists the buyer's events and
+      // the offers each one received (…/{ref}/received-offers/).
+      label: "Business Offers",
       items: [
         {
-          title: "Proforma Invoices",
+          // One page; RFx · Waybill · Tender are tabs (?type=).
+          title: "Received Offers",
           icon: ReceiptText,
-          key: "business-orders",
-          url: "/dashboard/proforma-invoices",
+          key: "business-offers",
+          url: "/dashboard/business-offers",
+          matchPrefix: "/dashboard/business-offers",
         },
       ],
     },
@@ -312,15 +305,17 @@ export function DashboardLayout() {
       "sales-invoices",
       "payment-orders",
       "awarded-businesses",
+      "business-invites",
     ],
-    supplier: ["purchase-orders", "business-orders"],
+    supplier: ["purchase-orders", "business-offers"],
     transporter: [
       "rfx",
       "tenders",
       "purchase-orders",
       "waybills",
-      "business-orders",
+      "business-offers",
       "awarded-businesses",
+      "business-invites",
     ],
   };
   // Buyer/Supplier view toggle visibility: only suppliers (sales managers) see

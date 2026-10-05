@@ -31,6 +31,7 @@ import {
 import { isDraftStatus } from "@/utils/status";
 import LineItemsTable from "@/components/detail/LineItemsTable";
 import { formatMoney } from "@/utils/money";
+import ArchiveButton from "@/components/archive/ArchiveButton";
 
 const ProformaInvoiceIssuedDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -194,6 +195,13 @@ const ProformaInvoiceIssuedDetailPage = () => {
           >
             Cancel
           </Button>
+          <ArchiveButton
+            kind="proforma"
+            refNum={invoice.ref_num}
+            title={invoice.title}
+            disabled={deleting}
+            onArchived={() => navigate("/dashboard/proforma-invoices/issued")}
+          />
           <Button
             onClick={() => setShowDeleteModal(true)}
             disabled={deleting}
