@@ -27,9 +27,9 @@ const TESTIMONIALS = [
       "We lost many big government contracts and ended up working in the shadows of competitors while they built their project portfolios, due to late filing of VAT receipts and non-compliance, combined with the huge challenge of sourcing from multiple sources to make price and material decisions as a plumbing and construction engineering company. Using iSourcePlus brought us convenience: we became VAT compliant, work within timelines and deliver within budget. Our trust ratings have gone up in the marketplace.",
   },
   {
-    id: "alhaji-seinu",
-    name: "Alhaji Seinu",
-    role: "CEO, Building Materials and More",
+    id: "nafisa-mohamed-toure",
+    name: "Nafisa Mohamed Toure",
+    role: "CEO, Fasana Beauty",
     quote:
       "Record keeping was intensively and extensively manual and resided in silos — email, Excel spreadsheets, paper receipts and more. This made it difficult for my bankers to assess my business for a loan facility to finance my Purchase Order, Goods Received Note and Sales Invoice. Because of these bottlenecks, I lost projects and clients through our inability to deliver. Since joining iSourcePlus, all our business documents — from RFQ and Purchase Order to Sales Invoice and Payment Receipts — are kept in one place and can be traced, and it is now easier to secure a loan facility on time.",
   },
