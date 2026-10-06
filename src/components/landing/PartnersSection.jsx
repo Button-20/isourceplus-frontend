@@ -1,22 +1,57 @@
 import { useState } from "react";
 import { Handshake } from "lucide-react";
 
-// "Our Partners" (reviewed Features doc). Logos weren't supplied yet: each tile
-// shows a monogram until a file is dropped at `public/partners/<id>.png`, at
-// which point the logo is used automatically.
+// "Our Partners" (reviewed Features doc). Logos live in `public/partners/`;
+// a tile falls back to its monogram if its logo fails to load.
 const PARTNERS = [
-  { id: "gra", short: "GRA", name: "Ghana Revenue Authority" },
+  {
+    id: "gra",
+    logo: "gra.jpg",
+    short: "GRA",
+    name: "Ghana Revenue Authority",
+  },
   {
     id: "gncci",
+    logo: "gncci.png",
     short: "GNCCI",
     name: "Ghana National Chamber of Commerce and Industry",
   },
   {
     id: "appsnmobile",
+    logo: "appsnmobile.png",
     short: "AppsNmobile",
     name: "AppsNmobile — fintech partner licensed by the Bank of Ghana",
   },
-  { id: "guta", short: "GUTA", name: "Ghana Union Traders Association" },
+  {
+    id: "guta",
+    logo: "guta.jpeg",
+    short: "GUTA",
+    name: "Ghana Union of Traders Associations",
+  },
+  {
+    id: "gips",
+    logo: "gips.jpg",
+    short: "GIPS",
+    name: "Ghana Institute of Procurement and Supply",
+  },
+  {
+    id: "gnaps",
+    logo: "gnaps.png",
+    short: "GNAPS",
+    name: "Ghana National Association of Private Schools",
+  },
+  {
+    id: "dpc",
+    logo: "dpc.png",
+    short: "DPC",
+    name: "Data Protection Commission, Ghana",
+  },
+  {
+    id: "odum",
+    logo: "odum.jpeg",
+    short: "Odum",
+    name: "Odum Technology Labs",
+  },
 ];
 
 function PartnerLogo({ partner }) {
@@ -32,12 +67,12 @@ function PartnerLogo({ partner }) {
   }
   return (
     <img
-      src={`/partners/${partner.id}.png`}
+      src={`/partners/${partner.logo}`}
       alt={`${partner.short} logo`}
       loading="lazy"
       onLoad={() => setLoaded(true)}
       onError={() => setFailed(true)}
-      className={`max-h-12 w-auto max-w-[140px] object-contain transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
+      className={`max-h-20 w-auto max-w-full object-contain transition-opacity ${loaded ? "opacity-100" : "opacity-0"}`}
     />
   );
 }
@@ -61,7 +96,9 @@ export default function PartnersSection() {
               key={p.id}
               className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card px-6 py-8 text-center"
             >
-              <div className="flex h-14 items-center justify-center">
+              {/* White plate: most logos ship on white, so keep them on white in
+                  dark mode too instead of showing a white box on the card. */}
+              <div className="flex h-28 w-full items-center justify-center rounded-xl bg-white px-2 py-4">
                 <PartnerLogo partner={p} />
               </div>
               <p className="mt-4 text-sm text-muted-foreground">{p.name}</p>
