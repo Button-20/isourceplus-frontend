@@ -1,5 +1,5 @@
-import { FileText, ShieldCheck, Wallet } from "lucide-react";
 import Logo from "@/components/common/Logo";
+import { FileText, ShieldCheck, Wallet } from "lucide-react";
 
 const points = [
   {
@@ -19,41 +19,59 @@ const points = [
   },
 ];
 
-// Branded left column shared by the login and signup screens.
+// Logo at the top of the white form column on login and signup.
+export function AuthBrandHeader() {
+  return (
+    // Wider than the max-w-sm form on purpose: justify-center lets the logo
+    // spill evenly past both edges, capped to the viewport on phones.
+    <div className="mb-10 flex justify-center">
+      <Logo
+        className="shrink-0"
+        imgClassName="h-auto w-[min(32rem,calc(100vw-3rem))]"
+      />
+    </div>
+  );
+}
+
+// Branded left column shared by the login and signup screens: one centred
+// column (shared left edge) — tagline on top, welcome + selling points in the
+// middle, trust line at the foot.
 export default function AuthBrandPanel({ title, subtitle }) {
   return (
-    <div className="relative hidden overflow-hidden bg-brand-gradient p-10 text-white lg:flex lg:flex-col lg:justify-between">
-      <div className="relative mb-5 flex flex-col items-center text-center">
-        <Logo onDark imgClassName="h-24" />
-        <p className="mt-4 max-w-sm font-display text-lg font-semibold text-white/90">
+    <div className="relative hidden overflow-hidden bg-[#1e3171] p-10 text-white lg:flex xl:p-14">
+      <div className="mx-auto flex w-full max-w-xl flex-col">
+        {/* The logo sits in the white form column (AuthBrandHeader). */}
+        <p className="font-display text-2xl text-center font-semibold leading-snug text-white/90">
           Ghana&apos;s No.1 Biggest &amp; Most Reliable Sourcing Platform.
         </p>
-      </div>
 
-      <div className="relative">
-        <h2 className="font-display text-4xl font-bold leading-tight">
-          {title}
-        </h2>
-        <p className="mt-3 max-w-md text-white/85">{subtitle}</p>
+        <div className="flex flex-1 flex-col justify-center py-10">
+          <h2 className="font-display text-4xl font-bold leading-tight">
+            {title}
+          </h2>
+          <p className="mt-4 max-w-md text-white/85">{subtitle}</p>
 
-        <div className="mt-10 space-y-6">
-          {points.map((p) => (
-            <div key={p.title} className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
-                <p.icon className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-display text-lg font-semibold">{p.title}</h3>
-                <p className="text-sm text-white/80">{p.text}</p>
-              </div>
-            </div>
-          ))}
+          <ul className="mt-8 divide-y divide-white/15 rounded-2xl bg-white/10">
+            {points.map((p) => (
+              <li key={p.title} className="flex items-start gap-4 px-5 py-4">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                  <p.icon className="h-5 w-5" />
+                </span>
+                <span>
+                  <span className="block font-display text-lg font-semibold">
+                    {p.title}
+                  </span>
+                  <span className="block text-sm text-white/80">{p.text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
 
-      <p className="relative text-sm text-white/70">
-        Trusted by buyers and suppliers across Ghana and beyond.
-      </p>
+        <p className="border-t border-white/20 pt-6 text-sm text-white/70">
+          Trusted by buyers and suppliers across Ghana and beyond.
+        </p>
+      </div>
     </div>
   );
 }

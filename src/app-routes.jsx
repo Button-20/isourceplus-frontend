@@ -95,6 +95,8 @@ import { BusinessOffersPage } from "./pages/business-offers/ReceivedOffersPage";
 import BusinessInvitesPage from "./pages/business-invites/BusinessInvitesPage";
 import EventManagementPage from "./pages/event-lists/EventManagementPage";
 import FilterRedirect from "./pages/event-lists/FilterRedirect";
+import InvoicesPage from "./pages/invoices/InvoicesPage";
+import ClientsPage from "./pages/clients/ClientsPage";
 import { FaqPage } from "./pages/public/FaqPage";
 import { UseCasesPage } from "./pages/public/UseCasesPage";
 
@@ -255,14 +257,27 @@ const fullRoutes = [
         ),
       },
       // Proforma / sales invoices: one page each with tabs (All · Draft).
+      // Invoices: proforma + sales on one page (?type=proforma|sales), each
+      // with tabs (All · Draft). The old list URLs redirect there.
+      { path: "invoices", element: <InvoicesPage /> },
+      { path: "clients", element: <ClientsPage /> },
       {
         path: "proforma-invoices",
-        element: <EventManagementPage key="proforma" kind="proforma" />,
+        element: (
+          <FilterRedirect
+            to="/dashboard/invoices"
+            extra={{ type: "proforma" }}
+          />
+        ),
       },
       {
         path: "proforma-invoices/issued",
         element: (
-          <FilterRedirect to="/dashboard/proforma-invoices" filter="draft" />
+          <FilterRedirect
+            to="/dashboard/invoices"
+            filter="draft"
+            extra={{ type: "proforma" }}
+          />
         ),
       },
       {
@@ -305,12 +320,18 @@ const fullRoutes = [
       },
       {
         path: "sales-invoices",
-        element: <EventManagementPage key="salesInvoice" kind="salesInvoice" />,
+        element: (
+          <FilterRedirect to="/dashboard/invoices" extra={{ type: "sales" }} />
+        ),
       },
       {
         path: "sales-invoices/issued",
         element: (
-          <FilterRedirect to="/dashboard/sales-invoices" filter="draft" />
+          <FilterRedirect
+            to="/dashboard/invoices"
+            filter="draft"
+            extra={{ type: "sales" }}
+          />
         ),
       },
       { path: "sales-invoices/:refNum", element: <SalesInvoiceDetailPage /> },

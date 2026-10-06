@@ -18,6 +18,7 @@ import {
   Wallet,
   Star,
   MessageSquare,
+  Handshake,
 } from "lucide-react";
 import Logo from "@/components/common/Logo";
 import ThemeToggle from "@/components/common/ThemeToggle";
@@ -164,8 +165,6 @@ export function DashboardLayout() {
       items: [
         {
           title: "RFx Management",
-          // Suppliers don't manage RFxs/tenders, they respond to them.
-          supplierTitle: "RFx",
           icon: FileText,
           key: "rfx",
           url: "/dashboard/rfxs",
@@ -174,7 +173,6 @@ export function DashboardLayout() {
         },
         {
           title: "Tender Management",
-          supplierTitle: "Tender",
           icon: Gavel,
           key: "tenders",
           url: "/dashboard/tenders",
@@ -182,12 +180,16 @@ export function DashboardLayout() {
           matchPrefix: "/dashboard/tenders",
         },
         {
-          title: "Proforma Invoices",
+          title: "Invoices",
           icon: ReceiptText,
-          key: "proforma",
-          url: "/dashboard/proforma-invoices",
-          // One page with filter tabs (All · Draft).
-          matchPrefix: "/dashboard/proforma-invoices",
+          key: "invoices",
+          url: "/dashboard/invoices",
+          // One page with Proforma / Sales tabs; detail pages keep their URLs.
+          matchPrefix: [
+            "/dashboard/invoices",
+            "/dashboard/proforma-invoices",
+            "/dashboard/sales-invoices",
+          ],
         },
         {
           title: "Purchase Orders",
@@ -196,14 +198,6 @@ export function DashboardLayout() {
           url: "/dashboard/purchase-orders",
           // One page with filter tabs (All · Draft).
           matchPrefix: "/dashboard/purchase-orders",
-        },
-        {
-          title: "Sales Invoices",
-          icon: Wallet,
-          key: "sales-invoices",
-          url: "/dashboard/sales-invoices",
-          // One page with filter tabs (All · Draft).
-          matchPrefix: "/dashboard/sales-invoices",
         },
         {
           title: "Waybills",
@@ -276,6 +270,19 @@ export function DashboardLayout() {
         orgNav,
         { title: "Employees", icon: MdOutlinePeopleAlt, url: employeesUrl },
         { title: "Branches", icon: TruckIcon, url: "/dashboard/branches" },
+        // Companies and transporters add the organisations they work with.
+        ...(isTransporter || isCompanyRole
+          ? [
+              {
+                // Buyers keep suppliers; suppliers and transporters keep clients.
+                title: "My Suppliers",
+                supplierTitle: "My Clients",
+                transporterTitle: "My Clients",
+                icon: Handshake,
+                url: "/dashboard/clients",
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -304,13 +311,13 @@ export function DashboardLayout() {
   // not the buyer-only "Issued …" sub-items (see `buyerOnly`).
   const HIDDEN_KEYS = {
     buyer: [
-      "proforma",
-      "sales-invoices",
+      "invoices",
       "payment-orders",
       "awarded-businesses",
       "business-invites",
     ],
-    supplier: ["purchase-orders", "business-offers"],
+    // Suppliers respond to RFxs/tenders via Business Invitations instead.
+    supplier: ["rfx", "tenders", "purchase-orders", "business-offers"],
     transporter: [
       "rfx",
       "tenders",

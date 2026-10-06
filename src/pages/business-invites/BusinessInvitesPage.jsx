@@ -1,6 +1,6 @@
-// Supplier "Business Invitations": RFxs / tenders / waybills the supplier was
-// invited to — GET business-invites/?biz_type=<rfx|tender|waybill>, one tab
-// each (?biz_type= in the URL). Rows link to the event, where the sales
+// Supplier "Business Invitations": RFxs / tenders the supplier was invited to
+// — GET business-invites/?biz_type=<rfx|tender>, one tab each (?biz_type= in
+// the URL). Transporters get waybills only (biz_type=waybill), without tabs. Rows link to the event, where the sales
 // manager's "Send offer" action already lives.
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -29,7 +29,8 @@ import {
   listBusinessInvites,
 } from "@/services/api/invites.service";
 
-const TAB_ORDER = ["rfx", "tender", "waybill"];
+// Suppliers see RFx and tender invitations; waybills are transporter-only.
+const TAB_ORDER = ["rfx", "tender"];
 const TAB_ICONS = { rfx: FileText, tender: Gavel, waybill: Truck };
 
 const STATUS_TINT = [
@@ -73,12 +74,12 @@ const fmtDate = (v) => {
     : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 };
 
-// Header copy: suppliers get all three types; transporters only waybills.
+// Header copy: suppliers get RFxs and tenders; transporters only waybills.
 const COPY = {
   supplier: {
     title: "Received invitations",
     blurb:
-      "RFxs, tenders and waybills buyers have invited you to. Open one to respond with your offer.",
+      "RFxs and tenders buyers have invited you to. Open one to respond with your offer.",
   },
   transporter: {
     title: "Waybill invitations",

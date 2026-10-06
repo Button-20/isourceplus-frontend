@@ -272,7 +272,9 @@ const fmtDate = (v) => {
     : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 };
 
-export default function EventManagementPage({ kind }) {
+// `kindTabs` (optional): { label, active, tabs: [{ key, label, icon }], onSelect }
+// renders a type switcher above the filter tabs (e.g. the Invoices page).
+export default function EventManagementPage({ kind, kindTabs }) {
   const cfg = EVENT_KINDS[kind];
   const KindIcon = ICONS[kind];
   const CreateModal = CREATE_MODALS[kind];
@@ -454,6 +456,38 @@ export default function EventManagementPage({ kind }) {
           )}
         </div>
       </div>
+
+      {/* Type switcher (combined pages) */}
+      {kindTabs && (
+        <div
+          role="tablist"
+          aria-label={kindTabs.label}
+          className="inline-flex flex-wrap gap-1 rounded-xl border border-border/70 bg-card p-1"
+        >
+          {kindTabs.tabs.map((t) => {
+            const active = t.key === kindTabs.active;
+            const TabIcon = t.icon;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => kindTabs.onSelect(t.key)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-brand text-brand-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {TabIcon && <TabIcon className="h-4 w-4" />}
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Filter tabs */}
       {filters.length > 1 && (

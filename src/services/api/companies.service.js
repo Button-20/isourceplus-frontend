@@ -57,3 +57,31 @@ export async function getSubCategoryChoices(type, industry) {
   });
   return data;
 }
+
+// POST companies/supplier-switch/?switch_permission=accept|cancel — a supplier
+// company switching to the buyer side (accept, with the buyer `industry` from
+// GET industry-choices/?type=buyer) or back to supplier (cancel).
+export async function supplierSwitch(permission, industry) {
+  const { data } = await http.post(
+    "companies/supplier-switch/",
+    industry ? { industry } : {},
+    { params: { switch_permission: permission } },
+  );
+  return data;
+}
+
+export function supplierSwitchErrorMessage(err, fallback) {
+  const body = err?.response?.data;
+  if (body && typeof body === "object") {
+    const first = (v) => (Array.isArray(v) ? v[0] : v);
+    return (
+      first(body.detail) ||
+      first(body.message) ||
+      first(body.industry) ||
+      first(body.switch_permission) ||
+      first(body.error) ||
+      fallback
+    );
+  }
+  return fallback;
+}

@@ -5,8 +5,7 @@ import { FaFacebook, FaLinkedin } from "react-icons/fa";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Logo from "@/components/common/Logo";
-import AuthBrandPanel from "@/components/auth/AuthBrandPanel";
+import AuthBrandPanel, { AuthBrandHeader } from "@/components/auth/AuthBrandPanel";
 import { useAuth } from "@/services/context/app.context";
 
 function SocialButtons({ onGoogle }) {
@@ -65,12 +64,6 @@ export function LoginPage() {
 
       <div className="flex flex-col p-6 sm:p-10">
         <div className="flex items-center justify-between">
-          <div className="lg:hidden">
-            <Logo imgClassName="h-12" />
-            <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              Connect - Source - Pay
-            </p>
-          </div>
           <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
             New here?
             <Button variant="ghost" size="sm" onClick={() => navigate("/signup")}>
@@ -80,6 +73,7 @@ export function LoginPage() {
         </div>
 
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
+          <AuthBrandHeader />
           <h1 className="font-display text-2xl font-bold">Sign in</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Enter your email and password to continue.
@@ -176,12 +170,6 @@ export function SignUpPage() {
 
       <div className="flex flex-col p-6 sm:p-10">
         <div className="flex items-center justify-between">
-          <div className="lg:hidden">
-            <Logo imgClassName="h-12" />
-            <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              Connect - Source - Pay
-            </p>
-          </div>
           <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
             Have an account?
             <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
@@ -191,6 +179,7 @@ export function SignUpPage() {
         </div>
 
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-8">
+          <AuthBrandHeader />
           <h1 className="font-display text-2xl font-bold">Create your account</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Enter your email and choose a password to get started.
