@@ -29,7 +29,7 @@ import StarRating from "@/components/reviews/StarRating";
 import ReviewModal from "@/components/reviews/ReviewModal";
 import {
   getOrganizationReviews,
-  getAllReviews,
+  getReceivedReviews,
   deleteReview,
 } from "@/services/api/reviews.service";
 
@@ -137,9 +137,9 @@ function ReviewList({ loading, reviews, emptyText, onEdit, onDelete }) {
 
 const ReviewsPage = () => {
   const [mineLoading, setMineLoading] = useState(true);
-  const [allLoading, setAllLoading] = useState(true);
+  const [receivedLoading, setReceivedLoading] = useState(true);
   const [mine, setMine] = useState([]);
-  const [all, setAll] = useState([]);
+  const [received, setReceived] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [toDelete, setToDelete] = useState(null);
@@ -157,22 +157,22 @@ const ReviewsPage = () => {
     }
   }, []);
 
-  const fetchAll = useCallback(async () => {
-    setAllLoading(true);
+  const fetchReceived = useCallback(async () => {
+    setReceivedLoading(true);
     try {
-      setAll(asList(await getAllReviews()));
+      setReceived(asList(await getReceivedReviews()));
     } catch {
-      setAll([]);
-      toast.error("Failed to load reviews.");
+      setReceived([]);
+      toast.error("Failed to load received reviews.");
     } finally {
-      setAllLoading(false);
+      setReceivedLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchMine();
-    fetchAll();
-  }, [fetchMine, fetchAll]);
+    fetchReceived();
+  }, [fetchMine, fetchReceived]);
 
   const openCreate = () => {
     setEditing(null);
@@ -190,7 +190,7 @@ const ReviewsPage = () => {
       toast.success("Review deleted");
       setToDelete(null);
       fetchMine();
-      fetchAll();
+      fetchReceived();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to delete review.");
     } finally {
@@ -200,7 +200,7 @@ const ReviewsPage = () => {
 
   const refresh = () => {
     fetchMine();
-    fetchAll();
+    fetchReceived();
   };
 
   return (
@@ -217,8 +217,8 @@ const ReviewsPage = () => {
               Reviews
             </h1>
             <p className="mt-2 max-w-lg text-sm text-white/85">
-              Rate the organizations you&apos;ve worked with and see feedback
-              across the marketplace.
+              Rate the organizations you&apos;ve worked with and see what
+              others say about yours.
             </p>
           </div>
           <Button
@@ -233,7 +233,7 @@ const ReviewsPage = () => {
       <Tabs defaultValue="mine">
         <TabsList>
           <TabsTrigger value="mine">Your reviews</TabsTrigger>
-          <TabsTrigger value="all">All reviews</TabsTrigger>
+          <TabsTrigger value="received">Received reviews</TabsTrigger>
         </TabsList>
         <TabsContent value="mine" className="mt-6">
           <ReviewList
@@ -244,11 +244,11 @@ const ReviewsPage = () => {
             onDelete={setToDelete}
           />
         </TabsContent>
-        <TabsContent value="all" className="mt-6">
+        <TabsContent value="received" className="mt-6">
           <ReviewList
-            loading={allLoading}
-            reviews={all}
-            emptyText="No reviews yet."
+            loading={receivedLoading}
+            reviews={received}
+            emptyText="No one has reviewed your organization yet."
           />
         </TabsContent>
       </Tabs>

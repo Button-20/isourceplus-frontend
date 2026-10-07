@@ -1,6 +1,7 @@
-// Supplier "Business Invitations": RFxs / tenders the supplier was invited to
-// — GET business-invites/?biz_type=<rfx|tender>, one tab each (?biz_type= in
-// the URL). Transporters get waybills only (biz_type=waybill), without tabs. Rows link to the event, where the sales
+// "Business Invitations": supplier companies see RFxs / tenders they were
+// invited to — GET companies/business-invites/?biz_type=<rfx|tender>, one tab
+// each (?biz_type= in the URL). Transporters see their waybill invitations —
+// GET transporters/business-invites/ — without tabs. Rows link to the event, where the sales
 // manager's "Send offer" action already lives.
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -120,7 +121,11 @@ export default function BusinessInvitesPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await listBusinessInvites(bizType, { page });
+      const res = await listBusinessInvites(
+        isTransporter ? "transporter" : "company",
+        bizType,
+        { page },
+      );
       setRows(res.items);
       setPagination({
         count: res.count,
@@ -149,7 +154,7 @@ export default function BusinessInvitesPage() {
     } finally {
       setLoading(false);
     }
-  }, [bizType, page]);
+  }, [isTransporter, bizType, page]);
 
   useEffect(() => {
     load();

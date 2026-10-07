@@ -20,10 +20,10 @@ export async function getOrganizationReviews() {
   }
 }
 
-// GET every review across the platform.
-export async function getAllReviews() {
+// GET reviews other organizations have written about the current organization.
+export async function getReceivedReviews() {
   try {
-    const { data } = await http.get("reviews/all-reviews/");
+    const { data } = await http.get("reviews/received-reviews/");
     return data;
   } catch (err) {
     return emptyOn404(err);

@@ -1,12 +1,11 @@
-// Supplier business invitations: the RFxs, tenders and waybills a supplier has
-// been invited to respond to.
+// Business invitations: the events an organisation has been invited to.
 //
-//   GET business-invites/?biz_type=<rfx|tender|waybill>
+//   GET companies/business-invites/?biz_type=<rfx|tender>   — supplier companies
+//   GET transporters/business-invites/                      — transporters (waybills)
 //
-// Verified 2026-10-05: collection-level, GET-only (Allow: GET, HEAD, OPTIONS).
-// It returned HTTP 500 for a buyer account, so the response shape is unseen —
-// rows are normalised defensively: either the event itself (ref_num, title, …)
-// or an invite wrapping it under `rfx` / `tender` / `waybill` / `event`.
+// The response shape is unseen, so rows are normalised defensively: either the
+// event itself (ref_num, title, …) or an invite wrapping it under `rfx` /
+// `tender` / `waybill` / `event`.
 import http from "@/services/lib/http";
 
 export { isMissingRoute } from "@/services/api/offers.service";
@@ -61,11 +60,20 @@ export const normalizeInvite = (row, bizType) => {
   };
 };
 
+// `orgKind` is the user's org: "company" or "transporter".
 // → { items, count, next, previous, emptyMessage }
-export async function listBusinessInvites(bizType, { page = 1 } = {}) {
-  const { data } = await http.get("business-invites/", {
-    params: { biz_type: bizType, ...(page > 1 ? { page } : {}) },
-  });
+export async function listBusinessInvites(
+  orgKind,
+  bizType,
+  { page = 1 } = {},
+) {
+  const pageParam = page > 1 ? { page } : {};
+  const { data } =
+    orgKind === "transporter"
+      ? await http.get("transporters/business-invites/", { params: pageParam })
+      : await http.get("companies/business-invites/", {
+          params: { biz_type: bizType, ...pageParam },
+        });
   const items = toItems(data).map((r) => normalizeInvite(r, bizType));
   const emptyMessage =
     !items.length && data && typeof data === "object" && !Array.isArray(data)
