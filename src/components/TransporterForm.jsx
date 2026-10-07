@@ -1,4 +1,4 @@
-import { Loader2, Upload, X } from "lucide-react";
+import { Landmark, Loader2, ShieldCheck, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getCountryChoices } from "@/services/api/choices.service";
+import { verifyOrganisation } from "@/services/api/organisation.service";
 import {
   createTransporter as createTransporterRequest,
   getDistrictChoices,
@@ -55,7 +56,25 @@ const EMPTY_VALUES = {
   office_line_2: "",
   web_address: "",
   country: "", // top-level per the API (not location[country])
+  // Banking details (settlements / escrow payouts). Bank account is required.
+  bank_account_name: "",
+  bank_account_number: "",
+  momo_number: "",
 };
+// Keys newer than older drafts — not required for a draft to be restored.
+const NEWER_DRAFT_KEYS = [
+  "country",
+  "bank_account_name",
+  "bank_account_number",
+  "momo_number",
+];
+const MOMO_RE = /^0\d{9}$/;
+// The TIN is verification-only (POST verify-organisation/), not part of the
+// create payload. verify-organisation needs an existing organisation, so it
+// runs right after the transporter is created; if that fails, the TIN is
+// handed to the Edit transporter page (PENDING_TIN_KEY) to verify there.
+const TIN_DRAFT_KEY = "transporterFormTin";
+const PENDING_TIN_KEY = "transporterPendingTin";
 const EMPTY_LOCATION = {
   region: "",
   district: "",
@@ -161,6 +180,11 @@ const TransporterForm = () => {
   // Gallery files sent as vehicle_images[N][file]: [{ file, preview }].
   const [vehicleImages, setVehicleImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [tin, setTinState] = useState(() => storage.get(TIN_DRAFT_KEY) || "");
+  const setTin = (value) => {
+    setTinState(value);
+    storage.set(TIN_DRAFT_KEY, value);
+  };
 
   const [countryChoices, setCountryChoices] = useState([]);
   const [countryLoading, setCountryLoading] = useState(false);
@@ -184,7 +208,10 @@ const TransporterForm = () => {
     const legacyCountry = parsedLocation?.country || "";
     if (
       parsedValues &&
-      validateStoredData(parsedValues, VALUE_KEYS.filter((k) => k !== "country"))
+      validateStoredData(
+        parsedValues,
+        VALUE_KEYS.filter((k) => !NEWER_DRAFT_KEYS.includes(k)),
+      )
     ) {
       setValues({
         ...pickKeys(parsedValues, VALUE_KEYS),
@@ -484,11 +511,13 @@ const TransporterForm = () => {
     storage.remove("transporterFormValues");
     storage.remove("transporterFormLocation");
     storage.remove("transporterFormLists");
+    storage.remove(TIN_DRAFT_KEY);
   };
 
   const handleReset = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setValues(EMPTY_VALUES);
+    setTinState("");
     setLocation(EMPTY_LOCATION);
     setLists({ transport_modes: [], transport_means: [] });
     setFiles({ logo: null, image_front_view: null });
@@ -513,6 +542,16 @@ const TransporterForm = () => {
     ].find(([k]) => !String(values[k]).trim());
     if (missingScalar)
       return toast.error(`Please provide the ${missingScalar[1]}.`);
+    if (!tin.trim())
+      return toast.error("Please enter your Tax Identification Number (TIN).");
+    if (!values.bank_account_name.trim())
+      return toast.error("Please provide the bank account name.");
+    if (!values.bank_account_number.trim())
+      return toast.error("Please provide the bank account number.");
+    if (values.momo_number && !MOMO_RE.test(values.momo_number.trim()))
+      return toast.error(
+        "Mobile money number must start with 0 and be 10 digits (e.g. 0241234567), not +233.",
+      );
 
     const missingLocation = [
       ["region", "region"],
@@ -579,6 +618,25 @@ const TransporterForm = () => {
       }
       clearDraft();
       toast.success("Transporter registered successfully!");
+
+      // Verify the TIN now that the organisation exists.
+      const tinValue = tin.trim();
+      try {
+        const res = await verifyOrganisation(tinValue);
+        if (res?.status === false) throw new Error(res?.message);
+        storage.remove(PENDING_TIN_KEY);
+        const official = res?.data?.organisationName;
+        toast.success(official ? `TIN verified: ${official}` : "TIN verified.");
+      } catch (verifyErr) {
+        storage.set(PENDING_TIN_KEY, tinValue);
+        const vd = verifyErr.response?.data;
+        const reason = vd?.message || vd?.errors?.tin?.[0] || verifyErr.message;
+        toast.warning(
+          `Your TIN couldn't be verified${reason ? `: ${reason}` : ""}. ` +
+            "Check it and verify again on your profile.",
+        );
+      }
+      setTinState("");
       navigate("/dashboard/transporter/edit");
     } catch (err) {
       console.error("Registration failed", err);
@@ -702,6 +760,27 @@ const TransporterForm = () => {
               required
             />
           </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass}>
+              Tax Identification Number (TIN){" "}
+              <span className="text-destructive">*</span>
+            </label>
+            <div className="relative">
+              <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={tin}
+                onChange={(e) => setTin(e.target.value)}
+                placeholder="12345678-0001"
+                className="pl-9"
+                autoComplete="off"
+                required
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Verified automatically when you register, to confirm your
+              organisation.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -756,6 +835,61 @@ const TransporterForm = () => {
               onChange={handleChange}
               placeholder="https://example.com"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Banking details */}
+      <section className="border-b border-border pb-6">
+        <h2 className="mb-1 flex items-center gap-2 font-display text-base font-semibold">
+          <Landmark className="h-4 w-4 text-brand" /> Banking details
+        </h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Where your delivery payments and escrow payouts are settled.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>
+              Bank account name <span className="text-destructive">*</span>
+            </label>
+            <Input
+              name="bank_account_name"
+              value={values.bank_account_name}
+              onChange={handleChange}
+              placeholder="Name on the account"
+              autoComplete="off"
+              required
+            />
+          </div>
+          <div>
+            <label className={labelClass}>
+              Bank account number <span className="text-destructive">*</span>
+            </label>
+            <Input
+              name="bank_account_number"
+              value={values.bank_account_number}
+              onChange={handleChange}
+              inputMode="numeric"
+              placeholder="Account number"
+              autoComplete="off"
+              required
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Mobile money number</label>
+            <Input
+              type="tel"
+              name="momo_number"
+              value={values.momo_number}
+              onChange={handleChange}
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="0241234567"
+              autoComplete="off"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Optional. Local format starting with 0 (10 digits), not +233.
+            </p>
           </div>
         </div>
       </section>

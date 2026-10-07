@@ -2,7 +2,18 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Upload, X, Truck, ArrowLeft, FileCheck2, Save } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  Clock,
+  FileCheck2,
+  Landmark,
+  Loader2,
+  Save,
+  Truck,
+  Upload,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { normalizeChoices, prettify } from "@/utils/choices";
 import { compressImage } from "@/utils/compress-image";
 import { getCountryChoices } from "@/services/api/choices.service";
+import VerifyOrganisation from "@/components/organisation/VerifyOrganisation";
+import { storage } from "@/services/lib/storage";
 import {
   getDistrictChoices,
   getTransporterTypeChoices,
@@ -32,6 +45,9 @@ const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 // The backend caps the WHOLE multipart body (~1MB), so every newly picked file
 // (logo + front view + vehicle images) must fit under this together.
 const MAX_TOTAL_UPLOAD = 900 * 1024;
+const MOMO_RE = /^0\d{9}$/;
+// Set by the registration form when the post-create TIN check failed.
+const PENDING_TIN_KEY = "transporterPendingTin";
 
 // Used only if /country-choices/ can't be fetched.
 const FALLBACK_COUNTRIES = [
@@ -132,7 +148,13 @@ export default function EditTransporter() {
     office_line_2: "",
     web_address: "",
     country: "", // top-level per the API (not location[country])
+    bank_account_name: "",
+    bank_account_number: "",
+    momo_number: "",
   });
+  // TIN is verification-only (never PATCHed); `isVerified` drives the badge.
+  const [tin, setTin] = useState("");
+  const [isVerified, setIsVerified] = useState(false);
   const [location, setLocation] = useState({
     region: "",
     district: "",
@@ -318,7 +340,14 @@ export default function EditTransporter() {
             web_address: data.web_address || "",
             // Country is top-level now; older records may still nest it.
             country: data.country || data.location?.country || "",
+            bank_account_name: data.bank_account_name || "",
+            bank_account_number: data.bank_account_number || "",
+            momo_number: data.momo_number || "",
           });
+          setTin(
+            data.tin_number || data.tin || storage.get(PENDING_TIN_KEY) || "",
+          );
+          setIsVerified(Boolean(data.is_verified));
           const loc = data.location || {};
           setLocation({
             region: loc.region || "",
@@ -470,11 +499,30 @@ export default function EditTransporter() {
     });
   };
 
+  // Verified: clear the pending TIN; point out a registered-name mismatch.
+  const handleOrganisationVerified = ({ organisationName }) => {
+    setIsVerified(true);
+    storage.remove(PENDING_TIN_KEY);
+    if (!organisationName) return;
+    if (!values.name.trim()) {
+      setValues((v) => ({ ...v, name: organisationName }));
+      toast.success("Transporter name filled from the verified organisation.");
+    } else if (values.name.trim() !== organisationName.trim()) {
+      toast.info(
+        `Registered name is "${organisationName}". Update the name below if it should match.`,
+      );
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!String(values.country).trim())
       return toast.error("Please provide the country.");
+    if (values.momo_number && !MOMO_RE.test(values.momo_number.trim()))
+      return toast.error(
+        "Mobile money number must start with 0 and be 10 digits (e.g. 0241234567), not +233.",
+      );
     const missingLocation = [
       ["region", "region"],
       ["district", "district"],
@@ -615,8 +663,23 @@ export default function EditTransporter() {
               <Truck className="h-6 w-6" />
             </span>
             <div>
-              <h1 className="font-display text-2xl font-bold">
+              <h1 className="flex flex-wrap items-center gap-2 font-display text-2xl font-bold">
                 Edit transporter
+                {isVerified ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-semibold text-emerald-50 ring-1 ring-inset ring-emerald-300/60"
+                    title="This organisation's TIN has been verified."
+                  >
+                    <BadgeCheck className="h-3.5 w-3.5" /> TIN verified
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full bg-amber-300/20 px-3 py-1 text-xs font-semibold text-amber-50 ring-1 ring-inset ring-amber-200/60"
+                    title="Verify your TIN below to get your organisation verified."
+                  >
+                    <Clock className="h-3.5 w-3.5" /> Verification pending
+                  </span>
+                )}
               </h1>
               <p className="mt-1 text-sm text-white/85">
                 Update your transport service profile and fleet.
@@ -651,6 +714,20 @@ export default function EditTransporter() {
             Basic information
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <VerifyOrganisation
+                value={tin}
+                onChange={setTin}
+                onVerified={handleOrganisationVerified}
+                verified={isVerified}
+                disabled={isVerified}
+                hint={
+                  isVerified
+                    ? "Your organisation's TIN is verified. Contact support if it needs to change."
+                    : "Verify your TIN to confirm your organisation."
+                }
+              />
+            </div>
             <div>
               <label className={labelClass}>
                 Transporter name <span className="text-destructive">*</span>
@@ -759,6 +836,55 @@ export default function EditTransporter() {
                 onChange={handleChange}
                 placeholder="https://example.com"
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Banking details */}
+        <section className="border-b border-border pb-6">
+          <h2 className="mb-1 flex items-center gap-2 font-display text-base font-semibold">
+            <Landmark className="h-4 w-4 text-brand" /> Banking details
+          </h2>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Where your delivery payments and escrow payouts are settled.
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Bank account name</label>
+              <Input
+                name="bank_account_name"
+                value={values.bank_account_name}
+                onChange={handleChange}
+                placeholder="Name on the account"
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Bank account number</label>
+              <Input
+                name="bank_account_number"
+                value={values.bank_account_number}
+                onChange={handleChange}
+                inputMode="numeric"
+                placeholder="Account number"
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Mobile money number</label>
+              <Input
+                type="tel"
+                name="momo_number"
+                value={values.momo_number}
+                onChange={handleChange}
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="0241234567"
+                autoComplete="off"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Optional. Local format starting with 0 (10 digits), not +233.
+              </p>
             </div>
           </div>
         </section>
