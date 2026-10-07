@@ -30,7 +30,6 @@ import { normalizeChoices, prettify } from "@/utils/choices";
 import { compressImage } from "@/utils/compress-image";
 import { getCountryChoices } from "@/services/api/choices.service";
 import VerifyOrganisation from "@/components/organisation/VerifyOrganisation";
-import { storage } from "@/services/lib/storage";
 import {
   getDistrictChoices,
   getTransporterTypeChoices,
@@ -46,8 +45,6 @@ const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 // (logo + front view + vehicle images) must fit under this together.
 const MAX_TOTAL_UPLOAD = 900 * 1024;
 const MOMO_RE = /^0\d{9}$/;
-// Set by the registration form when the post-create TIN check failed.
-const PENDING_TIN_KEY = "transporterPendingTin";
 
 // Used only if /country-choices/ can't be fetched.
 const FALLBACK_COUNTRIES = [
@@ -344,9 +341,7 @@ export default function EditTransporter() {
             bank_account_number: data.bank_account_number || "",
             momo_number: data.momo_number || "",
           });
-          setTin(
-            data.tin_number || data.tin || storage.get(PENDING_TIN_KEY) || "",
-          );
+          setTin(data.tin_number || data.tin || "");
           setIsVerified(Boolean(data.is_verified));
           const loc = data.location || {};
           setLocation({
@@ -499,10 +494,10 @@ export default function EditTransporter() {
     });
   };
 
-  // Verified: clear the pending TIN; point out a registered-name mismatch.
+  // When the organisation is verified, adopt its official registered name if
+  // the name field is empty; otherwise just point out a mismatch.
   const handleOrganisationVerified = ({ organisationName }) => {
     setIsVerified(true);
-    storage.remove(PENDING_TIN_KEY);
     if (!organisationName) return;
     if (!values.name.trim()) {
       setValues((v) => ({ ...v, name: organisationName }));

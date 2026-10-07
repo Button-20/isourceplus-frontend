@@ -1,4 +1,4 @@
-import { Landmark, Loader2, ShieldCheck, Upload, X } from "lucide-react";
+import { Landmark, Loader2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -15,7 +15,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getCountryChoices } from "@/services/api/choices.service";
-import { verifyOrganisation } from "@/services/api/organisation.service";
 import {
   createTransporter as createTransporterRequest,
   getDistrictChoices,
@@ -69,12 +68,9 @@ const NEWER_DRAFT_KEYS = [
   "momo_number",
 ];
 const MOMO_RE = /^0\d{9}$/;
-// The TIN is verification-only (POST verify-organisation/), not part of the
-// create payload. verify-organisation needs an existing organisation, so it
-// runs right after the transporter is created; if that fails, the TIN is
-// handed to the Edit transporter page (PENDING_TIN_KEY) to verify there.
-const TIN_DRAFT_KEY = "transporterFormTin";
-const PENDING_TIN_KEY = "transporterPendingTin";
+// TIN verification is deliberately NOT on registration (same as companies):
+// verify-organisation needs an existing organisation, so it lives on the Edit
+// transporter page.
 const EMPTY_LOCATION = {
   region: "",
   district: "",
@@ -180,11 +176,6 @@ const TransporterForm = () => {
   // Gallery files sent as vehicle_images[N][file]: [{ file, preview }].
   const [vehicleImages, setVehicleImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-  const [tin, setTinState] = useState(() => storage.get(TIN_DRAFT_KEY) || "");
-  const setTin = (value) => {
-    setTinState(value);
-    storage.set(TIN_DRAFT_KEY, value);
-  };
 
   const [countryChoices, setCountryChoices] = useState([]);
   const [countryLoading, setCountryLoading] = useState(false);
@@ -511,13 +502,13 @@ const TransporterForm = () => {
     storage.remove("transporterFormValues");
     storage.remove("transporterFormLocation");
     storage.remove("transporterFormLists");
-    storage.remove(TIN_DRAFT_KEY);
+    // TIN draft left by an earlier build that had the field on registration.
+    storage.remove("transporterFormTin");
   };
 
   const handleReset = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setValues(EMPTY_VALUES);
-    setTinState("");
     setLocation(EMPTY_LOCATION);
     setLists({ transport_modes: [], transport_means: [] });
     setFiles({ logo: null, image_front_view: null });
@@ -542,8 +533,6 @@ const TransporterForm = () => {
     ].find(([k]) => !String(values[k]).trim());
     if (missingScalar)
       return toast.error(`Please provide the ${missingScalar[1]}.`);
-    if (!tin.trim())
-      return toast.error("Please enter your Tax Identification Number (TIN).");
     if (!values.bank_account_name.trim())
       return toast.error("Please provide the bank account name.");
     if (!values.bank_account_number.trim())
@@ -618,25 +607,6 @@ const TransporterForm = () => {
       }
       clearDraft();
       toast.success("Transporter registered successfully!");
-
-      // Verify the TIN now that the organisation exists.
-      const tinValue = tin.trim();
-      try {
-        const res = await verifyOrganisation(tinValue);
-        if (res?.status === false) throw new Error(res?.message);
-        storage.remove(PENDING_TIN_KEY);
-        const official = res?.data?.organisationName;
-        toast.success(official ? `TIN verified: ${official}` : "TIN verified.");
-      } catch (verifyErr) {
-        storage.set(PENDING_TIN_KEY, tinValue);
-        const vd = verifyErr.response?.data;
-        const reason = vd?.message || vd?.errors?.tin?.[0] || verifyErr.message;
-        toast.warning(
-          `Your TIN couldn't be verified${reason ? `: ${reason}` : ""}. ` +
-            "Check it and verify again on your profile.",
-        );
-      }
-      setTinState("");
       navigate("/dashboard/transporter/edit");
     } catch (err) {
       console.error("Registration failed", err);
@@ -759,27 +729,6 @@ const TransporterForm = () => {
               placeholder="Briefly describe your transport service"
               required
             />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelClass}>
-              Tax Identification Number (TIN){" "}
-              <span className="text-destructive">*</span>
-            </label>
-            <div className="relative">
-              <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={tin}
-                onChange={(e) => setTin(e.target.value)}
-                placeholder="12345678-0001"
-                className="pl-9"
-                autoComplete="off"
-                required
-              />
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Verified automatically when you register, to confirm your
-              organisation.
-            </p>
           </div>
         </div>
       </section>
