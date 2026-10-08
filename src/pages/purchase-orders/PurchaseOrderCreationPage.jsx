@@ -263,7 +263,7 @@ const PurchaseOrderCreationPage = () => {
         : { ...fields, items };
       await authAxios.post(cleanUrl, payload);
       toast.success("Purchase order created successfully!");
-      navigate("/dashboard/proforma-invoices");
+      navigate("/dashboard/purchase-orders");
     } catch (err) {
       const data = err.response?.data;
       toast.error(

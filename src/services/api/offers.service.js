@@ -6,9 +6,12 @@
 //   GET waybills/{ref}/received-offers/
 //
 // `{ref}` is the event's ref_num, matching every other event endpoint
-// (rfxs/{ref}/, tenders/{ref}/ …). As of 2026-10-05 only the tenders route is
-// live on the backend; the RFx and waybill routes 404 at the URL router — the
-// page detects that (see isMissingRoute) and explains instead of erroring.
+// (rfxs/{ref}/, tenders/{ref}/ …). All three are live (verified 2026-10-08);
+// a missing route is still detected (isMissingRoute) and explained.
+//
+// The events to pick from are the buyer's own — drafts, published and expired
+// ({x}/drafts/, {x}/approved/active-published/, {x}/expired/non-active/),
+// merged. ({x}/issued/ is not a list: the detail route answers it.)
 import http from "@/services/lib/http";
 
 export const OFFER_KINDS = {
@@ -20,7 +23,7 @@ export const OFFER_KINDS = {
     title: "RFx offers",
     blurb:
       "Proforma invoices suppliers have submitted against your RFQs, RFPs and RFIs.",
-    issuedPath: "rfxs/issued/",
+    base: "rfxs",
     offersPath: (ref) => `rfxs/${encodeURIComponent(ref)}/received-offers/`,
     eventUrl: (ref) => `/dashboard/rfxs/${ref}`,
     createUrl: "/dashboard/rfxs/issued?new=1",
@@ -32,7 +35,7 @@ export const OFFER_KINDS = {
     plural: "tenders",
     title: "Tender offers",
     blurb: "Bids suppliers have submitted against the tenders you published.",
-    issuedPath: "tenders/issued/",
+    base: "tenders",
     offersPath: (ref) => `tenders/${encodeURIComponent(ref)}/received-offers/`,
     eventUrl: (ref) => `/dashboard/tenders/${ref}`,
     createUrl: "/dashboard/tenders?new=1",
@@ -45,7 +48,7 @@ export const OFFER_KINDS = {
     title: "Waybill offers",
     blurb:
       "Delivery offers cargo transporters have submitted against your waybills.",
-    issuedPath: "waybills/issued/",
+    base: "waybills",
     offersPath: (ref) => `waybills/${encodeURIComponent(ref)}/received-offers/`,
     eventUrl: (ref) => `/dashboard/waybills/${ref}`,
     createUrl: "/dashboard/waybills/issued",
@@ -70,22 +73,47 @@ export const isMissingRoute = (err) =>
   typeof err.response.data === "string" &&
   /<html/i.test(err.response.data);
 
-// rfxs/issued/ and tenders/issued/ answer a JSON 404 {"detail":"Not found."}
-// when the buyer has issued none — an empty state, not a failure.
+// A JSON 404 (not the HTML "no route" page) means an empty list.
 const isEmptyListNotFound = (err) =>
   err?.response?.status === 404 && !isMissingRoute(err);
 
-// The buyer's own events of one kind (paginated where the backend paginates).
-export async function getIssuedEvents(kind, page = 1) {
+const EVENT_LISTS = [
+  "drafts/",
+  "approved/active-published/",
+  "expired/non-active/",
+];
+
+async function getList(path) {
   try {
-    const { data } = await http.get(OFFER_KINDS[kind].issuedPath, {
-      params: page > 1 ? { page } : undefined,
-    });
-    return { items: toList(data), next: data?.next ?? null };
+    const { data } = await http.get(path);
+    return toList(data);
   } catch (err) {
-    if (isEmptyListNotFound(err)) return { items: [], next: null };
+    if (isEmptyListNotFound(err)) return [];
     throw err;
   }
+}
+
+// The buyer's own events of one kind — drafts, published and expired merged
+// (first page of each), newest first. `next` stays null: no paging across
+// the merged lists.
+export async function getIssuedEvents(kind) {
+  const { base } = OFFER_KINDS[kind];
+  const lists = await Promise.all(
+    EVENT_LISTS.map((suffix) => getList(`${base}/${suffix}`)),
+  );
+  const seen = new Set();
+  const items = lists.flat().filter((e) => {
+    const key = e?.ref_num ?? e?.id;
+    if (key == null || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  items.sort(
+    (a, b) =>
+      new Date(b.created_at || 0).getTime() -
+      new Date(a.created_at || 0).getTime(),
+  );
+  return { items, next: null };
 }
 
 export async function getReceivedOffers(kind, ref) {

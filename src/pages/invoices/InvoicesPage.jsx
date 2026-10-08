@@ -1,5 +1,5 @@
 // "Invoices": proforma and sales invoices on one page, switched by tabs kept in
-// ?type=proforma|sales. Each type keeps its own filter tabs (All · Draft).
+// ?type=proforma|sales. Each type keeps its own filter tabs (Draft · Published · Expired).
 import { useSearchParams } from "react-router-dom";
 import { ReceiptText, Wallet } from "lucide-react";
 
@@ -25,7 +25,7 @@ export default function InvoicesPage() {
     label: "Invoice type",
     active: active.key,
     tabs: INVOICE_TYPES,
-    // Keep the filter tab (both types share All · Draft) when switching.
+    // Keep the filter tab (both types share the same tabs) when switching.
     onSelect: (key) => {
       const next = new URLSearchParams(searchParams);
       next.set("type", key);

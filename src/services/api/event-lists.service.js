@@ -1,42 +1,36 @@
-// Event lists (RFx / tender / waybill) behind one page per kind with filter
-// tabs — see pages/event-lists/EventManagementPage.jsx.
+// Document lists (RFx, tender, waybill, PO, proforma, sales invoice, payment
+// order) behind one page per kind with filter tabs — see
+// pages/event-lists/EventManagementPage.jsx.
 //
-//   all       GET {x}/                              everything visible to you
-//   draft     {x}/ (rfx, tender) or waybills/issued/, filtered client-side to
-//             payload status "draft" — there is no draft endpoint and the
-//             backend ignores ?status= (verified 2026-10-05)
+//   draft     GET {x}/drafts/                       your drafts
 //   published GET {x}/approved/active-published/    approved and live
 //   expired   GET {x}/expired/non-active/           submission due date reached
 //
-// "Draft" replaces the old "Issued" tab (same records): rfxs/issued/ and
-// tenders/issued/ are NOT list routes — the detail route answers them
-// ("No Rfx matches the given query."). waybills/issued/ is a real list.
-// Published/expired are collection-level, GET-only, and answer 200
-// { detail: "Nothing here yet. …" } when empty; only the tenders routes exist
-// so far (rfxs/waybills → Django HTML 404, detected by isMissingRoute).
+// All three exist for every kind (verified 2026-10-08). There is no "All" tab:
+// owners get Draft · Published · Expired, everyone else Published · Expired.
+// Lists are collection-level, GET-only, and may answer a JSON 404 or
+// 200 { detail: "Nothing here yet. …" } when empty.
 import http from "@/services/lib/http";
 import { isMissingRoute } from "@/services/api/offers.service";
 
 export { isMissingRoute };
 
-// path: suffix after "{x}/"; status: keep only rows whose payload status
-// matches (client-side). `draftPath` lets a kind source drafts elsewhere.
+// path: suffix after "{x}/".
 const FILTERS = {
-  all: { path: "" },
-  draft: { path: "", status: "draft" },
+  draft: { path: "drafts/" },
   published: { path: "approved/active-published/" },
   expired: { path: "expired/non-active/" },
 };
 
 export const FILTER_LABELS = {
-  all: "All",
   draft: "Draft",
   published: "Published",
   expired: "Expired",
 };
 
-// Client-side filtering has to see every page, not just the first.
-const MAX_PAGES = 10;
+// Drafts belong to whoever manages the document; others only see live ones.
+const tabsFor = (canManage) =>
+  canManage ? ["draft", "published", "expired"] : ["published", "expired"];
 
 const OWNER_ROLES = {
   rfx: ["lead buyer"],
@@ -56,13 +50,13 @@ export const EVENT_KINDS = {
     plural: "RFxs",
     route: "/dashboard/rfxs",
     detailUrl: (ref) => `/dashboard/rfxs/${ref}`,
-    offersUrl: (ref) => `/dashboard/business-offers/rfx?event=${ref}`,
+    // Received offers live on the Business Offers page, with this RFx picked.
+    offersUrl: (ref) =>
+      `/dashboard/business-offers?type=rfx&event=${encodeURIComponent(ref)}`,
     viewRoles: ["lead buyer", "sales manager"],
-    // Buyers manage their own RFxs; suppliers (supplier view) just browse all.
+    // Buyers manage their own RFxs; suppliers (supplier view) only browse.
     filtersFor: ({ isOwner, isSupplierView }) =>
-      isOwner && !isSupplierView
-        ? ["all", "draft", "published", "expired"]
-        : ["all"],
+      tabsFor(isOwner && !isSupplierView),
   },
   tender: {
     base: "tenders",
@@ -70,12 +64,11 @@ export const EVENT_KINDS = {
     plural: "tenders",
     route: "/dashboard/tenders",
     detailUrl: (ref) => `/dashboard/tenders/${ref}`,
-    offersUrl: (ref) => `/dashboard/business-offers/tenders?event=${ref}`,
+    offersUrl: (ref) =>
+      `/dashboard/business-offers?type=tender&event=${encodeURIComponent(ref)}`,
     viewRoles: ["lead buyer", "sales manager"],
     filtersFor: ({ isOwner, isSupplierView }) =>
-      isOwner && !isSupplierView
-        ? ["all", "draft", "published", "expired"]
-        : ["all"],
+      tabsFor(isOwner && !isSupplierView),
   },
   waybill: {
     base: "waybills",
@@ -83,16 +76,12 @@ export const EVENT_KINDS = {
     plural: "waybills",
     route: "/dashboard/waybills",
     detailUrl: (ref) => `/dashboard/waybills/${ref}`,
-    offersUrl: (ref) => `/dashboard/business-offers/waybills?event=${ref}`,
+    offersUrl: (ref) =>
+      `/dashboard/business-offers?type=waybill&event=${encodeURIComponent(ref)}`,
     viewRoles: null, // everyone who can reach the page
-    // Owners' drafts come from their issued list (waybills/issued/ is real).
-    draftPath: "issued/",
     // Sales managers create waybills too, so manage in supplier view as well.
     ownerSide: "any",
-    // Waybill owners (buyers / suppliers) only ever saw their own waybills;
-    // transporters see all waybills they can bid on.
-    filtersFor: ({ isOwner }) =>
-      isOwner ? ["draft", "published", "expired"] : ["all"],
+    filtersFor: ({ isOwner }) => tabsFor(isOwner),
   },
   purchaseOrder: {
     base: "purchase-orders",
@@ -103,12 +92,9 @@ export const EVENT_KINDS = {
     offersUrl: null, // no received-offers view for POs
     canDelete: false, // POs come from awarded offers; no delete
     viewRoles: null,
-    // Buyers' drafts come from their issued POs (purchase-orders/issued/ is a
-    // real list). purchase-orders/ is everything visible (for a supplier: the
-    // POs awarded to them). No published/expired routes exist for POs.
-    draftPath: "issued/",
+    // No Expired tab for purchase orders (product decision, 2026-10-08).
     filtersFor: ({ isOwner, isSupplierView }) =>
-      isOwner && !isSupplierView ? ["all", "draft"] : ["all"],
+      tabsFor(isOwner && !isSupplierView).filter((f) => f !== "expired"),
   },
   proforma: {
     base: "proforma-invoices",
@@ -125,8 +111,7 @@ export const EVENT_KINDS = {
     offersUrl: null,
     ownerSide: "any", // sellers own these, so manage in supplier view too
     viewRoles: null,
-    draftPath: "issued/", // proforma-invoices/issued/ — issuer-only list
-    filtersFor: ({ isOwner }) => (isOwner ? ["all", "draft"] : ["all"]),
+    filtersFor: ({ isOwner }) => tabsFor(isOwner),
   },
   salesInvoice: {
     base: "sales-invoices",
@@ -138,8 +123,7 @@ export const EVENT_KINDS = {
     canDelete: false, // the old list pages had no delete
     ownerSide: "any",
     viewRoles: null,
-    draftPath: "issued/", // sales-invoices/issued/ — issuer-only list
-    filtersFor: ({ isOwner }) => (isOwner ? ["all", "draft"] : ["all"]),
+    filtersFor: ({ isOwner }) => tabsFor(isOwner),
   },
   paymentOrder: {
     base: "payment-orders",
@@ -150,9 +134,8 @@ export const EVENT_KINDS = {
     offersUrl: null,
     canDelete: false, // the old list page had no delete
     ownerSide: "any", // issued by sellers (sales / logistics managers)
-    viewRoles: null, // buyers see the payment orders served on them (All)
-    draftPath: "issued/", // payment-orders/issued/ — issuer-only list
-    filtersFor: ({ isOwner }) => (isOwner ? ["all", "draft"] : ["all"]),
+    viewRoles: null,
+    filtersFor: ({ isOwner }) => tabsFor(isOwner),
   },
 };
 
@@ -192,31 +175,7 @@ const detailOf = (data) =>
 
 // → { items, count, next, previous, emptyMessage }
 export async function fetchEventList(kind, filter, { page = 1 } = {}) {
-  const k = EVENT_KINDS[kind];
-  const f = FILTERS[filter];
-  const suffix = filter === "draft" && k.draftPath ? k.draftPath : f.path;
-  const path = `${k.base}/${suffix}`;
-
-  // Status-filtered tab: walk the underlying list's pages, keep matches.
-  if (f.status) {
-    const all = [];
-    let p = 1;
-    let next = true;
-    while (next && p <= MAX_PAGES) {
-      const { data, items } = await getPage(path, p);
-      all.push(...items);
-      next = Boolean(data?.next);
-      p += 1;
-    }
-    const items = all.filter(
-      (r) =>
-        String(r?.status ?? "")
-          .trim()
-          .toLowerCase() === f.status,
-    );
-    return { ...emptyResult(), items, count: items.length };
-  }
-
+  const path = `${EVENT_KINDS[kind].base}/${FILTERS[filter].path}`;
   const { data, items } = await getPage(path, page);
   if (!data) return emptyResult();
   return {

@@ -197,7 +197,7 @@ export function DashboardLayout() {
           icon: FileText,
           key: "rfx",
           url: "/dashboard/rfxs",
-          // One page with filter tabs (All · Draft · Published · Expired).
+          // One page with filter tabs (Draft · Published · Expired).
           matchPrefix: "/dashboard/rfxs",
         },
         {
@@ -205,7 +205,7 @@ export function DashboardLayout() {
           icon: Gavel,
           key: "tenders",
           url: "/dashboard/tenders",
-          // One page with filter tabs (All · Draft · Published · Expired).
+          // One page with filter tabs (Draft · Published · Expired).
           matchPrefix: "/dashboard/tenders",
         },
         {
@@ -225,7 +225,7 @@ export function DashboardLayout() {
           icon: FilePlus,
           key: "purchase-orders",
           url: "/dashboard/purchase-orders",
-          // One page with filter tabs (All · Draft).
+          // One page with filter tabs (Draft · Published).
           matchPrefix: "/dashboard/purchase-orders",
         },
         {
@@ -233,7 +233,7 @@ export function DashboardLayout() {
           icon: TruckIcon,
           key: "waybills",
           url: "/dashboard/waybills",
-          // One page with filter tabs (All · Draft · Published · Expired).
+          // One page with filter tabs (Draft · Published · Expired).
           matchPrefix: "/dashboard/waybills",
         },
         {
@@ -241,7 +241,7 @@ export function DashboardLayout() {
           icon: Wallet,
           key: "payment-orders",
           url: "/dashboard/payment-orders",
-          // One page with filter tabs (All · Draft).
+          // One page with filter tabs (Draft · Published · Expired).
           matchPrefix: "/dashboard/payment-orders",
         },
       ],

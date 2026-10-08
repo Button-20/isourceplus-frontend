@@ -3,7 +3,7 @@
 // three kinds (see OFFER_KINDS). The selected event lives in ?event=<ref_num>
 // so a specific event's offers can be linked to directly.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   Building2,
@@ -141,6 +141,12 @@ export default function ReceivedOffersPage({ kind, showTabs = false }) {
   const KindIcon = KIND_ICON[kind];
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedRef = searchParams.get("event") || "";
+  // Offer detail pages come back here, to this exact view (tab + event).
+  const location = useLocation();
+  const backState = {
+    backTo: `${location.pathname}${location.search}`,
+    backLabel: "Back to offers",
+  };
   // Select an event while keeping other params (e.g. ?type= on the tabbed page).
   const selectEvent = useCallback(
     (ref, opts) => {
@@ -525,6 +531,7 @@ export default function ReceivedOffersPage({ kind, showTabs = false }) {
                             {o.ref && (
                               <Link
                                 to={`/dashboard/proforma-invoices/${o.ref}`}
+                                state={backState}
                                 className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium text-brand hover:underline"
                               >
                                 View <ArrowRight className="h-3.5 w-3.5" />

@@ -172,7 +172,7 @@ const fullRoutes = [
       { path: "reviews", element: <ReviewsPage /> },
       { path: "sms", element: <SmsPage /> },
       // RFx / waybill / tender lists: one page each with filter tabs
-      // (All · Draft · Published · Expired); old per-filter URLs redirect.
+      // (Draft · Published · Expired); old per-filter URLs redirect.
       { path: "rfxs", element: <EventManagementPage key="rfx" kind="rfx" /> },
       {
         path: "rfxs/issued",
@@ -256,9 +256,9 @@ const fullRoutes = [
           />
         ),
       },
-      // Proforma / sales invoices: one page each with tabs (All · Draft).
+      // Proforma / sales invoices: one page each with tabs (Draft · Published · Expired).
       // Invoices: proforma + sales on one page (?type=proforma|sales), each
-      // with tabs (All · Draft). The old list URLs redirect there.
+      // with tabs (Draft · Published · Expired). The old list URLs redirect there.
       { path: "invoices", element: <InvoicesPage /> },
       { path: "clients", element: <ClientsPage /> },
       {
@@ -300,7 +300,7 @@ const fullRoutes = [
         path: "proforma-invoices/create-offer-tender",
         element: <CreateProformaInvoiceForTenderPage />,
       },
-      // Purchase orders: one page with filter tabs (All · Draft).
+      // Purchase orders: one page with filter tabs (Draft · Published).
       {
         path: "purchase-orders",
         element: (
@@ -339,7 +339,7 @@ const fullRoutes = [
         path: "sales-invoices/create-sales-invoice",
         element: <CreateSalesInvoicePage />,
       },
-      // Payment orders: one page with tabs (All · Draft).
+      // Payment orders: one page with tabs (Draft · Published · Expired).
       {
         path: "payment-orders",
         element: <EventManagementPage key="paymentOrder" kind="paymentOrder" />,

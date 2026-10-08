@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { Loader2, Building2, ArrowLeft, Send } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
   format,
@@ -31,6 +31,10 @@ const ProformaInvoiceDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [modalLoading, setModalLoading] = useState(false);
   const navigate = useNavigate();
+  // Opened from Business Offers? Go back there (same tab + event).
+  const location = useLocation();
+  const backTo = location.state?.backTo || "/dashboard/proforma-invoices";
+  const backLabel = location.state?.backLabel || "Back to proforma invoices";
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -104,9 +108,9 @@ const ProformaInvoiceDetailPage = () => {
           <Button
             variant="outline"
             className="mt-5"
-            onClick={() => navigate("/dashboard/proforma-invoices")}
+            onClick={() => navigate(backTo)}
           >
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to proforma invoices
+            <ArrowLeft className="mr-2 h-4 w-4" /> {backLabel}
           </Button>
         </div>
       </div>
@@ -128,8 +132,8 @@ const ProformaInvoiceDetailPage = () => {
 
   return (
     <DetailPage
-      onBack={() => navigate("/dashboard/proforma-invoices")}
-      backLabel="Back to proforma invoices"
+      onBack={() => navigate(backTo)}
+      backLabel={backLabel}
     >
       <DetailCard>
         <DetailHeader
@@ -191,7 +195,7 @@ const ProformaInvoiceDetailPage = () => {
           <DetailFooter>
             <Button
               variant="outline"
-              onClick={() => navigate("/dashboard/proforma-invoices")}
+              onClick={() => navigate(backTo)}
             >
               Cancel
             </Button>

@@ -1,5 +1,5 @@
 // One list page per event kind (RFx / tender / waybill) with filter tabs —
-// All · Draft · Published · Expired — instead of separate sidebar pages.
+// Draft · Published · Expired — instead of separate sidebar pages.
 // The active tab lives in ?filter=<key>; ?new=1 opens the create wizard.
 // Status shows the payload's own `status`.
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -411,7 +411,7 @@ export default function EventManagementPage({ kind, kindTabs }) {
     );
   }
 
-  const showOffers = canManage && filter !== "all" && Boolean(cfg.offersUrl);
+  const showOffers = canManage && Boolean(cfg.offersUrl);
   const showDelete = canManage && filter === "draft" && cfg.canDelete !== false;
   const filterLabel = FILTER_LABELS[filter].toLowerCase();
 
@@ -556,7 +556,7 @@ export default function EventManagementPage({ kind, kindTabs }) {
           <div className="flex flex-col items-center px-6 py-16 text-center">
             <Inbox className="h-8 w-8 text-muted-foreground/60" />
             <p className="mt-3 font-medium">
-              No {filter === "all" ? "" : `${filterLabel} `}
+              No {`${filterLabel} `}
               {cfg.plural}
             </p>
             {emptyMessage && (

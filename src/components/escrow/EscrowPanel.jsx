@@ -138,7 +138,8 @@ function FeeRow({ label, value, currency, strong }) {
 
 // Renders a secured/created EscrowTransaction: status, amounts, fee breakdown,
 // ledger entries and release conditions. `escrow` is the API's EscrowTransaction.
-export default function EscrowPanel({ escrow }) {
+// `actions` (optional) renders in the header, e.g. a Cancel escrow button.
+export default function EscrowPanel({ escrow, actions }) {
   if (!escrow) return null;
   const currency = escrow.currency || "GHS";
   const status = escrow.escrow_status || "CREATED";
@@ -187,6 +188,7 @@ export default function EscrowPanel({ escrow }) {
           >
             {prettify(status)}
           </span>
+          {actions}
         </div>
       </div>
 
