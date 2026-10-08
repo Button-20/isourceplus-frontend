@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/services/context/app.context";
 import { cn } from "@/lib/utils";
 import SwitchToBuyerModal from "@/components/dashboard/SwitchToBuyerModal";
+import { storage } from "@/services/lib/storage";
 import {
+  SUPPLIER_SWITCH_KEY,
   supplierSwitch,
   supplierSwitchErrorMessage,
 } from "@/services/api/companies.service";
@@ -35,6 +37,7 @@ export default function ViewModeToggle({ className }) {
     setBusy(true);
     try {
       const res = await supplierSwitch("cancel");
+      storage.remove(SUPPLIER_SWITCH_KEY);
       setViewMode("supplier");
       toast.success(res?.message || "Switched back to supplier.");
     } catch (err) {
@@ -89,7 +92,10 @@ export default function ViewModeToggle({ className }) {
       <SwitchToBuyerModal
         open={buyerOpen}
         onOpenChange={setBuyerOpen}
-        onSwitched={() => setViewMode("buyer")}
+        onSwitched={() => {
+          storage.set(SUPPLIER_SWITCH_KEY, "1");
+          setViewMode("buyer");
+        }}
       />
     </>
   );

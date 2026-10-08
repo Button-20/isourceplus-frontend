@@ -35,6 +35,11 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/services/context/app.context";
 import ViewModeToggle from "@/components/dashboard/ViewModeToggle";
+import { storage } from "@/services/lib/storage";
+import {
+  SUPPLIER_SWITCH_KEY,
+  getCompany,
+} from "@/services/api/companies.service";
 import { MdOutlineDocumentScanner, MdOutlinePeopleAlt } from "react-icons/md";
 
 export function DashboardLayout() {
@@ -53,6 +58,30 @@ export function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [profileVerified, setProfileVerified] = useState(null);
+  // The company's own type ("buyer" | "supplier"), used to keep the
+  // Buyer/Supplier toggle for supplier companies whatever the job title.
+  const [companyType, setCompanyType] = useState("");
+
+  useEffect(() => {
+    if (!companyId || transporterId) {
+      setCompanyType("");
+      return undefined;
+    }
+    let cancelled = false;
+    getCompany(companyId)
+      .then((data) => {
+        const company =
+          data?.data && !Array.isArray(data.data) ? data.data : data;
+        if (!cancelled)
+          setCompanyType(String(company?.type ?? "").toLowerCase());
+      })
+      .catch(() => {
+        /* non-critical: falls back to the job title */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, transporterId]);
 
   // Kick unauthenticated users back to login. No return-url is carried, so
   // logging out (and logging back in) lands on the dashboard, not the last page.
@@ -327,9 +356,15 @@ export function DashboardLayout() {
       "awarded-businesses",
     ],
   };
-  // Buyer/Supplier view toggle visibility: only suppliers (sales managers) see
-  // it. Buyers and transporters never do.
-  const showViewToggle = !isTransporter && isSupplierRole;
+  // Buyer/Supplier view toggle visibility: supplier companies only — never
+  // buyers or transporters. Switching to buyer can change the user's job title
+  // (no longer "sales manager"), so the company's own type and the switched
+  // flag also count; otherwise the user couldn't get back to supplier.
+  const showViewToggle =
+    !isTransporter &&
+    (isSupplierRole ||
+      companyType === "supplier" ||
+      storage.get(SUPPLIER_SWITCH_KEY) === "1");
   const hidden = new Set(
     isTransporter
       ? HIDDEN_KEYS.transporter

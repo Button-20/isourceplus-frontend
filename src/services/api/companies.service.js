@@ -58,6 +58,11 @@ export async function getSubCategoryChoices(type, industry) {
   return data;
 }
 
+// Storage flag set while a supplier company is switched to buyer, so the
+// Buyer/Supplier toggle stays available even if the switch changes the user's
+// job title (the toggle is otherwise shown to sales managers only).
+export const SUPPLIER_SWITCH_KEY = "supplier_switched";
+
 // POST companies/supplier-switch/?switch_permission=accept|cancel — a supplier
 // company switching to the buyer side (accept, with the buyer `industry` from
 // GET industry-choices/?type=buyer) or back to supplier (cancel).
