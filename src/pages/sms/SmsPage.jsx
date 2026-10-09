@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Coins,
-  Download,
-  FileSpreadsheet,
   Loader2,
   MessageSquare,
   RefreshCw,
   Send,
   ShoppingBag,
-  Upload,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,12 +23,14 @@ import {
   purchaseSmsUnits,
   sendSms,
 } from "@/services/api/sms.service";
+import RecipientsField from "@/components/sms/RecipientsField";
+import SmsInviteDialog from "@/components/sms/SmsInviteDialog";
 import {
-  RECIPIENT_FILE_ACCEPT,
-  RecipientFileError,
-  downloadRecipientTemplate,
-  readRecipientFile,
-} from "@/utils/recipient-file";
+  SIGNUP_FOOTER,
+  parseRecipients,
+  segmentsFor,
+  withSignupFooter,
+} from "@/utils/sms";
 
 // SMS resale: buy units from a plan, then send single or bulk messages.
 // The API response shapes weren't specified, so every field is read
@@ -150,27 +150,6 @@ const normalizeSent = (s) => {
   };
 };
 
-// Accept numbers separated by commas, spaces, semicolons or new lines and
-// normalise Ghanaian numbers to the international 233XXXXXXXXX form the API
-// expects. Duplicates are dropped.
-const parseRecipients = (raw) => {
-  const seen = new Set();
-  raw.split(/[\s,;]+/).forEach((tok) => {
-    let d = tok.replace(/\D/g, "");
-    if (!d) return;
-    if (d.startsWith("00")) d = d.slice(2);
-    if (d.length === 10 && d.startsWith("0")) d = `233${d.slice(1)}`;
-    if (d.length === 9) d = `233${d}`;
-    if (d.length >= 11 && d.length <= 15) seen.add(d);
-  });
-  return Array.from(seen);
-};
-
-// A standard GSM-7 SMS segment is 160 characters.
-const SEGMENT = 160;
-const segmentsFor = (text) =>
-  text.length ? Math.ceil(text.length / SEGMENT) : 0;
-
 const statusTone = (s) => {
   const v = String(s || "").toLowerCase();
   if (/(purchase|credit|success|paid|delivered|complete|approved)/.test(v))
@@ -236,12 +215,8 @@ export default function SmsPage() {
 
   const [message, setMessage] = useState("");
   const [recipientsRaw, setRecipientsRaw] = useState("");
-  // CSV / Excel recipient upload.
-  const fileInputRef = useRef(null);
-  const [importing, setImporting] = useState(false);
-  const [lastImport, setLastImport] = useState(null); // { name, added }
-  const [dragOver, setDragOver] = useState(false);
   const [sending, setSending] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const loadBalance = useCallback(async () => {
     setBalanceLoading(true);
@@ -302,64 +277,9 @@ export default function SmsPage() {
     [recipientsRaw],
   );
 
-  // Read numbers from a CSV / .xlsx file and merge them into the recipients
-  // box (the same parser then validates, normalises and de-duplicates them).
-  const importRecipientFile = async (file) => {
-    if (!file || importing) return;
-    setImporting(true);
-    try {
-      const { tokens, scientific, column } = await readRecipientFile(file);
-      const existing = new Set(parseRecipients(recipientsRaw));
-      const fromFile = parseRecipients(tokens.join("\n"));
-      const added = fromFile.filter((n) => !existing.has(n));
-      const invalid = tokens.filter((t) => !parseRecipients(t).length).length;
-      const duplicates = fromFile.length - added.length;
-
-      if (!fromFile.length) {
-        toast.error(
-          scientific
-            ? "No usable numbers found — the file stores them in scientific notation (e.g. 2.33E+11). Format the phone column as Text and export again."
-            : `No valid phone numbers found in ${file.name}.`,
-        );
-        return;
-      }
-      if (added.length) {
-        setRecipientsRaw((prev) =>
-          [prev.trim(), added.join("\n")].filter(Boolean).join("\n"),
-        );
-      }
-      setLastImport({ name: file.name, added: added.length });
-
-      const skipped = [
-        duplicates && `${duplicates} already listed`,
-        invalid && `${invalid} invalid`,
-        scientific && `${scientific} in scientific notation`,
-      ].filter(Boolean);
-      toast.success(
-        `Imported ${added.length} number${added.length === 1 ? "" : "s"} from ${file.name}` +
-          (column ? ` (column: ${column})` : "") +
-          (skipped.length ? ` — skipped ${skipped.join(", ")}.` : "."),
-      );
-    } catch (err) {
-      toast.error(
-        err instanceof RecipientFileError
-          ? err.message
-          : "Couldn't read that file. Try a .csv or .xlsx export.",
-      );
-      console.error("Recipient import error:", err);
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const onRecipientDrop = (e) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (file) importRecipientFile(file);
-  };
-  const segments = segmentsFor(message);
+  // Every bulk SMS carries the platform sign-up line; cost counts it too.
+  const fullMessage = withSignupFooter(message);
+  const segments = segmentsFor(fullMessage);
   const estimatedUnits = recipients.length * segments;
   const overBalance = balance !== null && estimatedUnits > balance;
 
@@ -374,7 +294,7 @@ export default function SmsPage() {
       );
     setSending(true);
     try {
-      const res = await sendSms({ message: message.trim(), recipients });
+      const res = await sendSms({ message: fullMessage, recipients });
       // We submitted `recipients`, so that's the reliable count. Only override
       // with an explicit POSITIVE sent-count from the response (avoid ambiguous
       // "count", and never let a 0/absent field report "Sent to 0 recipients").
@@ -385,7 +305,6 @@ export default function SmsPage() {
       toast.success(`Sent to ${sent} recipient${sent === 1 ? "" : "s"}.`);
       setMessage("");
       setRecipientsRaw("");
-      setLastImport(null);
       loadBalance();
       loadHistory();
     } catch (err) {
@@ -458,28 +377,37 @@ export default function SmsPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 rounded-2xl bg-white/15 px-5 py-4">
-          <Coins className="h-6 w-6" />
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/80">
-              Available units
-            </p>
-            {balanceLoading ? (
-              <Skeleton className="mt-1 h-7 w-20 bg-white/30" />
-            ) : (
-              <p className="font-display text-2xl font-bold tabular-nums">
-                {balance == null ? "—" : balance.toLocaleString()}
-              </p>
-            )}
-          </div>
-          <button
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button
             type="button"
-            onClick={refreshAll}
-            aria-label="Refresh"
-            className="ml-2 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/25"
+            onClick={() => setInviteOpen(true)}
+            className="bg-white text-brand hover:bg-white/90"
           >
-            <RefreshCw className="h-4 w-4" />
-          </button>
+            <UserPlus className="mr-1.5 h-4 w-4" /> SMS invitation
+          </Button>
+          <div className="flex items-center gap-3 rounded-2xl bg-white/15 px-5 py-4">
+            <Coins className="h-6 w-6" />
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/80">
+                Available units
+              </p>
+              {balanceLoading ? (
+                <Skeleton className="mt-1 h-7 w-20 bg-white/30" />
+              ) : (
+                <p className="font-display text-2xl font-bold tabular-nums">
+                  {balance == null ? "—" : balance.toLocaleString()}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={refreshAll}
+              aria-label="Refresh"
+              className="ml-2 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/25"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -510,7 +438,7 @@ export default function SmsPage() {
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className="text-sm font-medium">Message</label>
                   <span className="text-xs text-muted-foreground">
-                    {message.length} chars · {segments} segment
+                    {fullMessage.length} chars · {segments} segment
                     {segments === 1 ? "" : "s"} per recipient
                   </span>
                 </div>
@@ -520,114 +448,19 @@ export default function SmsPage() {
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Type your message…"
                 />
+                <p className="mt-2 rounded-lg border border-dashed border-border/80 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    Added to every message:
+                  </span>{" "}
+                  {SIGNUP_FOOTER}
+                </p>
               </div>
 
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (!dragOver) setDragOver(true);
-                }}
-                onDragLeave={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget))
-                    setDragOver(false);
-                }}
-                onDrop={onRecipientDrop}
-                className={cn(
-                  "rounded-xl transition-colors",
-                  dragOver &&
-                    "bg-brand/5 ring-2 ring-brand/40 ring-offset-4 ring-offset-card",
-                )}
-              >
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-sm font-medium">Recipients</label>
-                  <span className="text-xs text-muted-foreground">
-                    {recipients.length} valid number
-                    {recipients.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <Textarea
-                  rows={4}
-                  value={recipientsRaw}
-                  onChange={(e) => setRecipientsRaw(e.target.value)}
-                  placeholder={"0555943014, 0594700610\n233241234567"}
-                />
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  One or many — separate with commas, spaces or new lines. Local
-                  numbers (0XX…) are converted to 233… automatically.
-                </p>
-
-                {/* Bulk upload from CSV / Excel */}
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept={RECIPIENT_FILE_ACCEPT}
-                    className="hidden"
-                    onChange={(e) => importRecipientFile(e.target.files?.[0])}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={importing}
-                  >
-                    {importing ? (
-                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="mr-1.5 h-4 w-4" />
-                    )}
-                    {importing ? "Reading file…" : "Upload CSV or Excel"}
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={downloadRecipientTemplate}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
-                  >
-                    <Download className="h-3.5 w-3.5" /> Download template
-                  </button>
-                  {recipientsRaw.trim() && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRecipientsRaw("");
-                        setLastImport(null);
-                      }}
-                      className="ml-auto text-xs font-medium text-muted-foreground hover:text-foreground"
-                    >
-                      Clear all
-                    </button>
-                  )}
-                </div>
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  .csv or .xlsx, up to 5 MB — or drop the file here. A column
-                  headed “phone”, “mobile”, “number” or “contacts” is used if
-                  present.
-                </p>
-                {lastImport && (
-                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
-                    <FileSpreadsheet className="h-3.5 w-3.5" />
-                    {lastImport.name} · {lastImport.added} added
-                  </p>
-                )}
-                {recipients.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {recipients.slice(0, 8).map((r) => (
-                      <span
-                        key={r}
-                        className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand"
-                      >
-                        {r}
-                      </span>
-                    ))}
-                    {recipients.length > 8 && (
-                      <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
-                        +{recipients.length - 8} more
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
+              <RecipientsField
+                id="sms-recipients"
+                value={recipientsRaw}
+                onChange={setRecipientsRaw}
+              />
 
               <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <p
@@ -671,6 +504,10 @@ export default function SmsPage() {
                 </li>
                 <li>Longer messages use more segments per recipient.</li>
                 <li>Bulk sends multiply by the number of recipients.</li>
+                <li>
+                  A short iSourcePlus sign-up line is added to every message and
+                  counts towards its length.
+                </li>
               </ul>
               <p className="text-muted-foreground">
                 Running low?{" "}
@@ -878,6 +715,16 @@ export default function SmsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <SmsInviteDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        balance={balance}
+        onSent={() => {
+          loadBalance();
+          loadHistory();
+        }}
+      />
     </div>
   );
 }
