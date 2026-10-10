@@ -61,7 +61,8 @@ export async function getSubCategoryChoices(type, industry) {
 // POST companies/supplier-switch/?switch_permission=accept|cancel — a
 // switch-enabled company (type_switch=true) moving to the buyer side
 // (accept, with the buyer `industry` from industry-choices/?type=buyer) or
-// back to supplier (cancel, with a supplier `sub_category` — required).
+// back to supplier (cancel, with a supplier `industry` and `sub_category` —
+// both required). `industry` is always required; `sub_category` only on cancel.
 export async function supplierSwitch(permission, body = {}) {
   const { data } = await http.post("companies/supplier-switch/", body, {
     params: { switch_permission: permission },

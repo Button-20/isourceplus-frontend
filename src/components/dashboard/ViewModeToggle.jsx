@@ -11,7 +11,8 @@ import SwitchToSupplierModal from "@/components/dashboard/SwitchToSupplierModal"
 // app context (persisted) and drives which dashboard overview is shown. Each
 // switch is recorded on the backend via companies/supplier-switch/:
 //   → Buyer:    pick a buyer industry,   ?switch_permission=accept { industry }
-//   → Supplier: pick a sub-category,     ?switch_permission=cancel { sub_category }
+//   → Supplier: pick industry + sub-category, ?switch_permission=cancel
+//               { industry, sub_category }
 const OPTIONS = [
   { value: "buyer", label: "Buyer", icon: ShoppingCart },
   { value: "supplier", label: "Supplier", icon: Store },

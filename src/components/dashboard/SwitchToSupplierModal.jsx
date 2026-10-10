@@ -30,12 +30,12 @@ import {
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
-// Switching back to supplier requires a supplier sub-category: POST
-// companies/supplier-switch/?switch_permission=cancel { sub_category }.
-// Sub-categories depend on a supplier industry
-// (supplier/sub-category-choices/?type=supplier&industry=…), so the industry
-// is picked first — prefilled from the company when it's a supplier industry.
-// Only `sub_category` is sent. `onSwitched()` runs on success.
+// Switching back to supplier requires both a supplier industry and a
+// sub-category: POST companies/supplier-switch/?switch_permission=cancel
+// { industry, sub_category }. Sub-categories depend on the industry
+// (supplier/sub-category-choices/?type=supplier&industry=…), so it's picked
+// first — both prefilled from the company when they're supplier values.
+// `onSwitched()` runs on success.
 export default function SwitchToSupplierModal({
   open,
   onOpenChange,
@@ -117,10 +117,14 @@ export default function SwitchToSupplierModal({
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!industry) return toast.error("Please select an industry.");
     if (!validSub) return toast.error("Please select a sub-category.");
     setSaving(true);
     try {
-      const res = await supplierSwitch("cancel", { sub_category: validSub });
+      const res = await supplierSwitch("cancel", {
+        industry,
+        sub_category: validSub,
+      });
       toast.success(res?.message || "Switched back to supplier.");
       onSwitched?.();
       onOpenChange(false);
@@ -147,7 +151,9 @@ export default function SwitchToSupplierModal({
 
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className={labelClass}>Supplier industry</label>
+            <label className={labelClass}>
+              Supplier industry <span className="text-destructive">*</span>
+            </label>
             <Select
               value={industry || undefined}
               onValueChange={(v) => {
