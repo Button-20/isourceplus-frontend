@@ -70,7 +70,7 @@ export default function SwitchToBuyerModal({ open, onOpenChange, onSwitched }) {
     if (!validIndustry) return toast.error("Please select an industry.");
     setSaving(true);
     try {
-      const res = await supplierSwitch("accept", validIndustry);
+      const res = await supplierSwitch("accept", { industry: validIndustry });
       storage.set(LAST_INDUSTRY_KEY, validIndustry);
       toast.success(res?.message || "Switched to buyer.");
       onSwitched?.();

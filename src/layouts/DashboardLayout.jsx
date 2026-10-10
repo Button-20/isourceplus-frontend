@@ -35,11 +35,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/services/context/app.context";
 import ViewModeToggle from "@/components/dashboard/ViewModeToggle";
-import { storage } from "@/services/lib/storage";
-import {
-  SUPPLIER_SWITCH_KEY,
-  getCompany,
-} from "@/services/api/companies.service";
+import { getCompany } from "@/services/api/companies.service";
 import { MdOutlineDocumentScanner, MdOutlinePeopleAlt } from "react-icons/md";
 
 export function DashboardLayout() {
@@ -54,17 +50,19 @@ export function DashboardLayout() {
     transporterId,
     jobTitle,
     viewMode,
+    setViewMode,
   } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [profileVerified, setProfileVerified] = useState(null);
-  // The company's own type ("buyer" | "supplier"), used to keep the
-  // Buyer/Supplier toggle for supplier companies whatever the job title.
-  const [companyType, setCompanyType] = useState("");
+  // The company's switch flag + type. Companies (never transporters) carry
+  // `type_switch`: true = switch-enabled (stays true after switching to buyer),
+  // null = not switchable. null until loaded.
+  const [companyInfo, setCompanyInfo] = useState(null); // { type, typeSwitch }
 
   useEffect(() => {
     if (!companyId || transporterId) {
-      setCompanyType("");
+      setCompanyInfo(null);
       return undefined;
     }
     let cancelled = false;
@@ -73,15 +71,28 @@ export function DashboardLayout() {
         const company =
           data?.data && !Array.isArray(data.data) ? data.data : data;
         if (!cancelled)
-          setCompanyType(String(company?.type ?? "").toLowerCase());
+          setCompanyInfo({
+            type: String(company?.type ?? "").toLowerCase(),
+            typeSwitch: company?.type_switch === true,
+          });
       })
       .catch(() => {
-        /* non-critical: falls back to the job title */
+        /* non-critical: no switcher until the company loads */
       });
     return () => {
       cancelled = true;
     };
   }, [companyId, transporterId]);
+
+  // A company that can't switch has one side only: keep the view on its own
+  // type so a stale saved view (e.g. "buyer" on a supplier company) never
+  // strands the user without a switcher to get back.
+  useEffect(() => {
+    if (!companyInfo || companyInfo.typeSwitch) return;
+    const own = companyInfo.type;
+    if ((own === "buyer" || own === "supplier") && viewMode !== own)
+      setViewMode(own);
+  }, [companyInfo, viewMode, setViewMode]);
 
   // Kick unauthenticated users back to login. No return-url is carried, so
   // logging out (and logging back in) lands on the dashboard, not the last page.
@@ -149,7 +160,6 @@ export function DashboardLayout() {
     .trim();
   const isTransporter =
     Boolean(transporterId) || normalizedJob === "logistics manager";
-  const isSupplierRole = normalizedJob === "sales manager";
   // A company user by role (drives the org nav before ids finish loading).
   const isCompanyRole =
     Boolean(companyId) ||
@@ -356,15 +366,9 @@ export function DashboardLayout() {
       "awarded-businesses",
     ],
   };
-  // Buyer/Supplier view toggle visibility: supplier companies only — never
-  // buyers or transporters. Switching to buyer can change the user's job title
-  // (no longer "sales manager"), so the company's own type and the switched
-  // flag also count; otherwise the user couldn't get back to supplier.
-  const showViewToggle =
-    !isTransporter &&
-    (isSupplierRole ||
-      companyType === "supplier" ||
-      storage.get(SUPPLIER_SWITCH_KEY) === "1");
+  // Buyer/Supplier switcher: every company with type_switch=true, whatever
+  // side it's on now; never transporters or non-switchable companies.
+  const showViewToggle = !isTransporter && companyInfo?.typeSwitch === true;
   const hidden = new Set(
     isTransporter
       ? HIDDEN_KEYS.transporter

@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import { Toaster } from "sonner";
 
 import { storage } from "@/services/lib/storage";
@@ -51,7 +57,18 @@ export function ThemeProvider({ children }) {
 export const useTheme = () => useContext(ThemeContext);
 
 // Sonner toaster wired to the current theme so toasts match light/dark.
+// Messages stay until the user closes them (the backend's messages are
+// descriptive); only login / logout toasts pass a short `duration` of their own.
 export function ThemedToaster(props) {
   const { theme } = useTheme();
-  return <Toaster position="top-right" richColors theme={theme} {...props} />;
+  return (
+    <Toaster
+      position="top-right"
+      richColors
+      closeButton
+      duration={Infinity}
+      theme={theme}
+      {...props}
+    />
+  );
 }

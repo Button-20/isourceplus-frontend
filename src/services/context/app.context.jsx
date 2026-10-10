@@ -28,6 +28,9 @@ import {
 export const AppContext = createContext();
 
 const REFRESH_INTERVAL_MS = 4.5 * 60 * 1000;
+// Login / logout messages close on their own; every other toast persists
+// until the user closes it (see ThemedToaster).
+const AUTH_TOAST_MS = 4000;
 
 export const AppProvider = ({ children }) => {
   const BASE_URL = ENV.API_BASE_URL;
@@ -219,7 +222,7 @@ export const AppProvider = ({ children }) => {
         err.message ||
         "Login failed. Please try again.";
       setError(message);
-      toast.error(message);
+      toast.error(message, { duration: AUTH_TOAST_MS });
       throw err;
     } finally {
       setLoading(false);
@@ -268,7 +271,7 @@ export const AppProvider = ({ children }) => {
     } finally {
       clearSession();
       setLoading(false);
-      toast.success("Logout successful.");
+      toast.success("Logout successful.", { duration: AUTH_TOAST_MS });
     }
   };
 
@@ -283,7 +286,9 @@ export const AppProvider = ({ children }) => {
     } finally {
       clearSession();
       setLoading(false);
-      toast.success("Logged out of all devices.");
+      toast.success("Logged out of all devices.", {
+        duration: AUTH_TOAST_MS,
+      });
     }
   };
 
