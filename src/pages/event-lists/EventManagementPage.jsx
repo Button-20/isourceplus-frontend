@@ -336,7 +336,7 @@ export default function EventManagementPage({ kind, kindTabs }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchEventList(kind, filter, { page });
+      const res = await fetchEventList(kind, filter, { page, isOwner });
       setRows(res.items);
       setPagination({
         count: res.count,
@@ -366,7 +366,7 @@ export default function EventManagementPage({ kind, kindTabs }) {
     } finally {
       setLoading(false);
     }
-  }, [kind, filter, page, cfg.plural]);
+  }, [kind, filter, page, cfg.plural, isOwner]);
 
   useEffect(() => {
     load();

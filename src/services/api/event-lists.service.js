@@ -8,6 +8,15 @@
 //
 // All three exist for every kind (verified 2026-10-08). There is no "All" tab:
 // owners get Draft · Published · Expired, everyone else Published · Expired.
+// Some kinds add their own tabs (SwaggerHub specs, 2026-10-15):
+//
+//   accepted / rejected   GET proforma-invoices/accepted/ | rejected/
+//   received              GET sales-invoices/received/  (the buyer's)
+//   published / dispatched / received (buyer's payment orders)
+//                         GET payment-orders/published/dispatched/received/
+//                             ?status=PUBLISHED | DISPATCHED | RECEIVED
+//
+// A kind's `filterOverrides` replaces a shared filter's path/params.
 // Lists are collection-level, GET-only, and may answer a JSON 404 or
 // 200 { detail: "Nothing here yet. …" } when empty.
 import http from "@/services/lib/http";
@@ -15,18 +24,31 @@ import { isMissingRoute } from "@/services/api/offers.service";
 
 export { isMissingRoute };
 
-// path: suffix after "{x}/".
+// path: suffix after "{x}/"; params: extra query params.
 const FILTERS = {
   draft: { path: "drafts/" },
   published: { path: "approved/active-published/" },
+  accepted: { path: "accepted/" },
+  rejected: { path: "rejected/" },
+  received: { path: "received/" },
   expired: { path: "expired/non-active/" },
 };
 
 export const FILTER_LABELS = {
   draft: "Draft",
   published: "Published",
+  dispatched: "Dispatched",
+  accepted: "Accepted",
+  rejected: "Rejected",
+  received: "Received",
   expired: "Expired",
 };
+
+// The buyer's payment orders, one status per tab.
+const receivedPaymentOrders = (status) => ({
+  path: "published/dispatched/received/",
+  params: { status },
+});
 
 // Drafts belong to whoever manages the document; others only see live ones.
 const tabsFor = (canManage) =>
@@ -111,7 +133,11 @@ export const EVENT_KINDS = {
     offersUrl: null,
     ownerSide: "any", // sellers own these, so manage in supplier view too
     viewRoles: null,
-    filtersFor: ({ isOwner }) => tabsFor(isOwner),
+    // Accepted / rejected by the buyer — seen from both sides.
+    filtersFor: ({ isOwner }) =>
+      isOwner
+        ? ["draft", "published", "accepted", "rejected", "expired"]
+        : ["published", "accepted", "rejected", "expired"],
   },
   salesInvoice: {
     base: "sales-invoices",
@@ -123,7 +149,9 @@ export const EVENT_KINDS = {
     canDelete: false, // the old list pages had no delete
     ownerSide: "any",
     viewRoles: null,
-    filtersFor: ({ isOwner }) => tabsFor(isOwner),
+    // Buyers start on the invoices they've received.
+    filtersFor: ({ isOwner }) =>
+      isOwner ? tabsFor(true) : ["received", "published", "expired"],
   },
   paymentOrder: {
     base: "payment-orders",
@@ -135,7 +163,20 @@ export const EVENT_KINDS = {
     canDelete: false, // the old list page had no delete
     ownerSide: "any", // issued by sellers (sales / logistics managers)
     viewRoles: null,
-    filtersFor: ({ isOwner }) => tabsFor(isOwner),
+    // Buyers (served the payment orders) follow them by status:
+    // published → dispatched → received.
+    filtersFor: ({ isOwner }) =>
+      isOwner
+        ? tabsFor(true)
+        : ["published", "dispatched", "received", "expired"],
+    filterOverrides: ({ isOwner }) =>
+      isOwner
+        ? {}
+        : {
+            published: receivedPaymentOrders("PUBLISHED"),
+            dispatched: receivedPaymentOrders("DISPATCHED"),
+            received: receivedPaymentOrders("RECEIVED"),
+          },
   },
 };
 
@@ -154,10 +195,11 @@ const emptyResult = (emptyMessage = "") => ({
 });
 
 // GET one page; a JSON 404 (not the HTML "no route" page) means "nothing".
-async function getPage(path, page) {
+async function getPage(path, page, params = {}) {
   try {
+    const query = { ...params, ...(page > 1 ? { page } : {}) };
     const { data } = await http.get(path, {
-      params: page > 1 ? { page } : undefined,
+      params: Object.keys(query).length ? query : undefined,
     });
     return { data, items: toItems(data) };
   } catch (err) {
@@ -174,9 +216,16 @@ const detailOf = (data) =>
     : "";
 
 // → { items, count, next, previous, emptyMessage }
-export async function fetchEventList(kind, filter, { page = 1 } = {}) {
-  const path = `${EVENT_KINDS[kind].base}/${FILTERS[filter].path}`;
-  const { data, items } = await getPage(path, page);
+// `ctx` ({ isOwner }) picks a kind's filterOverrides.
+export async function fetchEventList(
+  kind,
+  filter,
+  { page = 1, isOwner = false } = {},
+) {
+  const k = EVENT_KINDS[kind];
+  const f = k.filterOverrides?.({ isOwner })?.[filter] ?? FILTERS[filter];
+  const path = `${k.base}/${f.path}`;
+  const { data, items } = await getPage(path, page, f.params);
   if (!data) return emptyResult();
   return {
     items,
