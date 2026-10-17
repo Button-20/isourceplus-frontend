@@ -36,6 +36,7 @@ import {
   DetailFooter,
 } from "@/components/detail/DetailShell";
 import ArchiveButton from "@/components/archive/ArchiveButton";
+import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
 
 const statusTone = (status) => {
   const value = (status || "").toLowerCase();
@@ -400,6 +401,11 @@ const TenderDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Who was invited, and who has viewed / responded (issuer only). */}
+      {isLeadBuyer && (
+        <RecipientStatusesPanel resource="tenders" refNum={refNum} />
+      )}
 
       <QuestionsForum entity="tender" refNum={refNum} />
     </DetailPage>

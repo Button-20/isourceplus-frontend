@@ -38,6 +38,7 @@ import {
 import ArchiveButton from "@/components/archive/ArchiveButton";
 import WaybillDirectionsPanel from "@/components/waybills/WaybillDirectionsPanel";
 import MarkArrivalModal from "@/components/waybills/MarkArrivalModal";
+import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
 import { prettify } from "@/utils/choices";
 
 const statusTone = (status) => {
@@ -352,6 +353,11 @@ const WaybillDetailPage = () => {
       </DetailCard>
 
       {isLogisticsManager && <WaybillDirectionsPanel waybill={waybill} />}
+
+      {/* Invited transporters: viewed / responded (issuer only). */}
+      {canCreateWaybill && (
+        <RecipientStatusesPanel resource="waybills" refNum={waybill.ref_num} />
+      )}
 
       <MarkArrivalModal
         open={arrivalOpen}

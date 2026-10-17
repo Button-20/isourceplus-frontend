@@ -53,8 +53,27 @@ export const FILTER_LABELS = {
   in_transit: "In transit",
   delivered: "Delivered",
   cancelled: "Cancelled",
+  escrow_funded: "Escrow funded",
+  in_progress: "In progress",
+  completed: "Completed",
   expired: "Expired",
 };
+
+// Purchase orders by life-cycle status (GET purchase-orders/multi-status/
+// ?status=ESCROW_FUNDED | IN_PROGRESS | COMPLETED | CANCELLED). The spec
+// doesn't name the query param; `status` matches its "Invalid status value".
+const PO_LIFECYCLE_TABS = [
+  "escrow_funded",
+  "in_progress",
+  "completed",
+  "cancelled",
+];
+const PO_LIFECYCLE = Object.fromEntries(
+  PO_LIFECYCLE_TABS.map((t) => [
+    t,
+    { path: "multi-status/", params: { status: t.toUpperCase() } },
+  ]),
+);
 
 // Transporters' outsourced waybills, one tracking status per tab.
 const TRACKING_TABS = ["assigned", "in_transit", "delivered", "cancelled"];
@@ -152,9 +171,13 @@ export const EVENT_KINDS = {
     offersUrl: null, // no received-offers view for POs
     canDelete: false, // POs come from awarded offers; no delete
     viewRoles: null,
-    // No Expired tab for purchase orders (product decision, 2026-10-08).
-    filtersFor: ({ isOwner, isSupplierView }) =>
-      tabsFor(isOwner && !isSupplierView).filter((f) => f !== "expired"),
+    // No Expired tab (product decision, 2026-10-08); after Published, the
+    // life-cycle tabs follow the order through escrow, delivery and payment.
+    filtersFor: ({ isOwner, isSupplierView }) => [
+      ...tabsFor(isOwner && !isSupplierView).filter((f) => f !== "expired"),
+      ...PO_LIFECYCLE_TABS,
+    ],
+    filterOverrides: () => PO_LIFECYCLE,
   },
   proforma: {
     base: "proforma-invoices",

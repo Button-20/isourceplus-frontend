@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, Building2, ArrowLeft, Send } from "lucide-react";
+import { Loader2, Building2, ArrowLeft, BadgeCheck, Send } from "lucide-react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
@@ -23,13 +23,27 @@ import {
 import { isDraftStatus } from "@/utils/status";
 import LineItemsTable from "@/components/detail/LineItemsTable";
 import { formatMoney } from "@/utils/money";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter as DialogActions,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  approveProformaInvoice,
+  proformaErrorMessage,
+} from "@/services/api/proforma.service";
 
 const ProformaInvoiceDetailPage = () => {
-  const { authAxios, jobTitle } = useAuth();
+  const { authAxios, jobTitle, companyId, transporterId } = useAuth();
   const { refNum } = useParams();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalLoading, setModalLoading] = useState(false);
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [approving, setApproving] = useState(false);
   const navigate = useNavigate();
   // Opened from Business Offers? Go back there (same tab + event).
   const location = useLocation();
@@ -130,11 +144,36 @@ const ProformaInvoiceDetailPage = () => {
   const canSendPurchaseOrder =
     jobTitle === "lead buyer" && isDraftStatus(invoice.status);
 
+  // The issuing supplier approves its own proforma: a selling-side role from
+  // the issuing organisation (matched on issuing_company_url when present).
+  const orgId = transporterId || companyId;
+  const issuerUrl = String(invoice.issuing_company_url || "");
+  const isIssuer =
+    ["sales manager", "logistics manager"].includes(jobTitle) &&
+    (!issuerUrl || (orgId && issuerUrl.includes(`/${orgId}/`)));
+  const canApprove = isIssuer && !invoice.is_approved;
+
+  const handleApprove = async () => {
+    setApproving(true);
+    try {
+      const updated = await approveProformaInvoice(refNum);
+      setInvoice((prev) =>
+        updated?.ref_num
+          ? { ...prev, ...updated }
+          : { ...prev, is_approved: true },
+      );
+      toast.success(updated?.message || "Proforma invoice approved.");
+      setApproveOpen(false);
+    } catch (err) {
+      toast.error(proformaErrorMessage(err, "Couldn't approve the proforma."));
+      console.error("Approve proforma error:", err);
+    } finally {
+      setApproving(false);
+    }
+  };
+
   return (
-    <DetailPage
-      onBack={() => navigate(backTo)}
-      backLabel={backLabel}
-    >
+    <DetailPage onBack={() => navigate(backTo)} backLabel={backLabel}>
       <DetailCard>
         <DetailHeader
           icon={Building2}
@@ -191,32 +230,84 @@ const ProformaInvoiceDetailPage = () => {
           />
         </Section>
 
-        {canSendPurchaseOrder && (
+        {(canSendPurchaseOrder || canApprove) && (
           <DetailFooter>
+            <Button variant="outline" onClick={() => navigate(backTo)}>
+              Cancel
+            </Button>
+            {canApprove && (
+              <Button
+                onClick={() => setApproveOpen(true)}
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              >
+                <BadgeCheck className="mr-1.5 h-4 w-4" /> Approve
+              </Button>
+            )}
+            {canSendPurchaseOrder && (
+              <Button
+                onClick={handleSendPurchaseOrder}
+                disabled={modalLoading}
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              >
+                {modalLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Processing…
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-1.5 h-4 w-4" /> Send purchase order
+                  </>
+                )}
+              </Button>
+            )}
+          </DetailFooter>
+        )}
+      </DetailCard>
+
+      <Dialog
+        open={approveOpen}
+        onOpenChange={(o) => !approving && setApproveOpen(o)}
+      >
+        <DialogContent className="font-montserrat sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BadgeCheck className="h-5 w-5 text-brand" /> Approve proforma
+            </DialogTitle>
+            <DialogDescription>
+              Approve{" "}
+              <span className="font-medium text-foreground">
+                {invoice.title || invoice.ref_num}
+              </span>{" "}
+              ({invoice.ref_num})? Check the items and total cost first.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogActions>
             <Button
-              variant="outline"
-              onClick={() => navigate(backTo)}
+              variant="ghost"
+              onClick={() => setApproveOpen(false)}
+              disabled={approving}
             >
               Cancel
             </Button>
             <Button
-              onClick={handleSendPurchaseOrder}
-              disabled={modalLoading}
+              onClick={handleApprove}
+              disabled={approving}
               className="bg-brand-gradient text-brand-foreground hover:opacity-90"
             >
-              {modalLoading ? (
+              {approving ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Approving…
                 </>
               ) : (
                 <>
-                  <Send className="mr-1.5 h-4 w-4" /> Send purchase order
+                  <BadgeCheck className="mr-1.5 h-4 w-4" /> Approve
                 </>
               )}
             </Button>
-          </DetailFooter>
-        )}
-      </DetailCard>
+          </DialogActions>
+        </DialogContent>
+      </Dialog>
 
       <QuestionsForum entity="proforma-invoice" refNum={refNum} />
     </DetailPage>

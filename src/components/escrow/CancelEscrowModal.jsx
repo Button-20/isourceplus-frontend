@@ -39,7 +39,7 @@ export default function CancelEscrowModal({
     setSaving(true);
     try {
       const escrow = await cancelPurchaseOrderEscrow(refNum, text);
-      toast.success("Escrow cancelled.");
+      toast.success(escrow?.detail || escrow?.message || "Escrow cancelled.");
       onCancelled?.(escrow);
       onOpenChange(false);
     } catch (err) {

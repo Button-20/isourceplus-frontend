@@ -18,7 +18,12 @@ import {
 } from "@/services/api/escrow.service";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
-const EMPTY = { receiver_name: "", vehicle_number: "", gps_address: "" };
+const EMPTY = {
+  receiver_name: "",
+  receiver_phone: "",
+  vehicle_number: "",
+  gps_address: "",
+};
 
 // Buyer confirms the goods / service arrived: who received it, the delivery
 // vehicle and where. The backend then creates a draft GRN for inspection.
@@ -65,11 +70,16 @@ export default function ConfirmReceiptModal({
     e.preventDefault();
     const body = {
       receiver_name: values.receiver_name.trim(),
+      receiver_phone: values.receiver_phone.trim(),
       vehicle_number: values.vehicle_number.trim(),
       gps_address: values.gps_address.trim(),
     };
     if (!body.receiver_name)
       return toast.error("Please enter who received the goods.");
+    if (!body.receiver_phone)
+      return toast.error("Please enter the receiver's phone number.");
+    if (!body.vehicle_number)
+      return toast.error("Please enter the delivery vehicle number.");
     setSaving(true);
     try {
       const result = await confirmGoodsReceipt(refNum, body);
@@ -115,8 +125,23 @@ export default function ConfirmReceiptModal({
             />
           </div>
           <div>
+            <label htmlFor="receiver_phone" className={labelClass}>
+              Receiver phone <span className="text-destructive">*</span>
+            </label>
+            <Input
+              id="receiver_phone"
+              type="tel"
+              inputMode="tel"
+              value={values.receiver_phone}
+              onChange={set("receiver_phone")}
+              placeholder="0555943014"
+              maxLength={32}
+              required
+            />
+          </div>
+          <div>
             <label htmlFor="vehicle_number" className={labelClass}>
-              Vehicle number
+              Vehicle number <span className="text-destructive">*</span>
             </label>
             <Input
               id="vehicle_number"
@@ -124,11 +149,15 @@ export default function ConfirmReceiptModal({
               onChange={set("vehicle_number")}
               placeholder="e.g. GR 1234-24"
               maxLength={32}
+              required
             />
           </div>
           <div>
             <label htmlFor="gps_address" className={labelClass}>
-              GPS address
+              GPS address{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
             </label>
             <div className="flex gap-2">
               <Input
@@ -166,7 +195,12 @@ export default function ConfirmReceiptModal({
             </Button>
             <Button
               type="submit"
-              disabled={saving || !values.receiver_name.trim()}
+              disabled={
+                saving ||
+                !values.receiver_name.trim() ||
+                !values.receiver_phone.trim() ||
+                !values.vehicle_number.trim()
+              }
               className="bg-brand-gradient text-brand-foreground hover:opacity-90"
             >
               {saving ? (

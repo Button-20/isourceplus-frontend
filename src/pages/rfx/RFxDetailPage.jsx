@@ -23,6 +23,7 @@ import {
 } from "@/components/detail/DetailShell";
 import { isDraftStatus } from "@/utils/status";
 import ArchiveButton from "@/components/archive/ArchiveButton";
+import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
 
 const RFxDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -276,6 +277,11 @@ const RFxDetailPage = () => {
           </DetailFooter>
         )}
       </DetailCard>
+
+      {/* Who was invited, and who has viewed / responded (issuer only). */}
+      {isLeadBuyer && (
+        <RecipientStatusesPanel resource="rfxs" refNum={refNum} />
+      )}
 
       <QuestionsForum entity="rfx" refNum={refNum} />
     </DetailPage>

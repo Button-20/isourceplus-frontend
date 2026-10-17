@@ -38,12 +38,22 @@ export async function fundPurchaseOrderEscrow(
 // Payment channels for a manual (non-escrow) payment.
 export const MANUAL_PAYMENT_METHODS = ["MoMo", "Bank", "Cash"];
 
-// POST purchase-orders/<ref_num>/cancel-escrow/ { reason } — step 3c: the
-// buyer cancels the escrow before dispatch / before the 48h auto-release.
+// Multipart body from every field (empty strings are kept —
+// the receipt endpoint accepts gps_address="" when there's none).
+const formData = (fields) => {
+  const fd = new FormData();
+  Object.entries(fields).forEach(([k, v]) => fd.append(k, v ?? ""));
+  return fd;
+};
+
+// POST purchase-orders/<ref_num>/cancel-escrow/ multipart { reason } — step
+// 3c: the buyer cancels the escrow before dispatch / before the 48h
+// auto-release. → { detail } (the confirmation message).
 export async function cancelPurchaseOrderEscrow(refNum, reason) {
-  const { data } = await http.post(`purchase-orders/${refNum}/cancel-escrow/`, {
-    reason,
-  });
+  const { data } = await http.post(
+    `purchase-orders/${refNum}/cancel-escrow/`,
+    formData({ reason }),
+  );
   return data?.data ?? data;
 }
 
@@ -88,16 +98,17 @@ export function escrowErrorMessage(err, fallback) {
 }
 
 // POST purchase-orders/<ref_num>/confirm/receipt/goods-or-service/
-// { receiver_name, vehicle_number, gps_address } — the buyer confirms the
-// goods arrived. A GRN is auto-created in DRAFT for inspection (lines seeded
-// from the GDN / waybill); payment → RECEIVED, PO stays IN_PROGRESS.
+// multipart { receiver_name, receiver_phone, vehicle_number, gps_address } —
+// all four keys required (gps_address may be ""). The buyer confirms the goods
+// arrived; a GRN is auto-created in DRAFT for inspection.
+// → { message, GRN_data: { grn_number, status, … } }
 export async function confirmGoodsReceipt(
   refNum,
-  { receiver_name, vehicle_number, gps_address },
+  { receiver_name, receiver_phone, vehicle_number, gps_address },
 ) {
   const { data } = await http.post(
     `purchase-orders/${refNum}/confirm/receipt/goods-or-service/`,
-    { receiver_name, vehicle_number, gps_address },
+    formData({ receiver_name, receiver_phone, vehicle_number, gps_address }),
   );
-  return data?.data ?? data;
+  return data;
 }
