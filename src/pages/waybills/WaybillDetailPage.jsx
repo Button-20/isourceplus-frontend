@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Building2, Trash2, Send } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  Building2,
+  MapPinCheck,
+  Trash2,
+  Send,
+} from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
@@ -29,6 +36,9 @@ import {
   DetailFooter,
 } from "@/components/detail/DetailShell";
 import ArchiveButton from "@/components/archive/ArchiveButton";
+import WaybillDirectionsPanel from "@/components/waybills/WaybillDirectionsPanel";
+import MarkArrivalModal from "@/components/waybills/MarkArrivalModal";
+import { prettify } from "@/utils/choices";
 
 const statusTone = (status) => {
   const value = (status || "").toLowerCase();
@@ -46,6 +56,7 @@ const WaybillDetailPage = () => {
   const [modalLoading, setModalLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [arrivalOpen, setArrivalOpen] = useState(false);
   const navigate = useNavigate();
 
   const canCreateWaybill = ["lead buyer", "sales manager"].includes(jobTitle);
@@ -144,6 +155,13 @@ const WaybillDetailPage = () => {
   const created = formatDateTime(waybill.created_at);
   const updated = formatDateTime(waybill.updated_at);
   const isLogisticsManager = jobTitle === "logistics manager";
+  // Transporter delivery actions: directions any time; arrival once, while
+  // the delivery is still open.
+  const tracking = String(waybill.tracking_status || "").toUpperCase();
+  const canMarkArrival =
+    isLogisticsManager &&
+    !waybill.arrived_at &&
+    !["DELIVERED", "CANCELLED"].includes(tracking);
 
   return (
     <DetailPage
@@ -188,6 +206,23 @@ const WaybillDetailPage = () => {
             <Row label="Delivery date">
               {formatDateTime(waybill.delivery_datetime).formatted}
             </Row>
+            {waybill.tracking_status && (
+              <Row label="Tracking">
+                {prettify(String(waybill.tracking_status).toLowerCase())}
+              </Row>
+            )}
+            {(waybill.origin || waybill.destination) && (
+              <Row label="Route">
+                {[waybill.origin, waybill.destination]
+                  .filter(Boolean)
+                  .join(" → ")}
+              </Row>
+            )}
+            {waybill.arrived_at && (
+              <Row label="Arrived">
+                {formatDateTime(waybill.arrived_at).formatted}
+              </Row>
+            )}
             <Row label="Active">{waybill.is_active ? "Yes" : "No"}</Row>
             <Row label="Approved">{waybill.is_approved ? "Yes" : "No"}</Row>
             <Row label="Reach">
@@ -289,6 +324,11 @@ const WaybillDetailPage = () => {
                 onArchived={() => navigate("/dashboard/waybills/issued")}
               />
             )}
+            {canMarkArrival && (
+              <Button variant="outline" onClick={() => setArrivalOpen(true)}>
+                <MapPinCheck className="mr-1.5 h-4 w-4" /> Mark arrival
+              </Button>
+            )}
             {isLogisticsManager && (
               <Button
                 onClick={handleSendOffer}
@@ -310,6 +350,21 @@ const WaybillDetailPage = () => {
           </DetailFooter>
         )}
       </DetailCard>
+
+      {isLogisticsManager && <WaybillDirectionsPanel waybill={waybill} />}
+
+      <MarkArrivalModal
+        open={arrivalOpen}
+        onOpenChange={setArrivalOpen}
+        refNum={waybill.ref_num}
+        onArrived={(updated) =>
+          setWaybill((prev) =>
+            updated?.ref_num
+              ? { ...prev, ...updated }
+              : { ...prev, arrived_at: new Date().toISOString() },
+          )
+        }
+      />
 
       {/* Delete confirmation */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>

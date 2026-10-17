@@ -16,7 +16,15 @@
 //                         GET payment-orders/published/dispatched/received/
 //                             ?status=PUBLISHED | DISPATCHED | RECEIVED
 //
-// A kind's `filterOverrides` replaces a shared filter's path/params.
+//   in-house / out-sourced (waybill owners, ?source= on the page)
+//                         GET waybills/in-house/ | out-sourced/
+//                             ?status=draft | published | expired
+//   assigned / in transit / delivered / cancelled (transporters)
+//                         GET waybills/out-sourced/transporter-accessed/
+//                             ?tracking_status=ASSIGNED | IN_TRANSIT | …
+//
+// A kind's `filterOverrides(ctx)` replaces a shared filter's path/params;
+// ctx = { isOwner, isTransporter, ...listContext from the page }.
 // Lists are collection-level, GET-only, and may answer a JSON 404 or
 // 200 { detail: "Nothing here yet. …" } when empty.
 import http from "@/services/lib/http";
@@ -41,8 +49,19 @@ export const FILTER_LABELS = {
   accepted: "Accepted",
   rejected: "Rejected",
   received: "Received",
+  assigned: "Assigned",
+  in_transit: "In transit",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
   expired: "Expired",
 };
+
+// Transporters' outsourced waybills, one tracking status per tab.
+const TRACKING_TABS = ["assigned", "in_transit", "delivered", "cancelled"];
+const transporterWaybills = (tab) => ({
+  path: "out-sourced/transporter-accessed/",
+  params: { tracking_status: tab.toUpperCase() },
+});
 
 // The buyer's payment orders, one status per tab.
 const receivedPaymentOrders = (status) => ({
@@ -103,7 +122,26 @@ export const EVENT_KINDS = {
     viewRoles: null, // everyone who can reach the page
     // Sales managers create waybills too, so manage in supplier view as well.
     ownerSide: "any",
-    filtersFor: ({ isOwner }) => tabsFor(isOwner),
+    // Transporters also follow the waybills they carry, by tracking status.
+    filtersFor: ({ isOwner, isTransporter }) =>
+      isTransporter && !isOwner
+        ? ["published", ...TRACKING_TABS]
+        : tabsFor(isOwner),
+    // Owners see in-house or out-sourced waybills (?source=) by status.
+    filterOverrides: ({ isOwner, isTransporter, source }) => {
+      if (isOwner && source)
+        return Object.fromEntries(
+          ["draft", "published", "expired"].map((f) => [
+            f,
+            { path: `${source}/`, params: { status: f } },
+          ]),
+        );
+      if (isTransporter && !isOwner)
+        return Object.fromEntries(
+          TRACKING_TABS.map((t) => [t, transporterWaybills(t)]),
+        );
+      return {};
+    },
   },
   purchaseOrder: {
     base: "purchase-orders",
@@ -216,14 +254,10 @@ const detailOf = (data) =>
     : "";
 
 // → { items, count, next, previous, emptyMessage }
-// `ctx` ({ isOwner }) picks a kind's filterOverrides.
-export async function fetchEventList(
-  kind,
-  filter,
-  { page = 1, isOwner = false } = {},
-) {
+// `ctx` ({ isOwner, isTransporter, …listContext }) picks filterOverrides.
+export async function fetchEventList(kind, filter, { page = 1, ...ctx } = {}) {
   const k = EVENT_KINDS[kind];
-  const f = k.filterOverrides?.({ isOwner })?.[filter] ?? FILTERS[filter];
+  const f = k.filterOverrides?.(ctx)?.[filter] ?? FILTERS[filter];
   const path = `${k.base}/${f.path}`;
   const { data, items } = await getPage(path, page, f.params);
   if (!data) return emptyResult();

@@ -96,6 +96,7 @@ import BusinessInvitesPage from "./pages/business-invites/BusinessInvitesPage";
 import EventManagementPage from "./pages/event-lists/EventManagementPage";
 import FilterRedirect from "./pages/event-lists/FilterRedirect";
 import InvoicesPage from "./pages/invoices/InvoicesPage";
+import WaybillsPage from "./pages/waybills/WaybillsPage";
 import ClientsPage from "./pages/clients/ClientsPage";
 import { FaqPage } from "./pages/public/FaqPage";
 import { UseCasesPage } from "./pages/public/UseCasesPage";
@@ -189,7 +190,8 @@ const fullRoutes = [
       { path: "rfxs/:refNum", element: <RFxDetailPage /> },
       {
         path: "waybills",
-        element: <EventManagementPage key="waybill" kind="waybill" />,
+        // Owners: In-house / Out-sourced; transporters: tracking-status tabs.
+        element: <WaybillsPage />,
       },
       {
         path: "waybills/issued",

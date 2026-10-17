@@ -274,12 +274,17 @@ const fmtDate = (v) => {
 
 // `kindTabs` (optional): { label, active, tabs: [{ key, label, icon }], onSelect }
 // renders a type switcher above the filter tabs (e.g. the Invoices page).
-export default function EventManagementPage({ kind, kindTabs }) {
+// `listContext` (optional): { source } is passed to the kind's
+// filterOverrides — e.g. { source: "in-house" } on the Waybills page.
+export default function EventManagementPage({ kind, kindTabs, listContext }) {
   const cfg = EVENT_KINDS[kind];
   const KindIcon = ICONS[kind];
   const CreateModal = CREATE_MODALS[kind];
   const extras = EXTRA_COLUMNS[kind];
-  const { jobTitle, viewMode } = useAuth();
+  const { jobTitle, viewMode, transporterId } = useAuth();
+  const isTransporter =
+    Boolean(transporterId) || jobTitle === "logistics manager";
+  const listSource = listContext?.source;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -290,8 +295,8 @@ export default function EventManagementPage({ kind, kindTabs }) {
   const canManage = isOwner && (cfg.ownerSide === "any" || !isSupplierView);
   const copy = COPY[kind][canManage ? "owner" : "other"];
   const filters = useMemo(
-    () => cfg.filtersFor({ isOwner, isSupplierView }),
-    [cfg, isOwner, isSupplierView],
+    () => cfg.filtersFor({ isOwner, isSupplierView, isTransporter }),
+    [cfg, isOwner, isSupplierView, isTransporter],
   );
   const requested = searchParams.get("filter");
   const filter = filters.includes(requested) ? requested : filters[0];
@@ -336,7 +341,12 @@ export default function EventManagementPage({ kind, kindTabs }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchEventList(kind, filter, { page, isOwner });
+      const res = await fetchEventList(kind, filter, {
+        page,
+        isOwner,
+        isTransporter,
+        source: listSource,
+      });
       setRows(res.items);
       setPagination({
         count: res.count,
@@ -366,7 +376,7 @@ export default function EventManagementPage({ kind, kindTabs }) {
     } finally {
       setLoading(false);
     }
-  }, [kind, filter, page, cfg.plural, isOwner]);
+  }, [kind, filter, page, cfg.plural, isOwner, isTransporter, listSource]);
 
   useEffect(() => {
     load();
