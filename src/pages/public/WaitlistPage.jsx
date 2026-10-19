@@ -41,7 +41,7 @@ import { normalizeChoices } from "@/utils/choices";
 // platform launches 12 Oct.
 export const PROMO_ENDS_AT = new Date("2026-10-31T23:59:59Z");
 export const PROMO_ENDS_LABEL = "31st October, 2026";
-export const LAUNCH_DATE_LABEL = "1st November, 2026";
+export const LAUNCH_DATE_LABEL = "3rd November, 2026";
 
 const CATEGORIES = [
   { value: "supplier", label: "Supplier" },
