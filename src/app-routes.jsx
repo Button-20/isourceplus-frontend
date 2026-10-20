@@ -97,6 +97,8 @@ import EventManagementPage from "./pages/event-lists/EventManagementPage";
 import FilterRedirect from "./pages/event-lists/FilterRedirect";
 import InvoicesPage from "./pages/invoices/InvoicesPage";
 import WaybillsPage from "./pages/waybills/WaybillsPage";
+import SupportPage from "./pages/support/SupportPage";
+import TicketDetailPage from "./pages/support/TicketDetailPage";
 import ClientsPage from "./pages/clients/ClientsPage";
 import { FaqPage } from "./pages/public/FaqPage";
 import { UseCasesPage } from "./pages/public/UseCasesPage";
@@ -263,6 +265,9 @@ const fullRoutes = [
       // with tabs (Draft · Published · Expired). The old list URLs redirect there.
       { path: "invoices", element: <InvoicesPage /> },
       { path: "clients", element: <ClientsPage /> },
+      // Helpdesk: the user's support tickets (my-tickets/) and one ticket.
+      { path: "support", element: <SupportPage /> },
+      { path: "support/:ticketId", element: <TicketDetailPage /> },
       {
         path: "proforma-invoices",
         element: (

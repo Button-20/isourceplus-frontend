@@ -6,7 +6,7 @@ import { Send, LifeBuoy } from "lucide-react";
 const items = [
 	{
 		title: "Support",
-		url: "#",
+		url: "/dashboard/support",
 		icon: LifeBuoy,
 	},
 	{

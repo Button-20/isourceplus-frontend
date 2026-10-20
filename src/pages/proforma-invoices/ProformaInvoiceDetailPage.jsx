@@ -141,8 +141,10 @@ const ProformaInvoiceDetailPage = () => {
 
   const created = formatDateTime(invoice.created_at);
   const updated = formatDateTime(invoice.updated_at);
+  // The buyer turns a published proforma into a purchase order.
   const canSendPurchaseOrder =
-    jobTitle === "lead buyer" && isDraftStatus(invoice.status);
+    jobTitle === "lead buyer" &&
+    String(invoice.status || "").toLowerCase() === "published";
 
   // The issuing supplier approves its own proforma: a selling-side role from
   // the issuing organisation (matched on issuing_company_url when present).
