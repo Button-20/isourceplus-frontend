@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Building2, Send } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
   format,
@@ -28,6 +28,10 @@ import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
 const RFxDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
   const navigate = useNavigate();
+  // Opened from somewhere else (e.g. Business Invitations)? Go back there.
+  const location = useLocation();
+  const backTo = location.state?.backTo || "/dashboard/rfxs";
+  const backLabel = location.state?.backLabel || "Back to RFxs";
   const { refNum } = useParams();
   const [rfx, setRfx] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -113,7 +117,7 @@ const RFxDetailPage = () => {
           <Button
             variant="outline"
             className="mt-5"
-            onClick={() => navigate("/dashboard/rfxs")}
+            onClick={() => navigate(backTo)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to RFxs
           </Button>
@@ -136,10 +140,7 @@ const RFxDetailPage = () => {
   const isLeadBuyer = jobTitle === "lead buyer";
 
   return (
-    <DetailPage
-      onBack={() => navigate("/dashboard/rfxs")}
-      backLabel="Back to RFxs"
-    >
+    <DetailPage onBack={() => navigate(backTo)} backLabel={backLabel}>
       <DetailCard>
         <DetailHeader
           icon={Building2}
@@ -242,10 +243,7 @@ const RFxDetailPage = () => {
 
         {(isSalesManager || isLeadBuyer) && (
           <DetailFooter>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/dashboard/rfxs")}
-            >
+            <Button variant="outline" onClick={() => navigate(backTo)}>
               Cancel
             </Button>
             {isLeadBuyer && (

@@ -9,7 +9,7 @@ import {
   Trash2,
   FileText,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
   format,
@@ -49,6 +49,10 @@ const statusTone = (status) => {
 const TenderDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
   const navigate = useNavigate();
+  // Opened from somewhere else (e.g. Business Invitations)? Go back there.
+  const location = useLocation();
+  const backTo = location.state?.backTo || "/dashboard/tenders";
+  const backLabel = location.state?.backLabel || "Back to tenders";
   const { refNum } = useParams();
   const [tender, setTender] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -156,7 +160,7 @@ const TenderDetailPage = () => {
           <Button
             variant="outline"
             className="mt-5"
-            onClick={() => navigate("/dashboard/tenders")}
+            onClick={() => navigate(backTo)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to tenders
           </Button>
@@ -179,10 +183,7 @@ const TenderDetailPage = () => {
   const isLeadBuyer = jobTitle === "lead buyer";
 
   return (
-    <DetailPage
-      onBack={() => navigate("/dashboard/tenders")}
-      backLabel="Back to tenders"
-    >
+    <DetailPage onBack={() => navigate(backTo)} backLabel={backLabel}>
       <DetailCard>
         <DetailHeader
           icon={Building2}
@@ -317,10 +318,7 @@ const TenderDetailPage = () => {
 
         {(isSalesManager || isLeadBuyer) && (
           <DetailFooter>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/dashboard/tenders")}
-            >
+            <Button variant="outline" onClick={() => navigate(backTo)}>
               Cancel
             </Button>
             {isLeadBuyer && (

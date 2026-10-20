@@ -4,7 +4,7 @@
 // GET transporters/business-invites/ — without tabs. Rows link to the event, where the sales
 // manager's "Send offer" action already lives.
 import { useCallback, useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
@@ -98,6 +98,12 @@ export default function BusinessInvitesPage() {
   const types = isTransporter ? ["waybill"] : TAB_ORDER;
   const copy = COPY[isTransporter ? "transporter" : "supplier"];
   const [searchParams, setSearchParams] = useSearchParams();
+  // Event pages opened from here come back to this exact view (tab kept).
+  const location = useLocation();
+  const backState = {
+    backTo: `${location.pathname}${location.search}`,
+    backLabel: "Back to invitations",
+  };
   const requested = searchParams.get("biz_type");
   const bizType = types.includes(requested) ? requested : types[0];
   const cfg = INVITE_TYPES[bizType];
@@ -300,6 +306,7 @@ export default function BusinessInvitesPage() {
                       {r.ref && (
                         <Link
                           to={cfg.detailUrl(r.ref)}
+                          state={backState}
                           className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
                         >
                           View &amp; respond{" "}

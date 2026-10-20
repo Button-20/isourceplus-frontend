@@ -154,14 +154,14 @@ function ClientCard({ client: c, TypeIcon }) {
 }
 
 export default function ClientsPage() {
-  const { companyId, transporterId, jobTitle, viewMode } = useAuth();
+  const { companyId, transporterId, jobTitle } = useAuth();
   const isTransporter =
     Boolean(transporterId) ||
     String(jobTitle ?? "").toLowerCase() === "logistics manager";
   const orgKind = isTransporter ? "transporter" : "company";
   const hasOrg = Boolean(isTransporter ? transporterId : companyId);
-  // Buyers call them suppliers; suppliers and transporters call them clients.
-  const noun = isTransporter || viewMode === "supplier" ? "client" : "supplier";
+  // "Clients" in every view (buyers included).
+  const noun = "client";
 
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get("client_type");
@@ -243,9 +243,8 @@ export default function ClientsPage() {
               My {noun}s
             </h1>
             <p className="mt-2 max-w-lg text-sm text-white/85">
-              {noun === "supplier"
-                ? "The companies and transporters your company buys from."
-                : `The companies and transporters your ${isTransporter ? "transport business" : "company"} works with.`}
+              The companies and transporters your{" "}
+              {isTransporter ? "transport business" : "company"} works with.
             </p>
           </div>
           <Button

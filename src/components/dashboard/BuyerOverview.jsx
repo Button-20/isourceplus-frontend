@@ -241,7 +241,7 @@ export default function BuyerOverview() {
       icon: ReceiptText,
       label: "Received Offers",
       value: num(data.receivedOffers, "total_offers_received"),
-      href: "/dashboard/proforma-invoices",
+      href: "/dashboard/business-offers",
     },
     {
       icon: Users,
@@ -253,13 +253,13 @@ export default function BuyerOverview() {
       label: "Purchase Order Value",
       prefix: "GHC ",
       value: formatMoney(data.purchaseOrderValue?.total_purchase_order_value),
-      href: "/dashboard/purchase-orders/issued",
+      href: "/dashboard/purchase-orders",
     },
     {
       icon: Wallet,
       label: "Payment Orders",
       value: num(data.totalPaymentOrders, "total_payment_orders_received"),
-      href: "/dashboard/payment-orders/issued",
+      href: "/dashboard/payment-orders",
     },
   ];
 

@@ -45,6 +45,17 @@ export async function getWaybillDirections(refNum, { origin, destination }) {
   };
 }
 
+// Publish a draft. There's no publish route (waybills/<ref>/publish/ is a
+// 404); the detail route accepts PATCH, so this sets status = "published".
+// The caller checks the returned status — if the backend treats status as
+// read-only it comes back unchanged.
+export async function publishWaybill(refNum) {
+  const { data } = await http.patch(`waybills/${encodeURIComponent(refNum)}/`, {
+    status: "published",
+  });
+  return data?.data ?? data;
+}
+
 // → { waybill, message }
 export async function markWaybillArrived(refNum, location) {
   const { data } = await http.post(

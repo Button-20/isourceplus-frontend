@@ -58,14 +58,14 @@ const METRICS = [
     icon: Mail,
     label: "Active Business Invitations",
     fetch: getActiveBizInvitations,
-    href: "/dashboard/rfxs",
+    href: "/dashboard/business-invites",
   },
   {
     key: "offers",
     icon: ReceiptText,
     label: "Active Business Offers",
     fetch: getActiveBizOffers,
-    href: "/dashboard/proforma-invoices/issued",
+    href: "/dashboard/invoices?type=proforma",
   },
   {
     key: "awarded",
@@ -80,7 +80,7 @@ const METRICS = [
     label: "Sales Invoices Value",
     money: true,
     fetch: getSalesInvoiceValue,
-    href: "/dashboard/sales-invoices/issued",
+    href: "/dashboard/invoices?type=sales",
   },
   {
     key: "pmtOrdersIssuedValue",
@@ -88,14 +88,14 @@ const METRICS = [
     label: "Payment Orders Issued (Value)",
     money: true,
     fetch: getPaymentOrdersIssuedValue,
-    href: "/dashboard/payment-orders/issued",
+    href: "/dashboard/payment-orders",
   },
   {
     key: "receivedPayments",
     icon: HandCoins,
     label: "Received Payment Orders",
     fetch: getReceivedPayments,
-    href: "/dashboard/payment-orders/issued",
+    href: "/dashboard/payment-orders",
   },
   {
     key: "totalBuyers",

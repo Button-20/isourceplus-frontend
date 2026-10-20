@@ -6,10 +6,11 @@ import {
   ArrowLeft,
   Building2,
   MapPinCheck,
+  Rocket,
   Trash2,
   Send,
 } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import {
   format,
@@ -40,6 +41,10 @@ import WaybillDirectionsPanel from "@/components/waybills/WaybillDirectionsPanel
 import MarkArrivalModal from "@/components/waybills/MarkArrivalModal";
 import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
 import { prettify } from "@/utils/choices";
+import {
+  publishWaybill,
+  waybillErrorMessage,
+} from "@/services/api/waybills.service";
 
 const statusTone = (status) => {
   const value = (status || "").toLowerCase();
@@ -58,7 +63,12 @@ const WaybillDetailPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [arrivalOpen, setArrivalOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const navigate = useNavigate();
+  // Opened from somewhere else (e.g. Business Invitations)? Go back there.
+  const location = useLocation();
+  const backTo = location.state?.backTo || "/dashboard/waybills";
+  const backLabel = location.state?.backLabel || "Back to waybills";
 
   const canCreateWaybill = ["lead buyer", "sales manager"].includes(jobTitle);
 
@@ -136,7 +146,7 @@ const WaybillDetailPage = () => {
           <Button
             variant="outline"
             className="mt-5"
-            onClick={() => navigate("/dashboard/waybills")}
+            onClick={() => navigate(backTo)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to waybills
           </Button>
@@ -164,11 +174,33 @@ const WaybillDetailPage = () => {
     !waybill.arrived_at &&
     !["DELIVERED", "CANCELLED"].includes(tracking);
 
+  // The issuer (lead buyer / sales manager) publishes its own draft.
+  const canPublish =
+    canCreateWaybill && String(waybill.status || "").toLowerCase() === "draft";
+
+  const handlePublish = async () => {
+    setPublishing(true);
+    try {
+      const updated = await publishWaybill(waybill.ref_num);
+      const status = String(updated?.status || "").toLowerCase();
+      if (updated?.ref_num) setWaybill((prev) => ({ ...prev, ...updated }));
+      if (status === "published") {
+        toast.success("Waybill published.");
+      } else {
+        toast.error(
+          "The server kept this waybill as a draft. Publishing may need a backend change.",
+        );
+      }
+    } catch (err) {
+      toast.error(waybillErrorMessage(err, "Couldn't publish the waybill."));
+      console.error("Publish waybill error:", err);
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   return (
-    <DetailPage
-      onBack={() => navigate("/dashboard/waybills")}
-      backLabel="Back to waybills"
-    >
+    <DetailPage onBack={() => navigate(backTo)} backLabel={backLabel}>
       <DetailCard>
         <DetailHeader
           icon={Building2}
@@ -303,10 +335,7 @@ const WaybillDetailPage = () => {
 
         {(isLogisticsManager || canCreateWaybill) && (
           <DetailFooter>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/dashboard/waybills")}
-            >
+            <Button variant="outline" onClick={() => navigate(backTo)}>
               Cancel
             </Button>
             {canCreateWaybill && (
@@ -324,6 +353,24 @@ const WaybillDetailPage = () => {
                 title={waybill.title}
                 onArchived={() => navigate("/dashboard/waybills/issued")}
               />
+            )}
+            {canPublish && (
+              <Button
+                onClick={handlePublish}
+                disabled={publishing}
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              >
+                {publishing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    Publishing…
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="mr-1.5 h-4 w-4" /> Publish
+                  </>
+                )}
+              </Button>
             )}
             {canMarkArrival && (
               <Button variant="outline" onClick={() => setArrivalOpen(true)}>

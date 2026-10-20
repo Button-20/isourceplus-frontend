@@ -313,10 +313,8 @@ export function DashboardLayout() {
         ...(isTransporter || isCompanyRole
           ? [
               {
-                // Buyers keep suppliers; suppliers and transporters keep clients.
-                title: "My Suppliers",
-                supplierTitle: "My Clients",
-                transporterTitle: "My Clients",
+                // "My Clients" for every view (buyer, supplier, transporter).
+                title: "My Clients",
                 icon: Handshake,
                 url: "/dashboard/clients",
               },

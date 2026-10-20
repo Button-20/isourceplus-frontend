@@ -33,12 +33,22 @@ import { cn } from "@/lib/utils";
 
 // Resource catalog — endpoint (DRF list), destination route, and icon.
 const RESOURCES = {
-  rfx: { label: "RFx", endpoint: "rfxs/", href: "/dashboard/rfxs", icon: FileText },
-  tenders: { label: "Tenders", endpoint: "tenders/", href: "/dashboard/tenders", icon: Gavel },
+  rfx: {
+    label: "RFx",
+    endpoint: "rfxs/",
+    href: "/dashboard/rfxs",
+    icon: FileText,
+  },
+  tenders: {
+    label: "Tenders",
+    endpoint: "tenders/",
+    href: "/dashboard/tenders",
+    icon: Gavel,
+  },
   proforma: {
     label: "Proforma Invoices",
     endpoint: "proforma-invoices/",
-    href: "/dashboard/proforma-invoices",
+    href: "/dashboard/invoices?type=proforma",
     icon: ReceiptText,
   },
   purchaseOrders: {
@@ -50,57 +60,90 @@ const RESOURCES = {
   salesInvoices: {
     label: "Sales Invoices",
     endpoint: "sales-invoices/",
-    href: "/dashboard/sales-invoices",
+    href: "/dashboard/invoices?type=sales",
     icon: Wallet,
   },
-  waybills: { label: "Waybills", endpoint: "waybills/", href: "/dashboard/waybills", icon: Truck },
+  waybills: {
+    label: "Waybills",
+    endpoint: "waybills/",
+    href: "/dashboard/waybills",
+    icon: Truck,
+  },
   paymentOrders: {
     label: "Payment Orders",
     endpoint: "payment-orders/",
-    href: "/dashboard/payment-orders/issued",
+    href: "/dashboard/payment-orders",
     icon: Wallet,
   },
 };
 
-// Which stats + quick actions each role sees.
-const ROLE_CONFIG = {
-  "lead buyer": {
+// Stats + quick actions per dashboard view (buyer / supplier / transporter —
+// the same split the sidebar uses), so a switch-enabled company gets the
+// actions for the side it's on.
+const VIEW_CONFIG = {
+  buyer: {
     stats: ["rfx", "tenders", "proforma", "purchaseOrders"],
     actions: [
       { label: "Create RFx", href: "/dashboard/rfxs?new=1", icon: FileText },
       { label: "Create Tender", href: "/dashboard/tenders?new=1", icon: Gavel },
-      { label: "View Purchase Orders", href: "/dashboard/purchase-orders/issued", icon: ShoppingCart },
-      { label: "Issued Waybills", href: "/dashboard/waybills/issued", icon: Truck },
+      {
+        label: "Received Offers",
+        href: "/dashboard/business-offers",
+        icon: ReceiptText,
+      },
+      {
+        label: "Purchase Orders",
+        href: "/dashboard/purchase-orders",
+        icon: ShoppingCart,
+      },
     ],
   },
-  "sales manager": {
+  supplier: {
     stats: ["proforma", "salesInvoices", "purchaseOrders", "paymentOrders"],
     actions: [
-      { label: "Create Sales Invoice", href: "/dashboard/sales-invoices/create-sales-invoice", icon: Wallet },
-      { label: "Proforma Invoices", href: "/dashboard/proforma-invoices", icon: ReceiptText },
-      { label: "Purchase Orders", href: "/dashboard/purchase-orders", icon: ShoppingCart },
-      { label: "Payment Orders", href: "/dashboard/payment-orders/issued", icon: Wallet },
+      {
+        label: "Received Invitations",
+        href: "/dashboard/business-invites",
+        icon: FileText,
+      },
+      {
+        label: "Proforma Invoices",
+        href: "/dashboard/invoices?type=proforma",
+        icon: ReceiptText,
+      },
+      {
+        label: "Awarded Purchase Orders",
+        href: "/dashboard/purchase-orders",
+        icon: ShoppingCart,
+      },
+      {
+        label: "Payment Orders",
+        href: "/dashboard/payment-orders",
+        icon: Wallet,
+      },
     ],
   },
-  "logistics manager": {
-    stats: ["waybills", "proforma", "purchaseOrders", "paymentOrders"],
+  transporter: {
+    stats: ["waybills", "proforma", "salesInvoices", "paymentOrders"],
     actions: [
-      { label: "All Waybills", href: "/dashboard/waybills", icon: Truck },
-      { label: "Sales Invoices", href: "/dashboard/sales-invoices", icon: Wallet },
-      { label: "Purchase Orders", href: "/dashboard/purchase-orders", icon: ShoppingCart },
-      { label: "Payment Orders", href: "/dashboard/payment-orders/issued", icon: Wallet },
+      {
+        label: "Waybill Invitations",
+        href: "/dashboard/business-invites",
+        icon: FileText,
+      },
+      { label: "My Waybills", href: "/dashboard/waybills", icon: Truck },
+      {
+        label: "Sales Invoices",
+        href: "/dashboard/invoices?type=sales",
+        icon: Wallet,
+      },
+      {
+        label: "Payment Orders",
+        href: "/dashboard/payment-orders",
+        icon: Wallet,
+      },
     ],
   },
-};
-
-const DEFAULT_CONFIG = {
-  stats: ["rfx", "tenders", "proforma", "purchaseOrders"],
-  actions: [
-    { label: "View RFx", href: "/dashboard/rfxs", icon: FileText },
-    { label: "View Tenders", href: "/dashboard/tenders", icon: Gavel },
-    { label: "Proforma Invoices", href: "/dashboard/proforma-invoices", icon: ReceiptText },
-    { label: "Purchase Orders", href: "/dashboard/purchase-orders", icon: ShoppingCart },
-  ],
 };
 
 function StatCard({ resource, count, loading }) {
@@ -136,19 +179,26 @@ function StatCard({ resource, count, loading }) {
 }
 
 export function DashBoardHome() {
-  const { user, token, jobTitle, companyId, transporterId, viewMode, sidebarLoading } =
-    useAuth();
+  const {
+    user,
+    token,
+    jobTitle,
+    companyId,
+    transporterId,
+    viewMode,
+    sidebarLoading,
+  } = useAuth();
   const [counts, setCounts] = useState({});
   const [loadingCounts, setLoadingCounts] = useState(true);
 
-  const config = ROLE_CONFIG[jobTitle] || DEFAULT_CONFIG;
-  const statKeys = config.stats;
 
   // Transporters (logistics) get their own overview; everyone else follows the
   // global Buyer/Supplier toggle (see ViewModeToggle).
   const isTransporter =
     Boolean(transporterId) || jobTitle === "logistics manager";
   const overviewVariant = isTransporter ? "transporter" : viewMode;
+  const config = VIEW_CONFIG[overviewVariant] || VIEW_CONFIG.buyer;
+  const statKeys = config.stats;
 
   useEffect(() => {
     // The buyer and supplier overviews fetch their own data; only the generic
@@ -201,10 +251,7 @@ export function DashBoardHome() {
               into a workflow or start something new.
             </p>
           </div>
-          <Button
-            asChild
-            className="bg-white text-brand hover:bg-white/90"
-          >
+          <Button asChild className="bg-white text-brand hover:bg-white/90">
             <Link to={config.actions[0].href}>
               <Plus className="mr-1.5 h-4 w-4" />
               {config.actions[0].label}
@@ -256,7 +303,9 @@ export function DashBoardHome() {
 
       {/* Quick actions */}
       <div>
-        <h2 className="mb-3 font-display text-lg font-semibold">Quick actions</h2>
+        <h2 className="mb-3 font-display text-lg font-semibold">
+          Quick actions
+        </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {config.actions.map((action) => {
             const Icon = action.icon;
@@ -320,7 +369,17 @@ export function DashBoardHome() {
               </span>
             </div>
             <Button variant="outline" size="sm" asChild className="mt-2">
-              <Link to="/dashboard/companies">Manage organization</Link>
+              <Link
+                to={
+                  transporterId
+                    ? "/dashboard/transporter/edit"
+                    : companyId
+                      ? "/dashboard/company/edit"
+                      : "/dashboard/companies"
+                }
+              >
+                {hasOrg ? "Manage organization" : "Set up organization"}
+              </Link>
             </Button>
           </CardContent>
         </Card>
