@@ -31,8 +31,9 @@ import {
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 // Switching back to supplier requires both a supplier industry and a
-// sub-category: POST companies/supplier-switch/?switch_permission=cancel
-// { industry, sub_category }. Sub-categories depend on the industry
+// sub-category: POST companies/supplier-switch/?switch_permission=accept
+// { industry, sub_category } (accept = perform the switch, in either
+// direction). Sub-categories depend on the industry
 // (supplier/sub-category-choices/?type=supplier&industry=…), so it's picked
 // first — both prefilled from the company when they're supplier values.
 // `onSwitched()` runs on success.
@@ -121,7 +122,7 @@ export default function SwitchToSupplierModal({
     if (!validSub) return toast.error("Please select a sub-category.");
     setSaving(true);
     try {
-      const res = await supplierSwitch("cancel", {
+      const res = await supplierSwitch({
         industry,
         sub_category: validSub,
       });

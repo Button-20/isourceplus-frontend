@@ -10,9 +10,11 @@ import SwitchToSupplierModal from "@/components/dashboard/SwitchToSupplierModal"
 // move between the Buyer and Supplier experience. The active mode lives in the
 // app context (persisted) and drives which dashboard overview is shown. Each
 // switch is recorded on the backend via companies/supplier-switch/:
-//   → Buyer:    pick a buyer industry,   ?switch_permission=accept { industry }
-//   → Supplier: pick industry + sub-category, ?switch_permission=cancel
+//   → Buyer:    pick a buyer industry,        ?switch_permission=accept
+//               { industry }
+//   → Supplier: pick industry + sub-category, ?switch_permission=accept
 //               { industry, sub_category }
+// (switch_permission=cancel aborts a switch; it never means "back to supplier".)
 const OPTIONS = [
   { value: "buyer", label: "Buyer", icon: ShoppingCart },
   { value: "supplier", label: "Supplier", icon: Store },

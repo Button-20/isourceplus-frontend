@@ -58,14 +58,17 @@ export async function getSubCategoryChoices(type, industry) {
   return data;
 }
 
-// POST companies/supplier-switch/?switch_permission=accept|cancel — a
-// switch-enabled company (type_switch=true) moving to the buyer side
-// (accept, with the buyer `industry` from industry-choices/?type=buyer) or
-// back to supplier (cancel, with a supplier `industry` and `sub_category` —
-// both required). `industry` is always required; `sub_category` only on cancel.
-export async function supplierSwitch(permission, body = {}) {
+// POST companies/supplier-switch/?switch_permission=accept — switch a
+// switch-enabled company (type_switch=true) to the other side:
+//   to buyer:    { industry }                (buyer industry enum)
+//   to supplier: { industry, sub_category }  (supplier enums, both required)
+// `switch_permission` is accept (perform the switch) or cancel (ABORT it —
+// nothing changes). It is NOT the direction: both directions send accept.
+// (Sending cancel for "back to supplier" was a bug, found by the backend
+// developer 2026-10-21; the backend also answered aborts with 200.)
+export async function supplierSwitch(body) {
   const { data } = await http.post("companies/supplier-switch/", body, {
-    params: { switch_permission: permission },
+    params: { switch_permission: "accept" },
   });
   return data;
 }
