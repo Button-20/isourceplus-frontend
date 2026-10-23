@@ -331,6 +331,9 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
       data.append("expected_delivery_date", values.expected_delivery_date);
       data.append("delivery_deadline", toIso(values.delivery_deadline));
       data.append("is_approved", values.is_approved);
+      // Waybills from this form are always out-sourced to transporters.
+      data.append("do_delivery", "out_source");
+      data.append("waybill_type", "outsourced");
 
       if (values.region) data.append("reach[region]", values.region);
       if (values.district) data.append("reach[district]", values.district);

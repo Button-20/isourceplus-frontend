@@ -375,7 +375,14 @@ export function DashBoardHome() {
                     ? "/dashboard/transporter/edit"
                     : companyId
                       ? "/dashboard/company/edit"
-                      : "/dashboard/companies"
+                      : // No org yet: straight to registration when the
+                        // role already says which kind.
+                        isTransporter
+                        ? "/dashboard/transporter"
+                        : jobTitle === "lead buyer" ||
+                            jobTitle === "sales manager"
+                          ? "/dashboard/company"
+                          : "/dashboard/companies"
                 }
               >
                 {hasOrg ? "Manage organization" : "Set up organization"}

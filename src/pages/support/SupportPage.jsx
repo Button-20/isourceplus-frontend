@@ -1,8 +1,9 @@
 // "Support": the user's helpdesk tickets (GET my-tickets/) and filing new
 // ones. Tickets are matched on the company email, so everyone in the same
-// company sees the same list.
+// company sees the same list. The FAQ assistant answers common questions
+// before a ticket is needed.
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
@@ -17,6 +18,7 @@ import Pagination from "@/components/Pagination";
 import { Button } from "@/components/ui/button";
 import TicketStatus from "@/components/support/TicketStatus";
 import NewTicketModal from "@/components/support/NewTicketModal";
+import FaqChatbot from "@/components/faq/FaqChatbot";
 import { cn } from "@/lib/utils";
 import {
   TICKET_PRIORITY,
@@ -32,6 +34,7 @@ const fmt = (v) => {
 };
 
 export default function SupportPage() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({
@@ -208,6 +211,8 @@ export default function SupportPage() {
           load();
         }}
       />
+
+      <FaqChatbot onShowInFaq={(hit) => navigate(`/faq#${hit.sectionId}`)} />
     </div>
   );
 }

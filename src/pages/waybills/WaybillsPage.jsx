@@ -15,9 +15,9 @@ const SOURCES = [
 ];
 
 export default function WaybillsPage() {
-  const { jobTitle } = useAuth();
+  const { jobTitle, viewMode } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const isOwner = isEventOwner("waybill", jobTitle);
+  const isOwner = isEventOwner("waybill", jobTitle, viewMode);
 
   if (!isOwner) return <EventManagementPage key="waybill" kind="waybill" />;
 

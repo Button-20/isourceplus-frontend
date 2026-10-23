@@ -14,7 +14,6 @@ import {
 import { useAuth } from "@/services/context/app.context";
 import { getRfxTypeChoices } from "@/services/api/rfx.service";
 import {
-  getDeliveryChoices,
   getMethodChoices,
   getPriorityChoices,
   getProcedureChoices,
@@ -25,6 +24,11 @@ import {
 import { getRegionChoices } from "@/services/api/waitlist.service";
 import { getDistrictChoices } from "@/services/api/transporters.service";
 import { normalizeChoices } from "@/utils/choices";
+import {
+  DELIVERY_OPTIONS,
+  NO_DELIVERY,
+  deliveryFormValue,
+} from "@/utils/delivery";
 import {
   Dialog,
   DialogContent,
@@ -68,8 +72,6 @@ const PROCUREMENT_TYPES = [
   { value: "project", label: "Project" },
   { value: "service", label: "Service" },
 ];
-// Fallback only — the live list comes from GET delivery-choices/.
-const DELIVERY_OPTIONS = [{ value: "self", label: "Self delivery" }];
 // Fallback only — the live list comes from GET procedure-choices/.
 const PROCEDURES = [
   { value: "open", label: "Open" },
@@ -159,7 +161,7 @@ const initialValues = (unit) => ({
   spend_category: "construction",
   procurement_type: "product",
   priority: "non urgent",
-  do_delivery: "self",
+  do_delivery: NO_DELIVERY, // null or "self" (see utils/delivery)
   delivery_address: "",
   delivery_deadline: "",
   start_datetime: new Date().toISOString().slice(0, 16),
@@ -182,7 +184,6 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
   const [procurementTypeChoices, setProcurementTypeChoices] =
     useState(PROCUREMENT_TYPES);
   const [priorityChoices, setPriorityChoices] = useState(PRIORITIES);
-  const [deliveryChoices, setDeliveryChoices] = useState(DELIVERY_OPTIONS);
   const [methodChoices, setMethodChoices] = useState(METHODS);
   const [procedureChoices, setProcedureChoices] = useState(PROCEDURES);
   const [regionChoices, setRegionChoices] = useState([]);
@@ -237,23 +238,6 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
       })
       .catch(() => {
         if (!cancelled) setProcedureChoices(PROCEDURES);
-      });
-
-    getDeliveryChoices()
-      .then((data) => {
-        if (cancelled) return;
-        const opts = normalizeChoices(data);
-        if (opts.length) {
-          setDeliveryChoices(opts);
-          setValues((v) =>
-            opts.some((o) => o.value === v.do_delivery)
-              ? v
-              : { ...v, do_delivery: opts[0].value },
-          );
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setDeliveryChoices(DELIVERY_OPTIONS);
       });
 
     getProcurementTypeChoices()
@@ -476,9 +460,9 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
         "spend_category",
         "procurement_type",
         "priority",
-        "do_delivery",
         "delivery_address",
       ].forEach((k) => data.append(k, values[k]));
+      data.append("do_delivery", deliveryFormValue(values.do_delivery));
       ["start_datetime", "submission_datetime", "delivery_deadline"].forEach(
         (k) => {
           const iso = toISO(values[k]);
@@ -722,7 +706,7 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {deliveryChoices.map((o) => (
+                    {DELIVERY_OPTIONS.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>
@@ -1043,7 +1027,7 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                     {fmtDateTime(values.submission_datetime)}
                   </ReviewRow>
                   <ReviewRow label="Delivery">
-                    {labelFor(deliveryChoices, values.do_delivery)}
+                    {labelFor(DELIVERY_OPTIONS, values.do_delivery)}
                   </ReviewRow>
                   <ReviewRow label="Delivery deadline">
                     {fmtDateTime(values.delivery_deadline)}

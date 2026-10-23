@@ -41,6 +41,11 @@ import {
   getUnitOfMeasureChoices,
 } from "@/services/api/choices.service";
 import { normalizeChoices } from "@/utils/choices";
+import {
+  DELIVERY_OPTIONS,
+  NO_DELIVERY,
+  deliveryFormValue,
+} from "@/utils/delivery";
 
 // Fallback only — the live list comes from GET spend-category-choices/.
 const SPEND_CATEGORIES = [
@@ -116,6 +121,7 @@ const initialValues = (unit) => ({
   method: "general sourcing",
   priority: "non urgent",
   procurement_type: "product",
+  do_delivery: NO_DELIVERY, // null or "self" (see utils/delivery)
   start_datetime: new Date().toISOString().slice(0, 16),
   submission_datetime: new Date().toISOString().slice(0, 16),
   delivery_deadline: new Date().toISOString().slice(0, 16),
@@ -439,6 +445,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
         "procurement_type",
         "note",
       ].forEach((k) => data.append(k, values[k]));
+      data.append("do_delivery", deliveryFormValue(values.do_delivery));
       data.append("start_datetime", toIso(values.start_datetime));
       data.append("submission_datetime", toIso(values.submission_datetime));
       data.append("delivery_deadline", toIso(values.delivery_deadline));
@@ -678,6 +685,24 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                   value={values.submission_datetime}
                   onChange={(e) => set({ submission_datetime: e.target.value })}
                 />
+              </div>
+              <div>
+                <label className={labelClass}>Delivery</label>
+                <Select
+                  value={values.do_delivery}
+                  onValueChange={(v) => set({ do_delivery: v })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DELIVERY_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className={labelClass}>Delivery deadline</label>

@@ -1,9 +1,7 @@
 // Frequently asked questions — public page (/faq).
 // Copy: src/data/faq.js ("Web-friendly FAQ_Isourceplus.docx").
 import { useId, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import {
-  ArrowRight,
   CheckCircle2,
   ChevronDown,
   CircleHelp,
@@ -15,84 +13,24 @@ import {
 
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter, { CtaBanner } from "@/components/landing/LandingFooter";
-import FlowChain from "@/components/landing/FlowChain";
+import FaqAnswer from "@/components/faq/FaqAnswer";
+import FaqChatbot from "@/components/faq/FaqChatbot";
 import useHashScroll from "@/components/landing/useHashScroll";
+import { getLenis } from "@/components/common/lenis-store";
 import { cn } from "@/lib/utils";
 import { FAQ_SECTIONS, FRAGMENTED_SOURCES, QUICK_REFERENCE } from "@/data/faq";
+import { answerText } from "@/utils/faq-search";
 
-// Flatten an answer to plain text for search.
-const answerText = (blocks) =>
-  blocks
-    .map((b) =>
-      typeof b === "string"
-        ? b
-        : b.list || b.flow || b.steps
-          ? (b.list || b.flow || b.steps).join(" ")
-          : `${b.text || ""} ${b.link?.label || ""}`,
-    )
-    .join(" ");
+// DOM id of one question ("sectionId:index").
+const questionId = (key) => `faq-${key.replace(":", "-")}`;
 
-function Answer({ blocks }) {
-  return (
-    <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
-      {blocks.map((b, i) => {
-        if (typeof b === "string") return <p key={i}>{b}</p>;
-        if (b.list)
-          return (
-            <ul key={i} className="grid gap-1.5 sm:grid-cols-2">
-              {b.list.map((li) => (
-                <li key={li} className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                  <span className="text-foreground/90">{li}</span>
-                </li>
-              ))}
-            </ul>
-          );
-        if (b.flow)
-          return (
-            <FlowChain
-              key={i}
-              steps={b.flow}
-              joiner={b.joiner === "+" ? "+" : "arrow"}
-              size="sm"
-            />
-          );
-        if (b.steps)
-          return (
-            <ol key={i} className="grid gap-2">
-              {b.steps.map((st, n) => (
-                <li key={st} className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-brand-foreground">
-                    {n + 1}
-                  </span>
-                  <span className="pt-0.5 text-foreground/90">{st}</span>
-                </li>
-              ))}
-            </ol>
-          );
-        return (
-          <p key={i}>
-            {b.text}
-            {b.text && b.link ? " " : ""}
-            {b.link && (
-              <Link
-                to={b.link.to}
-                className="inline-flex items-center gap-1 font-medium text-brand hover:underline"
-              >
-                {b.link.label} <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            )}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
-function FaqItem({ item, open, onToggle }) {
+function FaqItem({ id, item, open, onToggle }) {
   const panelId = useId();
   return (
-    <div className="rounded-xl border border-border/70 bg-card">
+    <div
+      id={id}
+      className="scroll-mt-32 rounded-xl border border-border/70 bg-card"
+    >
       <button
         type="button"
         onClick={onToggle}
@@ -110,7 +48,7 @@ function FaqItem({ item, open, onToggle }) {
       </button>
       {open && (
         <div id={panelId} className="border-t border-border/60 px-5 pb-5 pt-4">
-          <Answer blocks={item.a} />
+          <FaqAnswer blocks={item.a} />
         </div>
       )}
     </div>
@@ -153,6 +91,27 @@ export function FaqPage() {
     s.items.map((_, i) => `${s.id}:${i}`),
   );
   const allOpen = allKeys.every((k) => openKeys.has(k));
+
+  // From the chatbot: clear any search, open the question and glide to it —
+  // through Lenis when it's running (a native smooth scroll fights it).
+  const showQuestion = ({ key }) => {
+    setQuery("");
+    setOpenKeys((prev) => new Set(prev).add(key));
+    requestAnimationFrame(() => {
+      const el = document.getElementById(questionId(key));
+      if (!el) return;
+      const lenis = getLenis();
+      const offset = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
+      if (lenis)
+        lenis.scrollTo(el, {
+          offset: -offset,
+          duration: 1.2,
+          easing: (t) => 1 - Math.pow(1 - t, 3),
+          force: true,
+        });
+      else el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   return (
     <div className="font-montserrat">
@@ -277,6 +236,7 @@ export function FaqPage() {
                         return (
                           <FaqItem
                             key={key}
+                            id={questionId(key)}
                             item={item}
                             open={Boolean(q) || openKeys.has(key)}
                             onToggle={() => toggle(key)}
@@ -423,6 +383,7 @@ export function FaqPage() {
         />
       </main>
       <LandingFooter />
+      <FaqChatbot onShowInFaq={showQuestion} />
     </div>
   );
 }

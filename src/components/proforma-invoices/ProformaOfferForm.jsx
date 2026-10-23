@@ -16,12 +16,16 @@ import {
 } from "@/components/ui/select";
 import {
   getCurrencyChoices,
-  getDeliveryChoices,
   getExtraValueChoices,
   getPriorityChoices,
   getVatTypeChoices,
 } from "@/services/api/choices.service";
 import { normalizeChoices } from "@/utils/choices";
+import {
+  DELIVERY_OPTIONS,
+  NO_DELIVERY,
+  deliveryPayload,
+} from "@/utils/delivery";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -32,8 +36,6 @@ const VAT_TYPE_FALLBACK = [
   { value: "exclusive", label: "VAT exclusive" },
   { value: "inclusive", label: "VAT inclusive" },
 ];
-// Fallback only — the live list comes from GET delivery-choices/.
-const DELIVERY_FALLBACK = [{ value: "self", label: "Self delivery" }];
 // Fallback only — the live list comes from GET priority-choices/.
 const PRIORITY_FALLBACK = [
   { value: "urgent", label: "Urgent" },
@@ -115,7 +117,7 @@ export default function ProformaOfferForm({
     spend_category: "",
     priority: "urgent",
     currency: "GHS",
-    do_delivery: "self",
+    do_delivery: NO_DELIVERY, // null or "self" (see utils/delivery)
     vat_type: "exclusive",
     // Transporter-only
     vehicle_number: "",
@@ -126,7 +128,6 @@ export default function ProformaOfferForm({
   });
   const [currencyChoices, setCurrencyChoices] = useState(CURRENCY_FALLBACK);
   const [priorityChoices, setPriorityChoices] = useState(PRIORITY_FALLBACK);
-  const [deliveryChoices, setDeliveryChoices] = useState(DELIVERY_FALLBACK);
   const [vatTypeChoices, setVatTypeChoices] = useState(VAT_TYPE_FALLBACK);
   // null = endpoint failed/empty -> fall back to a free-text input.
   const [extraValueChoices, setExtraValueChoices] = useState([]);
@@ -161,20 +162,6 @@ export default function ProformaOfferForm({
       })
       .catch((error) => console.error("Fetch priority choices error:", error));
     if (!isTransporter) {
-      getDeliveryChoices()
-        .then((d) => {
-          const list = normalizeChoices(d);
-          if (cancelled || list.length === 0) return;
-          setDeliveryChoices(list);
-          setFormValues((prev) =>
-            list.some((c) => c.value === prev.do_delivery)
-              ? prev
-              : { ...prev, do_delivery: list[0].value },
-          );
-        })
-        .catch((error) =>
-          console.error("Fetch delivery choices error:", error),
-        );
       getVatTypeChoices()
         .then((d) => {
           const list = normalizeChoices(d);
@@ -288,7 +275,7 @@ export default function ProformaOfferForm({
       if (formValues.eta) payload.eta = formValues.eta; // "YYYY-MM-DD"
     } else {
       payload.spend_category = formValues.spend_category;
-      payload.do_delivery = formValues.do_delivery;
+      payload.do_delivery = deliveryPayload(formValues.do_delivery);
       payload.vat_type = formValues.vat_type;
     }
     return payload;
@@ -310,6 +297,8 @@ export default function ProformaOfferForm({
       if (hasFile) {
         body = new FormData();
         appendToFormData(body, payload, "");
+        // appendToFormData skips nulls; "" reads as null on multipart.
+        if (payload.do_delivery === null) body.append("do_delivery", "");
       }
       const response = await authAxios.post(
         `proforma-invoices/create-offer/?event_ref_num=${eventRefNum}&mn=${mode}`,
@@ -509,7 +498,7 @@ export default function ProformaOfferForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {deliveryChoices.map((o) => (
+                    {DELIVERY_OPTIONS.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>

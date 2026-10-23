@@ -51,6 +51,7 @@ export function DashboardLayout() {
     jobTitle,
     viewMode,
     setViewMode,
+    sidebarLoading,
   } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -168,20 +169,34 @@ export function DashboardLayout() {
 
   // A single top-level org nav (no sub-nav), decided by ROLE so it's correct
   // immediately (a logistics manager sees "Edit Transporter" even before the
-  // transporter id finishes loading). Only a user with no org and no known
-  // role sees "Account Type".
+  // transporter id finishes loading). Once the user's org has loaded and
+  // there isn't one, the entry registers it instead of editing nothing. Only
+  // a user with no org and no known role sees "Account Type".
+  const orgMissing = !sidebarLoading && !companyId && !transporterId;
   const orgNav = isTransporter
-    ? {
-        title: "Edit Transporter",
-        icon: Building2,
-        url: "/dashboard/transporter/edit",
-      }
-    : isCompanyRole
+    ? orgMissing
       ? {
-          title: "Edit Company",
+          title: "Register Transporter",
           icon: Building2,
-          url: "/dashboard/company/edit",
+          url: "/dashboard/transporter",
         }
+      : {
+          title: "Edit Transporter",
+          icon: Building2,
+          url: "/dashboard/transporter/edit",
+        }
+    : isCompanyRole
+      ? orgMissing
+        ? {
+            title: "Register Company",
+            icon: Building2,
+            url: "/dashboard/company",
+          }
+        : {
+            title: "Edit Company",
+            icon: Building2,
+            url: "/dashboard/company/edit",
+          }
       : { title: "Account Type", icon: Building2, url: "/dashboard/companies" };
 
   // A single Employees entry that points at the company or transporter roster

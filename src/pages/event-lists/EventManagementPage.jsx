@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  CheckCircle2,
   FilePlus,
   FileText,
   ReceiptText,
@@ -45,6 +46,7 @@ import { formatMoney } from "@/utils/money";
 import {
   EVENT_KINDS,
   FILTER_LABELS,
+  approveEvent,
   deleteEvent,
   fetchEventList,
   isEventOwner,
@@ -289,7 +291,8 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const isSupplierView = viewMode === "supplier";
-  const isOwner = isEventOwner(kind, jobTitle);
+  // A supplier company switched to buyer owns the buyer kinds too.
+  const isOwner = isEventOwner(kind, jobTitle, viewMode);
   // Buyer-owned kinds (RFx, tender, PO) are managed from the buyer view only;
   // seller-owned ones (proforma, sales invoice, waybill) in any view.
   const canManage = isOwner && (cfg.ownerSide === "any" || !isSupplierView);
@@ -314,6 +317,7 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [toDelete, setToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [approving, setApproving] = useState(null); // ref_num being approved
 
   const setFilter = (key) => {
     const next = new URLSearchParams(searchParams);
@@ -382,6 +386,30 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
     load();
   }, [load]);
 
+  // Drafts → approved (is_approved = true), which moves them to Published.
+  const handleApprove = async (row) => {
+    setApproving(row.ref_num);
+    try {
+      await approveEvent(kind, row.ref_num);
+      toast.success(`${row.ref_num} approved.`);
+      load();
+    } catch (err) {
+      const body = err.response?.data;
+      const first = (v) => (Array.isArray(v) ? v[0] : v);
+      toast.error(
+        (body && typeof body === "object"
+          ? first(body.message) ||
+            first(body.detail) ||
+            first(body.is_approved) ||
+            first(body.non_field_errors)
+          : null) || `Couldn't approve ${row.ref_num}.`,
+      );
+      console.error("Approve error:", err);
+    } finally {
+      setApproving(null);
+    }
+  };
+
   const handleDelete = async () => {
     if (!toDelete) return;
     setDeleting(true);
@@ -422,6 +450,7 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
   }
 
   const showOffers = canManage && Boolean(cfg.offersUrl);
+  const showApprove = canManage && filter === "draft";
   const showDelete = canManage && filter === "draft" && cfg.canDelete !== false;
   const filterLabel = FILTER_LABELS[filter].toLowerCase();
 
@@ -638,6 +667,21 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-right">
                       <span className="inline-flex items-center justify-end gap-4">
+                        {showApprove && (
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(r)}
+                            disabled={Boolean(approving)}
+                            className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:underline disabled:opacity-50 dark:text-emerald-400"
+                          >
+                            {approving === r.ref_num ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            )}
+                            Approve
+                          </button>
+                        )}
                         {showOffers && (
                           <Link
                             to={cfg.offersUrl(r.ref_num)}

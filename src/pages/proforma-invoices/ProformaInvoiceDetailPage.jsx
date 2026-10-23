@@ -35,9 +35,10 @@ import {
   approveProformaInvoice,
   proformaErrorMessage,
 } from "@/services/api/proforma.service";
+import { isBuyerView } from "@/services/api/event-lists.service";
 
 const ProformaInvoiceDetailPage = () => {
-  const { authAxios, jobTitle, companyId, transporterId } = useAuth();
+  const { authAxios, jobTitle, companyId, transporterId, viewMode } = useAuth();
   const { refNum } = useParams();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -141,9 +142,10 @@ const ProformaInvoiceDetailPage = () => {
 
   const created = formatDateTime(invoice.created_at);
   const updated = formatDateTime(invoice.updated_at);
-  // The buyer turns a published proforma into a purchase order.
+  // The buyer turns a published proforma into a purchase order — the lead
+  // buyer, or anyone in a supplier company that has switched to buyer.
   const canSendPurchaseOrder =
-    jobTitle === "lead buyer" &&
+    isBuyerView(jobTitle, viewMode) &&
     String(invoice.status || "").toLowerCase() === "published";
 
   // The issuing supplier approves its own proforma: a selling-side role from

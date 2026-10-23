@@ -2,7 +2,7 @@
 // order) behind one page per kind with filter tabs — see
 // pages/event-lists/EventManagementPage.jsx.
 //
-//   draft     GET {x}/drafts/                       your drafts
+//   draft     GET {x}/drafts/                       your drafts (POs: below)
 //   published GET {x}/approved/active-published/    approved and live
 //   expired   GET {x}/expired/non-active/           submission due date reached
 //
@@ -59,8 +59,9 @@ export const FILTER_LABELS = {
   expired: "Expired",
 };
 
-// Purchase orders by life-cycle status (GET purchase-orders/multi-status/
-// ?status=ESCROW_FUNDED | IN_PROGRESS | COMPLETED | CANCELLED). The spec
+// Purchase orders by status (GET purchase-orders/multi-status/?status=DRAFT |
+// ESCROW_FUNDED | IN_PROGRESS | COMPLETED | CANCELLED). Draft comes from here
+// too (not drafts/); Published keeps approved/active-published/. The spec
 // doesn't name the query param; `status` matches its "Invalid status value".
 const PO_LIFECYCLE_TABS = [
   "escrow_funded",
@@ -69,7 +70,7 @@ const PO_LIFECYCLE_TABS = [
   "cancelled",
 ];
 const PO_LIFECYCLE = Object.fromEntries(
-  PO_LIFECYCLE_TABS.map((t) => [
+  ["draft", ...PO_LIFECYCLE_TABS].map((t) => [
     t,
     { path: "multi-status/", params: { status: t.toUpperCase() } },
   ]),
@@ -241,8 +242,18 @@ export const EVENT_KINDS = {
   },
 };
 
-export const isEventOwner = (kind, jobTitle) =>
-  OWNER_ROLES[kind].includes(jobTitle);
+// Kinds a buyer issues. A supplier company that has switched to buyer
+// (viewMode "buyer") creates and manages these too, whatever the member's
+// job title — sales managers aren't in OWNER_ROLES for RFxs, tenders or POs.
+const BUYER_KINDS = ["rfx", "tender", "waybill", "purchaseOrder"];
+
+export const isBuyerView = (jobTitle, viewMode) =>
+  jobTitle === "lead buyer" ||
+  (viewMode === "buyer" && jobTitle !== "logistics manager");
+
+export const isEventOwner = (kind, jobTitle, viewMode) =>
+  OWNER_ROLES[kind].includes(jobTitle) ||
+  (BUYER_KINDS.includes(kind) && isBuyerView(jobTitle, viewMode));
 
 const toItems = (data) =>
   Array.isArray(data) ? data : data?.results || data?.data || [];
@@ -291,6 +302,18 @@ export async function fetchEventList(kind, filter, { page = 1, ...ctx } = {}) {
     previous: data?.previous ?? null,
     emptyMessage: items.length ? "" : detailOf(data),
   };
+}
+
+// Approve a draft. No kind has an approve route ({x}/<ref>/approve/ is a
+// 404); the detail route accepts PATCH, so this sets the record's own
+// `is_approved` flag — the one the create forms send — which moves it from
+// drafts/ to approved/active-published/.
+export async function approveEvent(kind, ref) {
+  const { data } = await http.patch(
+    `${EVENT_KINDS[kind].base}/${encodeURIComponent(ref)}/`,
+    { is_approved: true },
+  );
+  return data?.data ?? data;
 }
 
 export const deleteEvent = (kind, ref) =>
