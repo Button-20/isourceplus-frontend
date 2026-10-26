@@ -17,15 +17,40 @@ import {
 } from "@/services/api/escrow.service";
 
 // Confirm the inspected goods and pay the supplier from escrow (no input —
-// release follows the inspection outcome). `onPaid(result)` runs on success.
-export default function EscrowPayModal({ open, onOpenChange, refNum, onPaid }) {
+// release follows the inspection outcome). The endpoint answers 200 even when
+// nothing is released (no GRN, already confirmed, escrow not funded…), so
+// only a real release is reported as success; otherwise its message shows as
+// a warning, with a "Pay manually" action when `onManualPay` is given and the
+// backend points there. `onPaid(result)` runs after every answer (result.
+// released says whether money moved) so the page can refresh.
+export default function EscrowPayModal({
+  open,
+  onOpenChange,
+  refNum,
+  onPaid,
+  onManualPay,
+}) {
   const [saving, setSaving] = useState(false);
 
   const confirm = async () => {
     setSaving(true);
     try {
       const result = await payPurchaseOrderFromEscrow(refNum);
-      toast.success(result?.message || "Payment released from escrow.");
+      if (result.released) {
+        const receipt = result.receipt?.receipt_number;
+        toast.success(
+          result.message ||
+            `Payment released from escrow.${receipt ? ` Receipt ${receipt}.` : ""}`,
+        );
+      } else {
+        const message = result.message || "Nothing was released from escrow.";
+        toast.warning(
+          message,
+          onManualPay && /manual|not (yet )?funded/i.test(message)
+            ? { action: { label: "Pay manually", onClick: onManualPay } }
+            : undefined,
+        );
+      }
       onPaid?.(result);
       onOpenChange(false);
     } catch (err) {

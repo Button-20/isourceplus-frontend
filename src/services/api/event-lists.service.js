@@ -8,13 +8,25 @@
 //
 // All three exist for every kind (verified 2026-10-08). There is no "All" tab:
 // owners get Draft · Published · Expired, everyone else Published · Expired.
-// Some kinds add their own tabs (SwaggerHub specs, 2026-10-15):
+// Some kinds add their own tabs (SwaggerHub specs, 2026-10-15 / 2026-10-26):
 //
 //   accepted / rejected   GET proforma-invoices/accepted/ | rejected/
-//   received              GET sales-invoices/received/  (the buyer's)
-//   published / dispatched / received (buyer's payment orders)
-//                         GET payment-orders/published/dispatched/received/
-//                             ?status=PUBLISHED | DISPATCHED | RECEIVED
+//
+//   By status — {x}/multi-status/?status=… for what the company issued,
+//   {x}/received/?status=… for what was sent to it (status is required):
+//     purchase orders  issued:   DRAFT · ESCROW_FUNDED · IN_PROGRESS ·
+//                                COMPLETED · CANCELLED
+//                      received: PUBLISHED · ESCROW_FUNDED · IN_PROGRESS ·
+//                                COMPLETED · CANCELLED
+//     sales invoices   issued:   DISPATCHED · RECEIVED · PAID · CANCELLED
+//                      received: PUBLISHED · DISPATCHED · RECEIVED · PAID ·
+//                                CANCELLED
+//     payment orders   issued:   DISPATCHED · RECEIVED · GRN_CONFIRMED ·
+//                                PAID · CANCELLED
+//                      received: PUBLISHED · DISPATCHED · RECEIVED ·
+//                                GRN_CONFIRMED · PAID · CANCELLED
+//   (Issued drafts stay on drafts/ except POs; issued Published stays on
+//   approved/active-published/.)
 //
 //   in-house / out-sourced (waybill owners, ?source= on the page)
 //                         GET waybills/in-house/ | out-sourced/
@@ -24,7 +36,7 @@
 //                             ?tracking_status=ASSIGNED | IN_TRANSIT | …
 //
 // A kind's `filterOverrides(ctx)` replaces a shared filter's path/params;
-// ctx = { isOwner, isTransporter, ...listContext from the page }.
+// ctx = { isOwner, isSupplierView, isTransporter, ...listContext }.
 // Lists are collection-level, GET-only, and may answer a JSON 404 or
 // 200 { detail: "Nothing here yet. …" } when empty.
 import http from "@/services/lib/http";
@@ -56,8 +68,16 @@ export const FILTER_LABELS = {
   escrow_funded: "Escrow funded",
   in_progress: "In progress",
   completed: "Completed",
+  grn_confirmed: "GRN confirmed",
+  paid: "Paid",
   expired: "Expired",
 };
+
+// One tab per status from {x}/multi-status/ (issued) or {x}/received/.
+const byStatus = (path, tabs) =>
+  Object.fromEntries(
+    tabs.map((t) => [t, { path, params: { status: t.toUpperCase() } }]),
+  );
 
 // Purchase orders by status (GET purchase-orders/multi-status/?status=DRAFT |
 // ESCROW_FUNDED | IN_PROGRESS | COMPLETED | CANCELLED). Draft comes from here
@@ -69,24 +89,26 @@ const PO_LIFECYCLE_TABS = [
   "completed",
   "cancelled",
 ];
-const PO_LIFECYCLE = Object.fromEntries(
-  ["draft", ...PO_LIFECYCLE_TABS].map((t) => [
-    t,
-    { path: "multi-status/", params: { status: t.toUpperCase() } },
-  ]),
-);
+const PO_LIFECYCLE = byStatus("multi-status/", ["draft", ...PO_LIFECYCLE_TABS]);
+// Received POs (suppliers and transporters), Published included.
+const PO_RECEIVED_TABS = ["published", ...PO_LIFECYCLE_TABS];
+const PO_RECEIVED = byStatus("received/", PO_RECEIVED_TABS);
+
+// Sales invoices / payment orders after publishing.
+const INVOICE_STATUS_TABS = ["dispatched", "received", "paid", "cancelled"];
+const PAYMENT_STATUS_TABS = [
+  "dispatched",
+  "received",
+  "grn_confirmed",
+  "paid",
+  "cancelled",
+];
 
 // Transporters' outsourced waybills, one tracking status per tab.
 const TRACKING_TABS = ["assigned", "in_transit", "delivered", "cancelled"];
 const transporterWaybills = (tab) => ({
   path: "out-sourced/transporter-accessed/",
   params: { tracking_status: tab.toUpperCase() },
-});
-
-// The buyer's payment orders, one status per tab.
-const receivedPaymentOrders = (status) => ({
-  path: "published/dispatched/received/",
-  params: { status },
 });
 
 // Drafts belong to whoever manages the document; others only see live ones.
@@ -174,11 +196,14 @@ export const EVENT_KINDS = {
     viewRoles: null,
     // No Expired tab (product decision, 2026-10-08); after Published, the
     // life-cycle tabs follow the order through escrow, delivery and payment.
-    filtersFor: ({ isOwner, isSupplierView }) => [
-      ...tabsFor(isOwner && !isSupplierView).filter((f) => f !== "expired"),
-      ...PO_LIFECYCLE_TABS,
-    ],
-    filterOverrides: () => PO_LIFECYCLE,
+    // Buyers see the POs they issued; suppliers and transporters the ones
+    // sent to them (received/?status=…).
+    filtersFor: ({ isOwner, isSupplierView }) =>
+      isOwner && !isSupplierView
+        ? ["draft", "published", ...PO_LIFECYCLE_TABS]
+        : PO_RECEIVED_TABS,
+    filterOverrides: ({ isOwner, isSupplierView }) =>
+      isOwner && !isSupplierView ? PO_LIFECYCLE : PO_RECEIVED,
   },
   proforma: {
     base: "proforma-invoices",
@@ -211,9 +236,16 @@ export const EVENT_KINDS = {
     canDelete: false, // the old list pages had no delete
     ownerSide: "any",
     viewRoles: null,
-    // Buyers start on the invoices they've received.
+    // Issuers follow their invoices from draft to paid; buyers the ones
+    // they've received, by status.
     filtersFor: ({ isOwner }) =>
-      isOwner ? tabsFor(true) : ["received", "published", "expired"],
+      isOwner
+        ? ["draft", "published", ...INVOICE_STATUS_TABS, "expired"]
+        : ["published", ...INVOICE_STATUS_TABS],
+    filterOverrides: ({ isOwner }) =>
+      isOwner
+        ? byStatus("multi-status/", INVOICE_STATUS_TABS)
+        : byStatus("received/", ["published", ...INVOICE_STATUS_TABS]),
   },
   paymentOrder: {
     base: "payment-orders",
@@ -225,20 +257,16 @@ export const EVENT_KINDS = {
     canDelete: false, // the old list page had no delete
     ownerSide: "any", // issued by sellers (sales / logistics managers)
     viewRoles: null,
-    // Buyers (served the payment orders) follow them by status:
-    // published → dispatched → received.
+    // Issuers and the buyers they're served on both follow them by status:
+    // published → dispatched → received → GRN confirmed → paid.
     filtersFor: ({ isOwner }) =>
       isOwner
-        ? tabsFor(true)
-        : ["published", "dispatched", "received", "expired"],
+        ? ["draft", "published", ...PAYMENT_STATUS_TABS, "expired"]
+        : ["published", ...PAYMENT_STATUS_TABS],
     filterOverrides: ({ isOwner }) =>
       isOwner
-        ? {}
-        : {
-            published: receivedPaymentOrders("PUBLISHED"),
-            dispatched: receivedPaymentOrders("DISPATCHED"),
-            received: receivedPaymentOrders("RECEIVED"),
-          },
+        ? byStatus("multi-status/", PAYMENT_STATUS_TABS)
+        : byStatus("received/", ["published", ...PAYMENT_STATUS_TABS]),
   },
 };
 

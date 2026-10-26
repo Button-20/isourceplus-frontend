@@ -2,6 +2,8 @@ import path from "path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+import { injectWsAuth } from "./proxy-ws-auth.js";
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -13,6 +15,19 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      // The notification WebSocket. The proxy attaches the HttpOnly access
+      // cookie as the socket's JWT (see proxy-ws-auth.js).
+      "/ws": {
+        target: "wss://app.isourceplus.net",
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy) => {
+          proxy.on("proxyReqWs", (proxyReq, req) =>
+            injectWsAuth(proxyReq, req, "https://app.isourceplus.net"),
+          );
+        },
+      },
       // Proxy API calls to the backend so requests are same-origin in dev and
       // the HttpOnly auth cookies are stored/sent (cross-origin cookies from
       // localhost → isourceplus.net would be dropped by the browser).

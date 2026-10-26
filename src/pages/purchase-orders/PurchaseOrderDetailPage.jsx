@@ -451,6 +451,7 @@ const PurchaseOrderDetailPage = () => {
         onOpenChange={setEscrowPayOpen}
         refNum={refNum}
         onPaid={() => fetchPurchaseOrder({ quiet: true })}
+        onManualPay={() => setManualPayOpen(true)}
       />
       <ManualPayModal
         open={manualPayOpen}

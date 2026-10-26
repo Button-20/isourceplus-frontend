@@ -14,6 +14,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { injectWsAuth } from "./proxy-ws-auth.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 10000;
 // Canonical backend host. Override with the API_TARGET env var on Render.
@@ -95,6 +97,21 @@ app.use(
   }),
 );
 
+// Proxy the notification WebSocket (/ws/notifications/). Upgrades don't pass
+// through Express, so the server's `upgrade` event is wired below. The proxy
+// attaches the HttpOnly access cookie as the socket's JWT (proxy-ws-auth.js).
+const wsProxy = createProxyMiddleware({
+  pathFilter: "/ws",
+  target: API_TARGET,
+  changeOrigin: true,
+  secure: true,
+  ws: true,
+  on: {
+    proxyReqWs: (proxyReq, req) => injectWsAuth(proxyReq, req, API_TARGET),
+  },
+});
+app.use(wsProxy);
+
 // Health check for Render (and uptime monitors). Fast, no proxying.
 app.get("/healthz", (_req, res) => res.status(200).json({ status: "ok" }));
 
@@ -109,7 +126,7 @@ app.use((req, res, next) => {
   res.sendFile(path.join(distDir, "index.html"));
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   const indexPresent = fs.existsSync(path.join(distDir, "index.html"));
   // eslint-disable-next-line no-console
   console.log(
@@ -117,3 +134,4 @@ app.listen(PORT, () => {
       `distDir=${distDir} | index.html present=${indexPresent}`,
   );
 });
+server.on("upgrade", wsProxy.upgrade);

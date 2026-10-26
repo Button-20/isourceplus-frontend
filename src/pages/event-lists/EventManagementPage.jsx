@@ -239,7 +239,7 @@ const STATUS_TINT = [
     "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
   ],
   [
-    /^(published|active|open|approved|accepted|awarded|in.?transit|dispatched)/,
+    /^(published|active|open|approved|accepted|awarded|in.?transit|dispatched|paid|completed|delivered|grn.?confirmed)/,
     "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
   ],
   [
@@ -348,6 +348,7 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
       const res = await fetchEventList(kind, filter, {
         page,
         isOwner,
+        isSupplierView,
         isTransporter,
         source: listSource,
       });
@@ -380,7 +381,16 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
     } finally {
       setLoading(false);
     }
-  }, [kind, filter, page, cfg.plural, isOwner, isTransporter, listSource]);
+  }, [
+    kind,
+    filter,
+    page,
+    cfg.plural,
+    isOwner,
+    isSupplierView,
+    isTransporter,
+    listSource,
+  ]);
 
   useEffect(() => {
     load();

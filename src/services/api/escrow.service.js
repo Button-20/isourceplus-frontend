@@ -57,16 +57,32 @@ export async function cancelPurchaseOrderEscrow(refNum, reason) {
   return data?.data ?? data;
 }
 
-// POST purchase-orders/<ref_num>/escrow-pay/ (no body) — step 9: confirm the
-// inspected goods; with a funded escrow, release follows the inspection
-// outcome. Side effects: GRN → CONFIRMED, payment → PAID, PO → COMPLETED.
+// POST purchase-orders/<ref_num>/escrow-pay/ (no body) — step 9 (SwaggerHub
+// "po_actions", 2026-10-25): confirm the latest GRN and, when its escrow is
+// SECURED or DISPUTED, release it automatically with a payment receipt.
+// Side effects: GRN → CONFIRMED, payment order → PAID, PO → COMPLETED.
+//
+// Every outcome is HTTP 200 { success, message, code, data }; only a release
+// carries data { grn, escrow, receipt }. Otherwise it's message-only: no GRN,
+// GRN already confirmed, no escrow (code 404), or escrow not yet funded
+// (→ pay manually instead).
+// → { released, message, code, grn, escrow, receipt }
 export async function payPurchaseOrderFromEscrow(refNum) {
   const { data } = await http.post(`purchase-orders/${refNum}/escrow-pay/`);
-  return data?.data ?? data;
+  const payload = data?.data ?? null;
+  return {
+    released: Boolean(payload?.grn),
+    message: data?.message ?? "",
+    code: data?.code ?? null,
+    grn: payload?.grn ?? null,
+    escrow: payload?.escrow ?? null,
+    receipt: payload?.receipt ?? null,
+  };
 }
 
 // POST purchase-orders/<ref_num>/manual-pay/ { payment_method, payment_ref } —
-// step 10: no escrow, record a manual payment. Side effects as escrow-pay.
+// step 10: no escrow, record a manual payment + receipt. Side effects as
+// escrow-pay. → the updated PurchaseOrder.
 export async function payPurchaseOrderManually(
   refNum,
   { payment_method, payment_ref },
