@@ -97,7 +97,6 @@ const PO_RECEIVED = byStatus("received/", PO_RECEIVED_TABS);
 
 // Sales invoices / payment orders after publishing.
 const INVOICE_STATUS_TABS = ["dispatched", "received", "paid", "cancelled"];
-const PAYMENT_RECEIVED_TABS = ["published", "dispatched", "received"];
 const PAYMENT_STATUS_TABS = [
   "dispatched",
   "received",
@@ -105,6 +104,8 @@ const PAYMENT_STATUS_TABS = [
   "paid",
   "cancelled",
 ];
+// Payment orders served on a buyer (payment-orders/received/): all six.
+const PAYMENT_RECEIVED_TABS = ["published", ...PAYMENT_STATUS_TABS];
 
 // Transporters' outsourced waybills, one tracking status per tab.
 const TRACKING_TABS = ["assigned", "in_transit", "delivered", "cancelled"];
@@ -260,10 +261,8 @@ export const EVENT_KINDS = {
     ownerSide: "any", // issued by sellers (sales / logistics managers)
     viewRoles: null,
     // Issuers follow them by status: published → dispatched → received →
-    // GRN confirmed → paid. Buyers they're served on get the statuses
-    // payment-orders/received/ accepts — PUBLISHED, DISPATCHED, RECEIVED
-    // (checked 2026-11-03; the others answer "Invalid status", although the
-    // spec's enum lists them).
+    // GRN confirmed → paid. Buyers they're served on follow the same
+    // statuses (from Published) via payment-orders/received/.
     filtersFor: ({ isOwner }) =>
       isOwner
         ? ["draft", "published", ...PAYMENT_STATUS_TABS, "expired"]

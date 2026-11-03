@@ -3,7 +3,8 @@
 // 2026-10-27).
 //
 //   GET goods-received-notes/grns/?company_type=buyer|supplier
-//       [&status=DRAFT|INSPECTED|CONFIRMED]   the company's GRNs (paginated)
+//       &status=DRAFT|INSPECTED|CONFIRMED     the company's GRNs (paginated);
+//       status is required — there's no all-statuses list
 //   PUT goods-received-notes/{id}/            inspection — { lines: [{ id,
 //       quantity_received, quantity_short, quantity_damaged, condition,
 //       remarks }] }; only the lines sent change, status → INSPECTED.
@@ -59,7 +60,7 @@ export async function listGrns({ companyType, status, page = 1 } = {}) {
   const { data } = await http.get("goods-received-notes/grns/", {
     params: {
       company_type: companyType,
-      ...(status ? { status } : {}),
+      status,
       ...(page > 1 ? { page } : {}),
     },
   });
@@ -90,20 +91,23 @@ const linksTo = (grn, po) => {
 
 // The GRN for a purchase order: embedded on the PO when the backend includes
 // it, otherwise found in the company's GRNs (`companyType` — the buyer's by
-// default). Resolves null when none exists.
+// default), one status at a time since the list needs one. Resolves null
+// when none exists.
 export async function findGrnForPurchaseOrder(po, companyType = "buyer") {
   const embedded =
     po?.grn || po?.goods_received_note || po?.goods_received_notes?.[0];
   if (embedded && typeof embedded === "object") return embedded;
 
-  let page = 1;
-  let next = true;
-  while (next && page <= MAX_PAGES) {
-    const res = await listGrns({ companyType, page });
-    const match = res.items.find((g) => linksTo(g, po));
-    if (match) return match;
-    next = Boolean(res.next);
-    page += 1;
+  for (const status of GRN_STATUSES) {
+    let page = 1;
+    let next = true;
+    while (next && page <= MAX_PAGES) {
+      const res = await listGrns({ companyType, status, page });
+      const match = res.items.find((g) => linksTo(g, po));
+      if (match) return match;
+      next = Boolean(res.next);
+      page += 1;
+    }
   }
   return null;
 }

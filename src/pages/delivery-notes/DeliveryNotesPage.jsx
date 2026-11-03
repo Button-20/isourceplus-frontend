@@ -1,6 +1,7 @@
 // "Delivery notes": goods delivery notes (what the supplier dispatched) and
 // goods received notes (what the buyer received), from the company's side —
-// buyer or supplier, per the view toggle. Tabs: ?type=gdn|grn, then status.
+// buyer or supplier, per the view toggle. Tabs: ?type=gdn|grn, then status
+// (required by both lists — there's no "all"; defaults to the first).
 // A buyer inspects a GRN right here (the same panel as the purchase order).
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -181,7 +182,7 @@ export default function DeliveryNotesPage() {
   const cfg = TYPES[type];
   const status = cfg.statuses.includes(params.get("status"))
     ? params.get("status")
-    : "";
+    : cfg.statuses[0];
 
   const [rows, setRows] = useState([]);
   const [page, setPage] = useState(1);
@@ -292,9 +293,9 @@ export default function DeliveryNotesPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 border-b border-border/60 px-5 py-3">
-          {["", ...cfg.statuses].map((s) => (
+          {cfg.statuses.map((s) => (
             <button
-              key={s || "all"}
+              key={s}
               type="button"
               onClick={() => select({ status: s })}
               aria-pressed={status === s}
@@ -305,7 +306,7 @@ export default function DeliveryNotesPage() {
                   : "border-border/70 text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
-              {s ? prettify(s) : "All"}
+              {prettify(s)}
             </button>
           ))}
         </div>
@@ -332,8 +333,7 @@ export default function DeliveryNotesPage() {
           <div className="flex flex-col items-center px-6 py-16 text-center">
             <Inbox className="h-8 w-8 text-muted-foreground/60" />
             <p className="mt-3 font-medium">
-              No {status ? `${prettify(status).toLowerCase()} ` : ""}
-              {cfg.label.toLowerCase()}
+              No {prettify(status).toLowerCase()} {cfg.label.toLowerCase()}
             </p>
             <p className="mt-1 max-w-md text-sm text-muted-foreground">
               {type === "gdn"

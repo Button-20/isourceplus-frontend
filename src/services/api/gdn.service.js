@@ -2,7 +2,8 @@
 // outsourced delivery (SwaggerHub "gdns", 2026-10-27).
 //
 //   GET goods-delivery-notes/gdns/?company_type=buyer|supplier
-//       [&status=IN_TRANSIT|DELIVERED|CANCELLED]   the company's GDNs
+//       &status=IN_TRANSIT|DELIVERED|CANCELLED     the company's GDNs; status
+//       is required — there's no all-statuses list
 //
 // company_type picks the side: buyer → GDNs addressed to the caller as
 // buyer; supplier (or missing) → the ones it dispatched. An unknown status
@@ -27,7 +28,7 @@ export async function listGdns({ companyType, status, page = 1 } = {}) {
   const { data } = await http.get("goods-delivery-notes/gdns/", {
     params: {
       company_type: companyType,
-      ...(status ? { status } : {}),
+      status,
       ...(page > 1 ? { page } : {}),
     },
   });
