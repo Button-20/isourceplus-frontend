@@ -11,22 +11,25 @@
 // Some kinds add their own tabs (SwaggerHub specs, 2026-10-15 / 2026-10-26):
 //
 //   accepted / rejected   GET proforma-invoices/accepted/ | rejected/
+//                         (what was sent to the company)
 //
 //   By status — {x}/multi-status/?status=… for what the company issued,
 //   {x}/received/?status=… for what was sent to it (status is required):
 //     purchase orders  issued:   DRAFT · ESCROW_FUNDED · IN_PROGRESS ·
 //                                COMPLETED · CANCELLED
+//     proformas        issued:   DRAFT · ACCEPTED · REJECTED
 //                      received: PUBLISHED · ESCROW_FUNDED · IN_PROGRESS ·
 //                                COMPLETED · CANCELLED
-//     sales invoices   issued:   DISPATCHED · RECEIVED · PAID · CANCELLED
+//     sales invoices   issued:   DRAFT · DISPATCHED · RECEIVED · PAID ·
+//                                CANCELLED
 //                      received: PUBLISHED · DISPATCHED · RECEIVED · PAID ·
 //                                CANCELLED
-//     payment orders   issued:   DISPATCHED · RECEIVED · GRN_CONFIRMED ·
-//                                PAID · CANCELLED
+//     payment orders   issued:   DRAFT · DISPATCHED · RECEIVED ·
+//                                GRN_CONFIRMED · PAID · CANCELLED
 //                      received: PUBLISHED · DISPATCHED · RECEIVED ·
 //                                GRN_CONFIRMED · PAID · CANCELLED
-//   (Issued drafts stay on drafts/ except POs; issued Published stays on
-//   approved/active-published/.)
+//   (Issued Published stays on approved/active-published/. Sales invoices
+//   and payment orders don't expire, so they have no Expired tab.)
 //
 //   in-house / out-sourced (waybill owners, ?source= on the page)
 //                         GET waybills/in-house/ | out-sourced/
@@ -223,11 +226,16 @@ export const EVENT_KINDS = {
     offersUrl: null,
     ownerSide: "any", // sellers own these, so manage in supplier view too
     viewRoles: null,
-    // Accepted / rejected by the buyer — seen from both sides.
+    // Accepted / rejected by the buyer — seen from both sides. The issuer's
+    // Draft / Accepted / Rejected come from multi-status/.
     filtersFor: ({ isOwner }) =>
       isOwner
         ? ["draft", "published", "accepted", "rejected", "expired"]
         : ["published", "accepted", "rejected", "expired"],
+    filterOverrides: ({ isOwner }) =>
+      isOwner
+        ? byStatus("multi-status/", ["draft", "accepted", "rejected"])
+        : null,
   },
   salesInvoice: {
     base: "sales-invoices",
@@ -239,15 +247,16 @@ export const EVENT_KINDS = {
     canDelete: false, // the old list pages had no delete
     ownerSide: "any",
     viewRoles: null,
-    // Issuers follow their invoices from draft to paid; buyers the ones
-    // they've received, by status.
+    // Issuers follow their invoices from draft to paid (Draft included via
+    // multi-status/); buyers the ones they've received, by status. Sales
+    // invoices don't expire, so no Expired tab.
     filtersFor: ({ isOwner }) =>
       isOwner
-        ? ["draft", "published", ...INVOICE_STATUS_TABS, "expired"]
+        ? ["draft", "published", ...INVOICE_STATUS_TABS]
         : ["published", ...INVOICE_STATUS_TABS],
     filterOverrides: ({ isOwner }) =>
       isOwner
-        ? byStatus("multi-status/", INVOICE_STATUS_TABS)
+        ? byStatus("multi-status/", ["draft", ...INVOICE_STATUS_TABS])
         : byStatus("received/", ["published", ...INVOICE_STATUS_TABS]),
   },
   paymentOrder: {
