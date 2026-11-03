@@ -35,4 +35,9 @@ export default [
       ],
     },
   },
+  {
+    // Server-side code (the Vercel function, the Node server, Vite config).
+    files: ['api/**/*.js', 'server.js', 'proxy-ws-auth.js', 'vite.config.js'],
+    languageOptions: { globals: globals.node },
+  },
 ]

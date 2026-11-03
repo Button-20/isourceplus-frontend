@@ -27,16 +27,21 @@ export const ENV = {
   // never reaches the API and `token/refresh/` returns 401.
   //
   //   - Dev:  Vite's server.proxy forwards `/api` → isourceplus.net.
-  //   - Prod: the static host (Render) rewrites `/api/*` → isourceplus.net via
-  //           render.yaml, so the browser only ever talks to our own origin.
+  //   - Prod: the host proxies `/api/*` → isourceplus.net (Vercel:
+  //           api/proxy.js via vercel.json; Node: server.js), so the browser
+  //           only ever talks to our own origin.
   //
   // This is why login/refresh work locally: keep prod on the same relative
   // path and it stays first-party there too.
   API_BASE_URL: "/api/v1/",
+  // Origin for the notification WebSocket (e.g. wss://app.isourceplus.net).
+  // Unset → this origin's /ws proxy (Vite dev, server.js). Vercel can't proxy
+  // WebSockets, so its deployment sets VITE_WS_URL to the backend.
+  WS_URL: (raw.VITE_WS_URL || "").replace(/\/+$/, ""),
   // Pre-launch lockdown. When on, ONLY the landing page (`/`) and the waitlist
   // (`/waitlist`) are reachable — login, signup, onboarding, the dashboard and
   // every other route redirect to the landing page. On by default in production
-  // builds; set VITE_PRELAUNCH=false (in the Render env) to open the full app at
+  // builds; set VITE_PRELAUNCH=false (in the Vercel env) to open the full app at
   // launch, or VITE_PRELAUNCH=true in dev to preview the locked-down site.
   PRELAUNCH:
     raw.VITE_PRELAUNCH === "true" ||

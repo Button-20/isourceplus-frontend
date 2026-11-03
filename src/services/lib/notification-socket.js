@@ -4,7 +4,9 @@
 //   connect   wss://<this origin>/ws/notifications/ — proxied to the backend
 //             (vite.config.js / server.js), which attaches the HttpOnly access
 //             cookie as the JWT. A JS-held access token (bearer backends) is
-//             sent as ?token= instead.
+//             sent as ?token= instead. With VITE_WS_URL set (Vercel, which
+//             can't proxy sockets) it connects to that origin directly and
+//             only the ?token= path works.
 //   receive   { type: initial_data | new_notification | unread_count_update |
 //             mark_read_success | mark_all_progress | mark_all_success |
 //             preferences_updated | category_notification | token_updated |
@@ -20,6 +22,7 @@
 // send `update_token`, so on expiry (auth_expired / 4001 / 4004) this
 // refreshes the session (rotating the cookie) and reconnects instead.
 import { authStorage } from "@/services/lib/auth";
+import { ENV } from "@/services/lib/env";
 
 const MAX_DELAY_MS = 30000;
 // After this many failed attempts in a row the caller is told the socket is
@@ -29,9 +32,9 @@ const UNAVAILABLE_RETRY_MS = 60000;
 
 const socketUrl = () => {
   const { protocol, host } = window.location;
-  const url = new URL(
-    `${protocol === "https:" ? "wss" : "ws"}://${host}/ws/notifications/`,
-  );
+  const origin =
+    ENV.WS_URL || `${protocol === "https:" ? "wss" : "ws"}://${host}`;
+  const url = new URL(`${origin}/ws/notifications/`);
   const token = authStorage.getAccessToken();
   if (token) url.searchParams.set("token", token);
   return url.toString();
