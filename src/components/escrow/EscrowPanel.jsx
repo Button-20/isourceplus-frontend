@@ -169,7 +169,7 @@ export default function EscrowPanel({ escrow, actions }) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {escrow.is_balanced === false && (
             <span
               className={cn(

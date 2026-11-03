@@ -99,6 +99,8 @@ import InvoicesPage from "./pages/invoices/InvoicesPage";
 import WaybillsPage from "./pages/waybills/WaybillsPage";
 import SupportPage from "./pages/support/SupportPage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
+import DeliveryNotesPage from "./pages/delivery-notes/DeliveryNotesPage";
+import DisputesPage from "./pages/disputes/DisputesPage";
 import TicketDetailPage from "./pages/support/TicketDetailPage";
 import ClientsPage from "./pages/clients/ClientsPage";
 import { FaqPage } from "./pages/public/FaqPage";
@@ -269,6 +271,8 @@ const fullRoutes = [
       // Helpdesk: the user's support tickets (my-tickets/) and one ticket.
       { path: "support", element: <SupportPage /> },
       { path: "notifications", element: <NotificationsPage /> },
+      { path: "delivery-notes", element: <DeliveryNotesPage /> },
+      { path: "disputes", element: <DisputesPage /> },
       { path: "support/:ticketId", element: <TicketDetailPage /> },
       {
         path: "proforma-invoices",

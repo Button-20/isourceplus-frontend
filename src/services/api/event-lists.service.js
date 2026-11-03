@@ -50,7 +50,8 @@ const FILTERS = {
   published: { path: "approved/active-published/" },
   accepted: { path: "accepted/" },
   rejected: { path: "rejected/" },
-  received: { path: "received/" },
+  // No shared "received" filter: {x}/received/ requires ?status=, so each kind
+  // maps its received tabs itself (byStatus below).
   expired: { path: "expired/non-active/" },
 };
 
@@ -96,6 +97,7 @@ const PO_RECEIVED = byStatus("received/", PO_RECEIVED_TABS);
 
 // Sales invoices / payment orders after publishing.
 const INVOICE_STATUS_TABS = ["dispatched", "received", "paid", "cancelled"];
+const PAYMENT_RECEIVED_TABS = ["published", "dispatched", "received"];
 const PAYMENT_STATUS_TABS = [
   "dispatched",
   "received",
@@ -257,16 +259,19 @@ export const EVENT_KINDS = {
     canDelete: false, // the old list page had no delete
     ownerSide: "any", // issued by sellers (sales / logistics managers)
     viewRoles: null,
-    // Issuers and the buyers they're served on both follow them by status:
-    // published → dispatched → received → GRN confirmed → paid.
+    // Issuers follow them by status: published → dispatched → received →
+    // GRN confirmed → paid. Buyers they're served on get the statuses
+    // payment-orders/received/ accepts — PUBLISHED, DISPATCHED, RECEIVED
+    // (checked 2026-11-03; the others answer "Invalid status", although the
+    // spec's enum lists them).
     filtersFor: ({ isOwner }) =>
       isOwner
         ? ["draft", "published", ...PAYMENT_STATUS_TABS, "expired"]
-        : ["published", ...PAYMENT_STATUS_TABS],
+        : PAYMENT_RECEIVED_TABS,
     filterOverrides: ({ isOwner }) =>
       isOwner
         ? byStatus("multi-status/", PAYMENT_STATUS_TABS)
-        : byStatus("received/", ["published", ...PAYMENT_STATUS_TABS]),
+        : byStatus("received/", PAYMENT_RECEIVED_TABS),
   },
 };
 
@@ -279,9 +284,15 @@ export const isBuyerView = (jobTitle, viewMode) =>
   jobTitle === "lead buyer" ||
   (viewMode === "buyer" && jobTitle !== "logistics manager");
 
+// Kinds the selling side issues. In buyer view (a supplier company switched
+// to buyer) these are what the company receives, whatever the job title.
+const SELLER_KINDS = ["proforma", "salesInvoice", "paymentOrder"];
+
 export const isEventOwner = (kind, jobTitle, viewMode) =>
-  OWNER_ROLES[kind].includes(jobTitle) ||
-  (BUYER_KINDS.includes(kind) && isBuyerView(jobTitle, viewMode));
+  SELLER_KINDS.includes(kind)
+    ? OWNER_ROLES[kind].includes(jobTitle) && !isBuyerView(jobTitle, viewMode)
+    : OWNER_ROLES[kind].includes(jobTitle) ||
+      (BUYER_KINDS.includes(kind) && isBuyerView(jobTitle, viewMode));
 
 const toItems = (data) =>
   Array.isArray(data) ? data : data?.results || data?.data || [];

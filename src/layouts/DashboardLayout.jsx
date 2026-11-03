@@ -19,6 +19,8 @@ import {
   Star,
   MessageSquare,
   Handshake,
+  PackageCheck,
+  ShieldAlert,
 } from "lucide-react";
 import Logo from "@/components/common/Logo";
 import ThemeToggle from "@/components/common/ThemeToggle";
@@ -237,6 +239,10 @@ export function DashboardLayout() {
         },
         {
           title: "Invoices",
+          // Buyers: the sales invoices suppliers sent them (sales-invoices/
+          // received/?status=…); their proformas arrive under Received Offers.
+          buyerTitle: "Sales Invoices",
+          buyerUrl: "/dashboard/invoices?type=sales",
           icon: ReceiptText,
           key: "invoices",
           url: "/dashboard/invoices",
@@ -264,6 +270,8 @@ export function DashboardLayout() {
           matchPrefix: "/dashboard/waybills",
         },
         {
+          // Buyers see the payment orders served on them (payment-orders/
+          // received/?status=…).
           title: "Payment Orders",
           icon: Wallet,
           key: "payment-orders",
@@ -291,8 +299,9 @@ export function DashboardLayout() {
       ],
     },
     {
-      // Supplier-only: the purchase orders buyers have awarded to this
-      // supplier. Opening one lets a sales manager raise the sales invoice.
+      // Suppliers and transporters: the purchase orders awarded to them
+      // (purchase-orders/received/?status=…). Opening one lets a sales manager
+      // raise the sales invoice.
       label: "Awarded Businesses",
       items: [
         {
@@ -317,6 +326,26 @@ export function DashboardLayout() {
           key: "business-offers",
           url: "/dashboard/business-offers",
           matchPrefix: "/dashboard/business-offers",
+        },
+      ],
+    },
+    {
+      // Fulfilment after award: dispatch / receipt notes (buyers and
+      // suppliers) and escrow disputes (any party, transporters included).
+      label: "Deliveries & Escrow",
+      items: [
+        {
+          title: "Delivery Notes",
+          icon: PackageCheck,
+          key: "delivery-notes",
+          url: "/dashboard/delivery-notes",
+          matchPrefix: "/dashboard/delivery-notes",
+        },
+        {
+          title: "Escrow Disputes",
+          icon: ShieldAlert,
+          url: "/dashboard/disputes",
+          matchPrefix: "/dashboard/disputes",
         },
       ],
     },
@@ -364,12 +393,7 @@ export function DashboardLayout() {
   // Suppliers keep RFx + Tender (the business invitations they respond to) but
   // not the buyer-only "Issued …" sub-items (see `buyerOnly`).
   const HIDDEN_KEYS = {
-    buyer: [
-      "invoices",
-      "payment-orders",
-      "awarded-businesses",
-      "business-invites",
-    ],
+    buyer: ["awarded-businesses", "business-invites"],
     // Suppliers respond to RFxs/tenders via Business Invitations instead.
     supplier: ["rfx", "tenders", "purchase-orders", "business-offers"],
     transporter: [
@@ -378,7 +402,8 @@ export function DashboardLayout() {
       "purchase-orders",
       "waybills",
       "business-offers",
-      "awarded-businesses",
+      // GDN / GRN lists are by buyer or supplier company only.
+      "delivery-notes",
     ],
   };
   // Buyer/Supplier switcher: every company with type_switch=true, whatever
@@ -403,6 +428,13 @@ export function DashboardLayout() {
       .map((item) => {
         if (isTransporter && item.transporterTitle) {
           return { ...item, title: item.transporterTitle };
+        }
+        if (!isTransporter && !isSupplierView && item.buyerTitle) {
+          return {
+            ...item,
+            title: item.buyerTitle,
+            url: item.buyerUrl || item.url,
+          };
         }
         if (!isSupplierView) return item;
         const next = item.supplierTitle

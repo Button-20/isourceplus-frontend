@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import {
+  Gavel,
   Loader2,
   PackageCheck,
   ArrowLeft,
@@ -16,11 +17,14 @@ import QuestionsForum from "@/components/questions/QuestionsForum";
 import FundEscrowModal from "@/components/escrow/FundEscrowModal";
 import EscrowPanel from "@/components/escrow/EscrowPanel";
 import CancelEscrowModal from "@/components/escrow/CancelEscrowModal";
+import RaiseDisputeModal from "@/components/escrow/RaiseDisputeModal";
 import EscrowPayModal from "@/components/escrow/EscrowPayModal";
 import ManualPayModal from "@/components/escrow/ManualPayModal";
 import ConfirmReceiptModal from "@/components/escrow/ConfirmReceiptModal";
 import GrnInspectionPanel from "@/components/grn/GrnInspectionPanel";
 import { findGrnForPurchaseOrder } from "@/services/api/grn.service";
+import { canDisputeEscrow } from "@/services/api/escrow-dispute.service";
+import { isBuyerView } from "@/services/api/event-lists.service";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -46,13 +50,16 @@ const statusTone = (status) => {
 };
 
 const PurchaseOrderDetailPage = () => {
-  const { authAxios, jobTitle } = useAuth();
+  const { authAxios, jobTitle, viewMode } = useAuth();
+  // The side this company is on for the order (GRN list, dispute reasons).
+  const party = isBuyerView(jobTitle, viewMode) ? "buyer" : "supplier";
   const { refNum } = useParams();
   const navigate = useNavigate();
   const [purchaseOrder, setPurchaseOrder] = useState(null);
   const [escrow, setEscrow] = useState(null);
   const [fundOpen, setFundOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
   const [escrowPayOpen, setEscrowPayOpen] = useState(false);
   const [manualPayOpen, setManualPayOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
@@ -71,7 +78,7 @@ const PurchaseOrderDetailPage = () => {
         // The PO payload may embed the existing escrow once one has been created.
         if (response.data?.escrow) setEscrow(response.data.escrow);
         // The GRN appears once goods are received; absence isn't an error.
-        findGrnForPurchaseOrder(response.data)
+        findGrnForPurchaseOrder(response.data, party)
           .then(setGrn)
           .catch(() => setGrn(null));
       } catch (error) {
@@ -81,7 +88,7 @@ const PurchaseOrderDetailPage = () => {
         if (!quiet) setLoading(false);
       }
     },
-    [authAxios, refNum],
+    [authAxios, refNum, party],
   );
 
   useEffect(() => {
@@ -164,6 +171,9 @@ const PurchaseOrderDetailPage = () => {
   const escrowStatus = escrow?.escrow_status;
   const canCancelEscrow =
     isBuyer && Boolean(escrow) && ["CREATED", "SECURED"].includes(escrowStatus);
+  // Either party can dispute while funds are on hold (the server checks the
+  // caller is a party and the reason suits its side).
+  const canRaiseDispute = canDisputeEscrow(escrow);
   const poCompleted = /complet/i.test(purchaseOrder?.status || "");
   const grnConfirmed = /confirm/i.test(grn?.status || "");
   const awaitingPayment =
@@ -317,15 +327,28 @@ const PurchaseOrderDetailPage = () => {
         <EscrowPanel
           escrow={escrow}
           actions={
-            canCancelEscrow && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCancelOpen(true)}
-                className="text-destructive hover:text-destructive"
-              >
-                <XCircle className="mr-1.5 h-4 w-4" /> Cancel escrow
-              </Button>
+            (canCancelEscrow || canRaiseDispute) && (
+              <>
+                {canRaiseDispute && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDisputeOpen(true)}
+                  >
+                    <Gavel className="mr-1.5 h-4 w-4" /> Raise dispute
+                  </Button>
+                )}
+                {canCancelEscrow && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCancelOpen(true)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <XCircle className="mr-1.5 h-4 w-4" /> Cancel escrow
+                  </Button>
+                )}
+              </>
             )
           }
         />
@@ -445,6 +468,13 @@ const PurchaseOrderDetailPage = () => {
           if (updated?.escrow_status) setEscrow(updated);
           fetchPurchaseOrder({ quiet: true });
         }}
+      />
+      <RaiseDisputeModal
+        open={disputeOpen}
+        onOpenChange={setDisputeOpen}
+        escrow={escrow}
+        party={party}
+        onRaised={() => fetchPurchaseOrder({ quiet: true })}
       />
       <EscrowPayModal
         open={escrowPayOpen}

@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { prettify } from "@/utils/choices";
 import {
   GRN_CONDITIONS,
-  isMissingRoute,
+  grnErrorMessage,
   updateGrnInspection,
 } from "@/services/api/grn.service";
 
@@ -36,8 +36,8 @@ const toDraft = (lines) =>
 
 // Goods received note with per-line inspection: received / short / damaged
 // quantities, condition and remarks. `editable` lets the buyer save the
-// inspection (PATCH good-received-notes/{id}/update/); `onSaved(grn)` gets
-// the updated GRN.
+// inspection (PUT goods-received-notes/{id}/); `onSaved(grn)` gets the
+// updated GRN.
 export default function GrnInspectionPanel({ grn, editable = false, onSaved }) {
   const [lines, setLines] = useState(() => toDraft(grn?.lines));
   const [saving, setSaving] = useState(false);
@@ -63,20 +63,33 @@ export default function GrnInspectionPanel({ grn, editable = false, onSaved }) {
       return toast.error(
         `Quantities for "${bad.item_description}" must be zero or more.`,
       );
+    // The server's other line rules: damaged ≤ received, and received + short
+    // ≤ ordered.
+    const n = (v) => Number(v || 0);
+    const overDamaged = lines.find(
+      (l) => n(l.quantity_damaged) > n(l.quantity_received),
+    );
+    if (overDamaged)
+      return toast.error(
+        `"${overDamaged.item_description}": damaged can't be more than received.`,
+      );
+    const overOrdered = lines.find(
+      (l) =>
+        l.quantity_ordered != null &&
+        l.quantity_ordered !== "" &&
+        n(l.quantity_received) + n(l.quantity_short) > n(l.quantity_ordered),
+    );
+    if (overOrdered)
+      return toast.error(
+        `"${overOrdered.item_description}": received plus short can't be more than ordered.`,
+      );
     setSaving(true);
     try {
       const updated = await updateGrnInspection(grn.id, lines);
-      toast.success("Inspection saved.");
+      toast.success("Inspection saved. The GRN is now inspected.");
       onSaved?.(updated && typeof updated === "object" ? updated : null);
     } catch (err) {
-      const body = err.response?.data;
-      toast.error(
-        isMissingRoute(err)
-          ? "GRN inspection isn't available on the server yet."
-          : (body && typeof body === "object"
-              ? body.message || body.detail
-              : null) || "Couldn't save the inspection.",
-      );
+      toast.error(grnErrorMessage(err, "Couldn't save the inspection."));
       console.error("GRN inspection error:", err);
     } finally {
       setSaving(false);

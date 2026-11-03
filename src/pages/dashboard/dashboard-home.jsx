@@ -96,6 +96,17 @@ const VIEW_CONFIG = {
         href: "/dashboard/purchase-orders",
         icon: ShoppingCart,
       },
+      // What suppliers send back: sales invoices and payment orders.
+      {
+        label: "Sales Invoices",
+        href: "/dashboard/invoices?type=sales",
+        icon: Wallet,
+      },
+      {
+        label: "Payment Orders",
+        href: "/dashboard/payment-orders",
+        icon: Wallet,
+      },
     ],
   },
   supplier: {
@@ -190,7 +201,6 @@ export function DashBoardHome() {
   } = useAuth();
   const [counts, setCounts] = useState({});
   const [loadingCounts, setLoadingCounts] = useState(true);
-
 
   // Transporters (logistics) get their own overview; everyone else follows the
   // global Buyer/Supplier toggle (see ViewModeToggle).
@@ -306,7 +316,14 @@ export function DashBoardHome() {
         <h2 className="mb-3 font-display text-lg font-semibold">
           Quick actions
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          className={cn(
+            "grid gap-4 sm:grid-cols-2",
+            config.actions.length % 3 === 0
+              ? "lg:grid-cols-3"
+              : "lg:grid-cols-4",
+          )}
+        >
           {config.actions.map((action) => {
             const Icon = action.icon;
             return (
