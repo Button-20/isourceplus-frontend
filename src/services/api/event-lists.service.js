@@ -260,16 +260,18 @@ export const EVENT_KINDS = {
     canDelete: false, // the old list page had no delete
     ownerSide: "any", // issued by sellers (sales / logistics managers)
     viewRoles: null,
-    // Issuers follow them by status: published → dispatched → received →
-    // GRN confirmed → paid. Buyers they're served on follow the same
-    // statuses (from Published) via payment-orders/received/.
+    // Issuers follow them by status: draft → published → dispatched →
+    // received → GRN confirmed → paid, Draft included via multi-status/ (no
+    // drafts/ route). Payment orders don't expire, so no Expired tab. Buyers
+    // they're served on follow the same statuses (from Published) via
+    // payment-orders/received/.
     filtersFor: ({ isOwner }) =>
       isOwner
-        ? ["draft", "published", ...PAYMENT_STATUS_TABS, "expired"]
+        ? ["draft", "published", ...PAYMENT_STATUS_TABS]
         : PAYMENT_RECEIVED_TABS,
     filterOverrides: ({ isOwner }) =>
       isOwner
-        ? byStatus("multi-status/", PAYMENT_STATUS_TABS)
+        ? byStatus("multi-status/", ["draft", ...PAYMENT_STATUS_TABS])
         : byStatus("received/", PAYMENT_RECEIVED_TABS),
   },
 };
