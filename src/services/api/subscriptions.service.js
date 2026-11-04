@@ -3,8 +3,8 @@
 //
 //   POST subscriptions/tranx/init/?plan_name=BRONZE|SILVER|GOLD|DIAMOND|PLATINUM
 //        &plan_type=buyer|supplier|transporter
-//        &plan_interval=quarterly|biannually|annually  (default quarterly)
-//        [&is_trial=true]                               (quarterly only)
+//        &plan_interval=monthly|biannually|annually
+//        [&is_trial=true]                               (shortest period only)
 //        → Paystack authorization_url, reference and plan_code
 //   …the user pays on Paystack, which returns to /subscription/callback…
 //   POST subscriptions/subscribe/?authorization_url&plan_code&reference
@@ -19,6 +19,10 @@
 // Subscription: id, status (PROCESSING | ACTIVE | NOT_RENEW | ATTENTION |
 // COMPLETED | CANCELLED), plan (tier), is_trial, trial_ends_at, start_date,
 // next_payment_date, is_upgrading, entity_name, branches[].
+//
+// The spec names the shortest period "quarterly", but the live server rejects
+// it: plan_interval "must be one of ('monthly', 'biannually', 'annually')"
+// (2026-11-04). The UI keeps the card's "quarterly" and sends "monthly".
 import http from "@/services/lib/http";
 import { storage } from "@/services/lib/storage";
 import { rejectEnvelope } from "@/services/api/grn.service";
@@ -37,6 +41,9 @@ const CURRENT_STATUSES = ["ACTIVE", "NOT_RENEW", "ATTENTION", "PROCESSING"];
 
 // The checkout details kept across the Paystack round trip.
 const CHECKOUT_KEY = "subscriptionData";
+
+const WIRE_INTERVALS = { quarterly: "monthly" };
+const wireInterval = (interval) => WIRE_INTERVALS[interval] || interval;
 
 const unwrap = (data) => (data && "data" in data ? data.data : data);
 
@@ -73,7 +80,7 @@ export async function startSubscriptionCheckout({
       params: {
         plan_name: planName.toUpperCase(),
         plan_type: planType,
-        plan_interval: isTrial ? "quarterly" : planInterval,
+        plan_interval: wireInterval(isTrial ? "quarterly" : planInterval),
         is_trial: isTrial ? "true" : "false",
       },
     },
@@ -141,7 +148,7 @@ export async function upgradeSubscription({
       params: {
         plan_name: planName.toUpperCase(),
         plan_type: planType,
-        ...(planInterval ? { plan_interval: planInterval } : {}),
+        ...(planInterval ? { plan_interval: wireInterval(planInterval) } : {}),
       },
     },
   );
