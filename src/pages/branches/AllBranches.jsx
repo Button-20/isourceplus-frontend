@@ -30,6 +30,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { apiErrorMessage } from "@/services/lib/api-error";
+import { prettify } from "@/utils/choices";
 
 const AllBranches = () => {
   const { authAxios } = useAuth();
@@ -271,6 +272,7 @@ const AllBranches = () => {
                               branch.location.region,
                             ]
                               .filter(Boolean)
+                              .map(prettify)
                               .join(", ")}
                           </p>
                           {branch.location.gps && (

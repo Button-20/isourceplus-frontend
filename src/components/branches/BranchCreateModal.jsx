@@ -30,11 +30,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-// Region and district come from the backend enums (useLocationChoices);
-// city and town have no choices endpoint yet (placeholder set matching
-// backend fixtures).
-const CITIES = [{ value: "city", label: "Test City" }];
-const TOWNS = [{ value: "town", label: "Test Town" }];
+// Location matches the company form and RFx/tender/waybill reach: region and
+// district from the backend enums (useLocationChoices), no city or town.
 
 const STEPS = ["Information", "Location"];
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
@@ -47,8 +44,6 @@ const initialValues = () => ({
   location: {
     region: "",
     district: "",
-    city: "",
-    town: "",
     popular_area_name: "",
     gps: "",
     street_address: "",
@@ -97,9 +92,9 @@ export default function BranchCreateModal({ open, onOpenChange, onCreated }) {
       }
     }
     if (step === 1) {
-      const { region, district, city, town } = values.location;
-      if (!region || !district || !city || !town) {
-        toast.error("Region, district, city and town are required");
+      const { region, district } = values.location;
+      if (!region || !district) {
+        toast.error("Region and district are required");
         return false;
       }
     }
@@ -242,8 +237,6 @@ export default function BranchCreateModal({ open, onOpenChange, onCreated }) {
                         ? "Loading districts…"
                         : "Select district",
                   },
-                  { key: "city", label: "City", options: CITIES },
-                  { key: "town", label: "Town", options: TOWNS },
                 ].map((f) => (
                   <div key={f.key}>
                     <label className={labelClass}>

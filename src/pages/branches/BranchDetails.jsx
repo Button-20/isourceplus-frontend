@@ -27,6 +27,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { apiErrorMessage } from "@/services/lib/api-error";
+import { prettify } from "@/utils/choices";
 
 function Field({ icon: Icon, label, value }) {
   return (
@@ -178,18 +179,20 @@ const BranchDetails = () => {
               value={
                 [branch.location.region, branch.location.district]
                   .filter(Boolean)
+                  .map(prettify)
                   .join(", ") || "N/A"
               }
             />
-            <Field
-              icon={Globe}
-              label="City / town"
-              value={
-                [branch.location.city, branch.location.town]
+            {(branch.location.city || branch.location.town) && (
+              <Field
+                icon={Globe}
+                label="City / town"
+                value={[branch.location.town, branch.location.city]
                   .filter(Boolean)
-                  .join(", ") || "N/A"
-              }
-            />
+                  .map(prettify)
+                  .join(", ")}
+              />
+            )}
             {branch.location.gps && (
               <Field
                 icon={Navigation}

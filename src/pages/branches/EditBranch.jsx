@@ -18,11 +18,8 @@ import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
-// Region and district come from the backend enums (useLocationChoices);
-// city and town have no choices endpoint yet (placeholder set matching
-// backend fixtures).
-const CITIES = [{ value: "city", label: "Test City" }];
-const TOWNS = [{ value: "town", label: "Test Town" }];
+// Location matches the company form and RFx/tender/waybill reach: region and
+// district from the backend enums (useLocationChoices), no city or town.
 
 const EditBranch = () => {
   const { authAxios } = useAuth();
@@ -37,8 +34,6 @@ const EditBranch = () => {
     location: {
       region: "",
       district: "",
-      city: "",
-      town: "",
       popular_area_name: "",
       gps: "",
       street_address: "",
@@ -86,9 +81,9 @@ const EditBranch = () => {
       toast.error("Branch name is required");
       return;
     }
-    const { region, district, city, town } = formData.location;
-    if (!region || !district || !city || !town) {
-      toast.error("Region, district, city and town are required");
+    const { region, district } = formData.location;
+    if (!region || !district) {
+      toast.error("Region and district are required");
       return;
     }
     setSubmitting(true);
@@ -206,8 +201,6 @@ const EditBranch = () => {
                     ? "Loading districts…"
                     : "Select district",
               },
-              { key: "city", label: "City", options: CITIES },
-              { key: "town", label: "Town", options: TOWNS },
             ].map((f) => (
               <div key={f.key}>
                 <label className={labelClass}>
