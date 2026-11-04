@@ -49,8 +49,11 @@ http.interceptors.request.use(async (config) => {
 
 // Don't attempt a refresh-retry for the auth endpoints themselves (login,
 // logout, refresh, registration) — a 401 there is a real failure, not an
-// expired session, and retrying would loop.
-const isAuthEndpoint = (url = "") => /account_auth\//.test(url);
+// expired session, and retrying would loop. The signed-in user's 2FA settings
+// (status, enroll, disable, backup codes) are ordinary calls and do refresh.
+const isAuthEndpoint = (url = "") =>
+  /account_auth\//.test(url) &&
+  !/account_auth\/2fa\/(status|enroll|disable|backup-codes)\//.test(url);
 
 http.interceptors.response.use(
   (res) => res,

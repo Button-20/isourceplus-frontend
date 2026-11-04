@@ -1,130 +1,111 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/contexts/app.context";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, Check } from "lucide-react";
-import { storage } from "@/services/lib/storage";
 
+import {
+  clearCheckout,
+  completeSubscription,
+  loadCheckout,
+  subscriptionErrorMessage,
+} from "@/services/api/subscriptions.service";
+
+// Paystack returns here (?reference=…) after the payment the pricing page
+// started with subscriptions/tranx/init/. Completing it creates the
+// subscription (POST subscriptions/subscribe/).
 export function SubscriptionCallbackPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { authAxios } = useAuth();
+  // React StrictMode runs effects twice in dev; subscribe/ must run once.
+  const started = useRef(false);
 
   useEffect(() => {
-    const verifyAndCreateSubscription = async () => {
+    if (started.current) return;
+    started.current = true;
+
+    const complete = async () => {
       try {
-        const reference = searchParams.get("reference");
+        const checkout = loadCheckout();
+        const reference =
+          searchParams.get("reference") ||
+          searchParams.get("trxref") ||
+          checkout.reference;
         if (!reference) {
-          throw new Error("No transaction reference provided.");
+          throw new Error("No payment reference was returned.");
+        }
+        if (!checkout.plan_code || !checkout.authorization_url) {
+          throw new Error(
+            "We couldn't find the plan you were paying for. Please start again from the pricing page.",
+          );
         }
 
-        // Retrieve stored subscription data
-        const subscriptionData = storage.getJSON("subscriptionData", {});
-        const { plan_code, start_date, authorization_url, plan_name, plan_type } = subscriptionData;
-
-        if (!plan_code || !authorization_url) {
-          throw new Error("Missing subscription data (plan_code or authorization_url).");
-        }
-
-        // Verify transaction
-        console.log("Sending verification request with params:", {
+        await completeSubscription({
+          authorizationUrl: checkout.authorization_url,
+          planCode: checkout.plan_code,
           reference,
-          plan_code,
-          start_date,
-          authorization_url,
         });
 
-        const verifyResponse = await authAxios.get("/subscriptions/transaction/verify/", {
-          params: {
-            reference,
-            plan_code,
-            start_date,
-            authorization_url,
-          },
-        });
-
-        console.log("Transaction verification response:", verifyResponse.data);
-
-        // Check if verification was successful
-        // if (
-        //   verifyResponse.status !== 200 ||
-        //   !verifyResponse.data.status ||
-        //   verifyResponse.data.data?.status !== "success"
-        // ) {
-        //   console.error("Transaction verification failed:", verifyResponse.data);
-        //   throw new Error(
-        //     verifyResponse.data.detail && verifyResponse.data.status !== true
-        //       ? verifyResponse.data.detail
-        //       : "Transaction verification failed."
-        //   );
-        // }
-
-        // Create subscription
-        console.log("Creating subscription with reference:", reference);
-        const createResponse = await authAxios.post("/subscriptions/create/", null, {
-          params: { reference },
-        });
-
-        console.log("Subscription creation response:", createResponse.data);
-
-        if (createResponse.data.status === "success") {
-          toast.success("Subscription created successfully!", {
-            description: `You are now subscribed to the ${plan_name} (${plan_type}) plan.`,
-          });
-          // Clear stored data
-          storage.remove("subscriptionData");
-          setTimeout(() => navigate("/dashboard"), 2000); // Delay redirect for toast visibility
-        } else {
-          console.error("Subscription creation failed:", createResponse.data);
-          throw new Error(createResponse.data.detail || "Failed to create subscription.");
-        }
-      } catch (error) {
-        console.error("Subscription processing error:", error);
-        console.error("Error details:", {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-        });
-        setError(error.message || "An error occurred during subscription processing.");
-        toast.error(error.response.data.data.message || error.message || "Failed to process subscription.", {
-          icon: <AlertCircle className="w-5 h-5" />,
-        });
+        clearCheckout();
+        const plan = checkout.plan_name
+          ? `${checkout.plan_name.charAt(0)}${checkout.plan_name.slice(1).toLowerCase()}`
+          : "";
+        toast.success(
+          checkout.is_trial ? "Your trial has started!" : "You're subscribed!",
+          plan
+            ? {
+                description: `You're on the ${plan}${checkout.plan_type ? ` (${checkout.plan_type})` : ""} plan.`,
+              }
+            : undefined,
+        );
+        setTimeout(() => navigate("/dashboard/subscriptions"), 2000);
+      } catch (err) {
+        console.error("Subscription processing error:", err);
+        const message = subscriptionErrorMessage(
+          err,
+          "We couldn't complete your subscription.",
+        );
+        setError(message);
+        toast.error(message, { icon: <AlertCircle className="w-5 h-5" /> });
       } finally {
         setIsLoading(false);
       }
     };
 
-    verifyAndCreateSubscription();
-  }, [authAxios, navigate, searchParams]);
+    complete();
+  }, [navigate, searchParams]);
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="bg-card rounded-xl p-6 shadow-lg border border-border max-w-md w-full text-center">
         {isLoading ? (
           <>
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <h2 className="text-xl font-bold">Processing your subscription...</h2>
-            <p className="text-muted-foreground">Please wait while we verify your payment.</p>
+            <h2 className="text-xl font-bold">Processing your subscription…</h2>
+            <p className="text-muted-foreground">
+              Please wait while we confirm your payment.
+            </p>
           </>
         ) : error ? (
           <>
             <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold">Subscription Error</h2>
+            <h2 className="text-xl font-bold">Subscription error</h2>
             <p className="text-muted-foreground">{error}</p>
             <button
               className="mt-4 px-4 py-2 bg-brand-gradient text-white rounded-md hover:opacity-90"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/dashboard/subscriptions")}
             >
-              Return to Dashboard
+              Back to plans
             </button>
           </>
         ) : (
           <>
             <Check className="w-8 h-8 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold">Subscription Successful</h2>
-            <p className="text-muted-foreground">You will be redirected to your dashboard shortly.</p>
+            <h2 className="text-xl font-bold">Subscription successful</h2>
+            <p className="text-muted-foreground">
+              Taking you to your subscription…
+            </p>
           </>
         )}
       </div>

@@ -104,6 +104,9 @@ import DisputesPage from "./pages/disputes/DisputesPage";
 import TicketDetailPage from "./pages/support/TicketDetailPage";
 import ClientsPage from "./pages/clients/ClientsPage";
 import { FaqPage } from "./pages/public/FaqPage";
+import FeedbackPage from "./pages/feedback/FeedbackPage";
+import SecurityPage from "./pages/security/SecurityPage";
+import { SsoCallbackPage } from "./pages/auth/SsoCallbackPage";
 import { UseCasesPage } from "./pages/public/UseCasesPage";
 
 const fullRoutes = [
@@ -118,6 +121,8 @@ const fullRoutes = [
   { path: "/faq", element: <FaqPage /> },
   { path: "/use-cases", element: <UseCasesPage /> },
   { path: "/subscription/callback", element: <SubscriptionCallbackPage /> },
+  // The backend's SSO callback redirects here with a one-time ?code=.
+  { path: "/auth/sso/callback", element: <SsoCallbackPage /> },
 
   {
     element: <ProtectedAuthRoute />,
@@ -271,6 +276,8 @@ const fullRoutes = [
       // Helpdesk: the user's support tickets (my-tickets/) and one ticket.
       { path: "support", element: <SupportPage /> },
       { path: "notifications", element: <NotificationsPage /> },
+      { path: "feedback", element: <FeedbackPage /> },
+      { path: "security", element: <SecurityPage /> },
       { path: "delivery-notes", element: <DeliveryNotesPage /> },
       { path: "disputes", element: <DisputesPage /> },
       { path: "support/:ticketId", element: <TicketDetailPage /> },

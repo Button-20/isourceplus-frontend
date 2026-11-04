@@ -14,8 +14,10 @@ import { storage } from "@/services/lib/storage";
 import { ENV } from "@/services/lib/env";
 import { ensureCsrfToken, clearCsrfToken } from "@/services/lib/csrf";
 import {
+  exchangeSsoCode,
   loginRequest,
   signupRequest,
+  verifyTwoFactorLogin,
   logoutRequest,
   logoutAllRequest,
   refreshSession,
@@ -24,6 +26,12 @@ import {
   getCurrentUser,
   getUserProfile,
 } from "@/services/api/users.service";
+import {
+  pendingTokenOf,
+  ssoAvailable,
+  ssoRedirectUrl,
+  twoFactorErrorMessage,
+} from "@/services/api/two-factor.service";
 
 export const AppContext = createContext();
 
@@ -176,43 +184,58 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Signed in (password, 2FA code or SSO): store the session, resolve the
+  // company/transporter, then land on the dashboard (or onboarding).
+  const finishLogin = async (data, navigate) => {
+    applySession(data);
+    // Navigate straight away using the login response. Awaiting the extra
+    // `users/` call here could hang or fail (e.g. a transient 401 →
+    // refresh → logout cascade) and strand the user on the sign-in page.
+    // Resolve the company/transporter ids BEFORE landing on the dashboard so
+    // it never briefly flashes the "no organization" state (nudge, "Account
+    // Type", "Incomplete") on a fresh login. Bounded so a slow/flaky `users/`
+    // call (e.g. a transient 401 → refresh → retry) can't strand the user on
+    // the sign-in page; fetchUserData never throws, so this always settles.
+    if (data.profile_id) {
+      await Promise.race([
+        // Mirror a fresh page load: rotate/establish the session BEFORE
+        // reading the user's org. On a cookie-auth login the just-set session
+        // isn't yet honoured by `users/`, so a straight fetch here comes back
+        // without the company/transporter and the dashboard flashes the
+        // "Finish setting up your organization" nudge until the user manually
+        // refreshes (a refresh runs exactly this refresh-then-fetch sequence).
+        // Both steps swallow their own errors, so this never strands login.
+        (async () => {
+          try {
+            await refreshTokenFunction();
+          } catch {
+            /* keep going — fetchUserData still runs, worst case unchanged */
+          }
+          await fetchUserData();
+        })(),
+        new Promise((resolve) => setTimeout(resolve, 4000)),
+      ]);
+      navigate("/dashboard", { replace: true });
+    } else {
+      navigate("/onboarding/user", { replace: true });
+    }
+  };
+
+  // A login that needs its second factor → { twoFactorRequired, pendingToken }
+  // (nothing is stored yet; completeTwoFactorLogin finishes it).
+  const twoFactorStep = (data) =>
+    data?.two_fa_required
+      ? { twoFactorRequired: true, pendingToken: pendingTokenOf(data) }
+      : null;
+
   const login = async (email, password, navigate) => {
     setError(null);
     setLoading(true);
     try {
       const data = await loginRequest({ email, password });
-      applySession(data);
-      // Navigate straight away using the login response. Awaiting the extra
-      // `users/` call here could hang or fail (e.g. a transient 401 →
-      // refresh → logout cascade) and strand the user on the sign-in page.
-      // Resolve the company/transporter ids BEFORE landing on the dashboard so
-      // it never briefly flashes the "no organization" state (nudge, "Account
-      // Type", "Incomplete") on a fresh login. Bounded so a slow/flaky `users/`
-      // call (e.g. a transient 401 → refresh → retry) can't strand the user on
-      // the sign-in page; fetchUserData never throws, so this always settles.
-      if (data.profile_id) {
-        await Promise.race([
-          // Mirror a fresh page load: rotate/establish the session BEFORE
-          // reading the user's org. On a cookie-auth login the just-set session
-          // isn't yet honoured by `users/`, so a straight fetch here comes back
-          // without the company/transporter and the dashboard flashes the
-          // "Finish setting up your organization" nudge until the user manually
-          // refreshes (a refresh runs exactly this refresh-then-fetch sequence).
-          // Both steps swallow their own errors, so this never strands login.
-          (async () => {
-            try {
-              await refreshTokenFunction();
-            } catch {
-              /* keep going — fetchUserData still runs, worst case unchanged */
-            }
-            await fetchUserData();
-          })(),
-          new Promise((resolve) => setTimeout(resolve, 4000)),
-        ]);
-        navigate("/dashboard", { replace: true });
-      } else {
-        navigate("/onboarding/user", { replace: true });
-      }
+      const pending = twoFactorStep(data);
+      if (pending) return pending;
+      await finishLogin(data, navigate);
       return data;
     } catch (err) {
       const message =
@@ -229,10 +252,44 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Google sign-in is not wired to a provider yet; keep a safe stub so the
-  // auth UI's "Continue with Google" button doesn't throw.
-  const googleLogin = async () => {
-    toast.info("Google sign-in is not available yet.");
+  // Second step of a 2FA login: a TOTP or backup code.
+  const completeTwoFactorLogin = async (pendingToken, code, navigate) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const data = await verifyTwoFactorLogin({ pendingToken, code });
+      await finishLogin(data, navigate);
+      return data;
+    } catch (err) {
+      const message = twoFactorErrorMessage(
+        err,
+        "That code didn't work. Please try again.",
+      );
+      setError(message);
+      toast.error(message, { duration: AUTH_TOAST_MS });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Single sign-on: hand off to the provider (via the backend). A missing
+  // route is reported here rather than leaving the user on a 404 page.
+  const ssoLogin = async (provider, label = provider) => {
+    if (await ssoAvailable(provider)) {
+      window.location.assign(ssoRedirectUrl(provider));
+      return;
+    }
+    toast.info(`${label} sign-in isn't available yet.`);
+  };
+
+  // Back from the provider: trade the one-time code for the session.
+  const completeSsoLogin = async (code, navigate) => {
+    const data = await exchangeSsoCode(code);
+    const pending = twoFactorStep(data);
+    if (pending) return pending;
+    await finishLogin(data, navigate);
+    return data;
   };
 
   const refreshTokenFunction = async () => {
@@ -324,7 +381,9 @@ export const AppProvider = ({ children }) => {
         setLoading,
         signup,
         login,
-        googleLogin,
+        completeTwoFactorLogin,
+        ssoLogin,
+        completeSsoLogin,
         logout,
         logoutAll,
         error,

@@ -1,7 +1,8 @@
 // "Notifications": the inbox (GET notifications/all/), the archive
 // (notifications/archived/) and notification settings. New notifications
 // arrive over the socket (or polling) via NotificationsProvider; the inbox
-// reloads when they do.
+// reloads when they do. Any notification can be moved to the trash, and
+// emptying the trash deletes them for good.
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -16,6 +17,7 @@ import {
   MailOpen,
   RefreshCw,
   Settings,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,10 +36,12 @@ import NotificationSettings from "@/components/notifications/NotificationSetting
 import { cn } from "@/lib/utils";
 import {
   archiveAllNotifications,
+  emptyNotificationTrash,
   listArchivedNotifications,
   listNotifications,
   notificationErrorMessage,
   notificationLink,
+  trashNotification,
   unarchiveNotification,
 } from "@/services/api/notifications.service";
 import { useNotifications } from "@/services/context/notifications.context";
@@ -90,7 +94,8 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  // Bulk action awaiting confirmation: "archive" | "empty".
+  const [confirming, setConfirming] = useState(null);
   const [bulkBusy, setBulkBusy] = useState(false);
 
   const revision = ctx?.revision ?? 0;
@@ -193,6 +198,19 @@ export default function NotificationsPage() {
     }
   };
 
+  // Soft delete; the inbox's copy goes through the context so the bell and
+  // unread count update too.
+  const trash = async (n) => {
+    if (
+      await run(
+        n.id,
+        () => (tab === "inbox" ? ctx.trash(n.id) : trashNotification(n.id)),
+        "Couldn't move it to the trash.",
+      )
+    )
+      dropRow(n.id);
+  };
+
   const markAll = async () => {
     setBulkBusy(true);
     try {
@@ -208,12 +226,25 @@ export default function NotificationsPage() {
     try {
       const detail = await archiveAllNotifications();
       toast.success(detail || "Notifications archived.");
-      setConfirmOpen(false);
+      setConfirming(null);
       setPage(1);
       await load();
       ctx?.refresh();
     } catch (err) {
       toast.error(notificationErrorMessage(err, "Couldn't archive them."));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const emptyTrash = async () => {
+    setBulkBusy(true);
+    try {
+      const detail = await emptyNotificationTrash();
+      toast.success(detail || "Trash emptied.");
+      setConfirming(null);
+    } catch (err) {
+      toast.error(notificationErrorMessage(err, "Couldn't empty the trash."));
     } finally {
       setBulkBusy(false);
     }
@@ -272,7 +303,7 @@ export default function NotificationsPage() {
                   </Button>
                   {!legacy && (
                     <Button
-                      onClick={() => setConfirmOpen(true)}
+                      onClick={() => setConfirming("archive")}
                       disabled={bulkBusy || rows.length === 0}
                       className="bg-white text-brand hover:bg-white/90"
                     >
@@ -280,6 +311,16 @@ export default function NotificationsPage() {
                     </Button>
                   )}
                 </>
+              )}
+              {!legacy && (
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirming("empty")}
+                  disabled={bulkBusy}
+                  className={onBrand}
+                >
+                  <Trash2 className="mr-1.5 h-4 w-4" /> Empty trash
+                </Button>
               )}
             </div>
           )}
@@ -363,12 +404,20 @@ export default function NotificationsPage() {
                   onOpen={() => open(n)}
                   actions={
                     tab === "archived" ? (
-                      <RowAction
-                        icon={ArchiveRestore}
-                        label="Move back to inbox"
-                        busy={busyId === n.id}
-                        onClick={() => restore(n)}
-                      />
+                      <>
+                        <RowAction
+                          icon={ArchiveRestore}
+                          label="Move back to inbox"
+                          busy={busyId === n.id}
+                          onClick={() => restore(n)}
+                        />
+                        <RowAction
+                          icon={Trash2}
+                          label="Move to trash"
+                          busy={busyId === n.id}
+                          onClick={() => trash(n)}
+                        />
+                      </>
                     ) : legacy ? (
                       !n.read && (
                         <RowAction
@@ -390,6 +439,12 @@ export default function NotificationsPage() {
                           label="Archive"
                           busy={busyId === n.id}
                           onClick={() => archive(n)}
+                        />
+                        <RowAction
+                          icon={Trash2}
+                          label="Move to trash"
+                          busy={busyId === n.id}
+                          onClick={() => trash(n)}
                         />
                       </>
                     )
@@ -415,33 +470,53 @@ export default function NotificationsPage() {
       </div>
 
       <Dialog
-        open={confirmOpen}
-        onOpenChange={(o) => !bulkBusy && setConfirmOpen(o)}
+        open={Boolean(confirming)}
+        onOpenChange={(o) => !o && !bulkBusy && setConfirming(null)}
       >
         <DialogContent className="font-montserrat sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Archive all notifications?</DialogTitle>
+            <DialogTitle>
+              {confirming === "empty"
+                ? "Empty the trash?"
+                : "Archive all notifications?"}
+            </DialogTitle>
             <DialogDescription>
-              Every notification in your inbox moves to Archived, not just the
-              ones on this page. You can move any of them back later.
+              {confirming === "empty"
+                ? "Every notification you've moved to the trash is deleted for good. This can't be undone."
+                : "Every notification in your inbox moves to Archived, not just the ones on this page. You can move any of them back later."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setConfirmOpen(false)}
+              onClick={() => setConfirming(null)}
               disabled={bulkBusy}
             >
               Cancel
             </Button>
-            <Button onClick={archiveAll} disabled={bulkBusy}>
-              {bulkBusy ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <Archive className="mr-1.5 h-4 w-4" />
-              )}
-              Archive all
-            </Button>
+            {confirming === "empty" ? (
+              <Button
+                variant="destructive"
+                onClick={emptyTrash}
+                disabled={bulkBusy}
+              >
+                {bulkBusy ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                )}
+                Empty trash
+              </Button>
+            ) : (
+              <Button onClick={archiveAll} disabled={bulkBusy}>
+                {bulkBusy ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Archive className="mr-1.5 h-4 w-4" />
+                )}
+                Archive all
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

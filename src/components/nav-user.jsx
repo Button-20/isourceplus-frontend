@@ -5,7 +5,14 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Bell, ChevronsUpDown, Loader2, LogOut, Settings2 } from "lucide-react";
+import {
+  Bell,
+  ChevronsUpDown,
+  Loader2,
+  LogOut,
+  Settings2,
+  ShieldCheck,
+} from "lucide-react";
 // import { useKindeAuth } from "@kinde-oss/kinde-auth-react"
 import {
   Dialog,
@@ -145,6 +152,12 @@ export function NavUser({ user }) {
                   <span onClick={() => navigate("/onboarding/user")}>
                     Profile Settings
                   </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => navigate("/dashboard/security")}
+                >
+                  <ShieldCheck />
+                  Security
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />

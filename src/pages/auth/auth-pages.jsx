@@ -1,6 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Eye, EyeOff, Mail } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
 import { FaFacebook, FaLinkedin } from "react-icons/fa";
 
 import { Button } from "@/components/ui/button";
@@ -8,22 +15,132 @@ import { Input } from "@/components/ui/input";
 import AuthBrandPanel, { AuthBrandHeader } from "@/components/auth/AuthBrandPanel";
 import { useAuth } from "@/services/context/app.context";
 
-function SocialButtons({ onGoogle }) {
+// Single sign-on through the backend (account_auth/sso/redirect/{provider}/).
+function SocialButtons({ onProvider }) {
+  const [busy, setBusy] = useState("");
+  const go = async (provider, label) => {
+    setBusy(provider);
+    try {
+      await onProvider(provider, label);
+    } finally {
+      setBusy("");
+    }
+  };
   return (
     <div className="grid grid-cols-3 gap-3">
-      <Button variant="outline" type="button">
+      <Button
+        variant="outline"
+        type="button"
+        disabled={Boolean(busy)}
+        onClick={() => go("linkedin", "LinkedIn")}
+      >
         <FaLinkedin className="text-[#0077B5]" />
         <span className="ml-1.5 hidden sm:inline">LinkedIn</span>
       </Button>
-      <Button variant="outline" type="button" onClick={onGoogle}>
+      <Button
+        variant="outline"
+        type="button"
+        disabled={Boolean(busy)}
+        onClick={() => go("google", "Google")}
+      >
         <Mail className="h-4 w-4" />
         <span className="ml-1.5 hidden sm:inline">Google</span>
       </Button>
-      <Button variant="outline" type="button">
+      <Button
+        variant="outline"
+        type="button"
+        disabled={Boolean(busy)}
+        onClick={() => go("facebook", "Facebook")}
+      >
         <FaFacebook className="text-[#1877F2]" />
         <span className="ml-1.5 hidden sm:inline">Facebook</span>
       </Button>
     </div>
+  );
+}
+
+// Second step of a 2FA login: the authenticator app's code, or a backup code.
+function TwoFactorStep({ pendingToken, onBack }) {
+  const { completeTwoFactorLogin, loading, error } = useAuth();
+  const navigate = useNavigate();
+  const [code, setCode] = useState("");
+  const [useBackup, setUseBackup] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    try {
+      await completeTwoFactorLogin(pendingToken, code, navigate);
+    } catch {
+      /* error surfaced via context toast + error state */
+    }
+  };
+
+  return (
+    <>
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
+        <ShieldCheck className="h-5 w-5" />
+      </span>
+      <h1 className="mt-4 font-display text-2xl font-bold">
+        Two-step verification
+      </h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {useBackup
+          ? "Enter one of your backup codes. Each code works once."
+          : "Enter the 6-digit code from your authenticator app."}
+      </p>
+
+      <form className="mt-6 space-y-4" onSubmit={submit}>
+        <Input
+          name="code"
+          value={code}
+          onChange={(e) =>
+            setCode(
+              useBackup ? e.target.value : e.target.value.replace(/\D/g, ""),
+            )
+          }
+          placeholder={useBackup ? "Backup code" : "123456"}
+          inputMode={useBackup ? "text" : "numeric"}
+          autoComplete="one-time-code"
+          maxLength={useBackup ? 16 : 6}
+          autoFocus
+          required
+          className="text-center text-lg tracking-[0.3em]"
+        />
+        <Button
+          type="submit"
+          disabled={loading || !code.trim()}
+          className="w-full bg-brand-gradient text-brand-foreground hover:opacity-90"
+        >
+          {loading ? "Verifying..." : "Verify and sign in"}
+        </Button>
+      </form>
+
+      {error && (
+        <p className="mt-3 text-sm text-destructive">
+          {typeof error === "string" ? error : "An error occurred"}
+        </p>
+      )}
+
+      <div className="mt-6 flex items-center justify-between text-sm">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setUseBackup((v) => !v);
+            setCode("");
+          }}
+          className="text-brand hover:underline"
+        >
+          {useBackup ? "Use authenticator code" : "Use a backup code"}
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -43,16 +160,27 @@ function Divider({ children }) {
 }
 
 export function LoginPage() {
-  const { login, loading, error, googleLogin } = useAuth();
+  const { login, loading, error, ssoLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  // Set when the account has 2FA on (from the password step, or handed over
+  // by the SSO callback).
+  const [pendingToken, setPendingToken] = useState(
+    location.state?.twoFactor?.pendingToken || "",
+  );
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    await login(email, password, navigate);
+    try {
+      const res = await login(email, password, navigate);
+      if (res?.twoFactorRequired) setPendingToken(res.pendingToken);
+    } catch {
+      /* error surfaced via context toast + error state */
+    }
   };
 
   return (
@@ -74,69 +202,81 @@ export function LoginPage() {
 
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
           <AuthBrandHeader />
-          <h1 className="font-display text-2xl font-bold">Sign in</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Enter your email and password to continue.
-          </p>
-
-          <form className="mt-6 space-y-4" onSubmit={handleLogin}>
-            <Input
-              type="email"
-              name="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+          {pendingToken ? (
+            <TwoFactorStep
+              pendingToken={pendingToken}
+              onBack={() => {
+                setPendingToken("");
+                setPassword("");
+              }}
             />
-            <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
+          ) : (
+            <>
+              <h1 className="font-display text-2xl font-bold">Sign in</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Enter your email and password to continue.
+              </p>
 
-            <div className="flex justify-end">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-brand hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
+              <form className="mt-6 space-y-4" onSubmit={handleLogin}>
+                <Input
+                  type="email"
+                  name="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-brand-gradient text-brand-foreground hover:opacity-90"
-            >
-              {loading ? "Signing in..." : "Sign in"}
-            </Button>
-          </form>
+                <div className="flex justify-end">
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-brand hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
 
-          {error && (
-            <p className="mt-3 text-sm text-destructive">
-              {typeof error === "string" ? error : "An error occurred"}
-            </p>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-brand-gradient text-brand-foreground hover:opacity-90"
+                >
+                  {loading ? "Signing in..." : "Sign in"}
+                </Button>
+              </form>
+
+              {error && (
+                <p className="mt-3 text-sm text-destructive">
+                  {typeof error === "string" ? error : "An error occurred"}
+                </p>
+              )}
+
+              <Divider>or continue with</Divider>
+              <SocialButtons onProvider={ssoLogin} />
+            </>
           )}
-
-          <Divider>or continue with</Divider>
-          <SocialButtons onGoogle={googleLogin} />
         </div>
       </div>
     </div>
@@ -144,7 +284,7 @@ export function LoginPage() {
 }
 
 export function SignUpPage() {
-  const { signup, loading, error, googleLogin } = useAuth();
+  const { signup, loading, error, ssoLogin } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -241,7 +381,7 @@ export function SignUpPage() {
           )}
 
           <Divider>or continue with</Divider>
-          <SocialButtons onGoogle={googleLogin} />
+          <SocialButtons onProvider={ssoLogin} />
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             By continuing, you agree to our{" "}

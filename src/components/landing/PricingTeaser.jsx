@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Check, ArrowRight, Users, MessageSquare } from "lucide-react";
-import { buyerPlans } from "@/data/pricing-plans";
+import { buyerPlans, BONUS_SMS } from "@/data/pricing-plans";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +18,9 @@ export default function PricingTeaser() {
             Bigger package, more opportunities, higher competitive offers
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Buyer plans shown below. Supplier and transporter plans, plus 6- and
-            12-month discounts, are on the full pricing page. All prices exclude
-            VAT.
+            Buyer plans shown below, billed quarterly. Supplier and transporter
+            plans, plus biannual (10% off) and annual (15% off) billing, are on
+            the full pricing page. All prices exclude VAT.
           </p>
         </div>
 
@@ -48,9 +48,9 @@ export default function PricingTeaser() {
               )}
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="font-display text-3xl font-bold">
-                  GHC {plan.monthlyRate}
+                  GHS {plan.prices.quarterly}
                 </span>
-                <span className="text-sm text-muted-foreground">/mo</span>
+                <span className="text-sm text-muted-foreground">/quarter</span>
               </div>
               <ul className="mt-5 flex-1 space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
@@ -64,11 +64,7 @@ export default function PricingTeaser() {
                 </li>
                 <li className="flex items-start gap-2">
                   <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                  {plan.transactionalSMS} transactional SMS
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                  {plan.suppliersMarketBase} suppliers&apos; market base
+                  {BONUS_SMS} bonus SMS
                 </li>
               </ul>
               <Button

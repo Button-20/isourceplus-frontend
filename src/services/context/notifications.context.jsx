@@ -24,6 +24,7 @@ import { refreshSession } from "@/services/api/auth.service";
 import {
   archiveNotification,
   forgetRead,
+  trashNotification,
   listNotifications,
   markNotificationUnread,
   normalizeNotification,
@@ -212,6 +213,17 @@ export function NotificationsProvider({ enabled = true, children }) {
     [items],
   );
 
+  const trash = useCallback(
+    async (id) => {
+      const detail = await trashNotification(id);
+      const target = items.find((n) => n.id === id);
+      setItems((prev) => prev.filter((n) => n.id !== id));
+      if (target && !target.read) setUnread((c) => Math.max(0, c - 1));
+      return detail;
+    },
+    [items],
+  );
+
   // → false when the socket isn't connected (the caller saves over REST).
   const updatePreferences = useCallback(
     (prefs) =>
@@ -239,6 +251,7 @@ export function NotificationsProvider({ enabled = true, children }) {
       markUnread,
       markAllRead,
       archive,
+      trash,
       updatePreferences,
     }),
     [
@@ -255,6 +268,7 @@ export function NotificationsProvider({ enabled = true, children }) {
       markUnread,
       markAllRead,
       archive,
+      trash,
       updatePreferences,
     ],
   );

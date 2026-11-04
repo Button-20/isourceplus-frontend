@@ -20,13 +20,35 @@ function persistSession(data) {
   });
 }
 
+// With 2FA on, login answers { two_fa_required: true, pending_token } and no
+// session; verifyTwoFactorLogin() finishes it.
 export async function loginRequest({ email, password }) {
   await ensureCsrfToken();
   const { data } = await http.post("account_auth/login/", {
     email: email.trim(),
     password,
   });
-  persistSession(data);
+  if (!data?.two_fa_required) persistSession(data);
+  return data;
+}
+
+// Second step of a 2FA login: the pending token + a TOTP or backup code.
+export async function verifyTwoFactorLogin({ pendingToken, code }) {
+  await ensureCsrfToken();
+  const { data } = await http.post("account_auth/2fa/verify/", {
+    pending_token: pendingToken,
+    code: code.trim(),
+  });
+  if (!data?.two_fa_required) persistSession(data);
+  return data;
+}
+
+// Single sign-on: the one-time code the backend's SSO callback handed the
+// frontend → the session (or a two_fa_required pending login).
+export async function exchangeSsoCode(code) {
+  await ensureCsrfToken();
+  const { data } = await http.post("account_auth/sso/exchange/", { code });
+  if (!data?.two_fa_required) persistSession(data);
   return data;
 }
 

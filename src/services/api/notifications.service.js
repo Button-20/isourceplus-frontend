@@ -12,6 +12,11 @@
 //   GET notifications/<id>/remove-from-archive/ → { detail }
 //   GET notifications/archive-all/            → { Detail: "<N> … archived" }
 //                                               or { detail: "No notifications to archive" }
+//   POST notifications/<id>/move-to-trash/    → { detail } (soft delete;
+//                                             "notice_trash_api", 2026-11-04)
+//   POST notifications/empty-trash/           → { detail: "<N> notification(s)
+//                                             permanently deleted" } or
+//                                             { detail: "No notifications in trash" }
 //   GET notification-settings/get-or-create/  the user's settings (created
 //                                             with defaults on first call)
 //   PATCH notification-settings/<id>/         update them (the route allows
@@ -161,6 +166,18 @@ export const unarchiveNotification = action("remove-from-archive");
 
 export async function archiveAllNotifications() {
   const { data } = await http.get("notifications/archive-all/");
+  return detailOf(data);
+}
+
+// Trash: soft-delete one notification; emptying the trash deletes every
+// trashed one for good. (Not deployed yet, 2026-11-04.)
+export async function trashNotification(id) {
+  const { data } = await http.post(path(id, "move-to-trash/"), {});
+  return detailOf(data);
+}
+
+export async function emptyNotificationTrash() {
+  const { data } = await http.post("notifications/empty-trash/", {});
   return detailOf(data);
 }
 
