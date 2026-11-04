@@ -45,6 +45,7 @@ import {
   publishWaybill,
   waybillErrorMessage,
 } from "@/services/api/waybills.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const statusTone = (status) => {
   const value = (status || "").toLowerCase();
@@ -79,7 +80,7 @@ const WaybillDetailPage = () => {
         const response = await authAxios.get(`waybills/${refNum}/`);
         setWaybill(response.data);
       } catch (error) {
-        toast.error("Failed to load waybill details.");
+        toast.error(apiErrorMessage(error, "Failed to load waybill details."));
         console.error("Fetch waybill error:", error);
       } finally {
         setLoading(false);
@@ -105,7 +106,7 @@ const WaybillDetailPage = () => {
           return;
         }
       }
-      toast.error(error.response?.data?.detail || "Failed to initiate offer.");
+      toast.error(apiErrorMessage(error, "Failed to initiate offer."));
       console.error("Send offer error:", error);
     } finally {
       setModalLoading(false);
@@ -120,7 +121,7 @@ const WaybillDetailPage = () => {
       setShowDeleteModal(false);
       navigate("/dashboard/waybills/issued");
     } catch (error) {
-      toast.error("Failed to delete waybill.");
+      toast.error(apiErrorMessage(error, "Failed to delete waybill."));
       console.error("Delete waybill error:", error);
     } finally {
       setDeleteLoading(false);

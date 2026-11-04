@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { normalizeChoices } from "@/utils/choices";
+import { apiErrorMessage } from "@/services/lib/api-error";
 import { useAuth } from "@/services/context/app.context";
 import {
   getCompany,
@@ -74,8 +75,11 @@ export default function SwitchToSupplierModal({
           setIndustry(company.industry);
         if (company?.sub_category) setSubCategory(company.sub_category);
       })
-      .catch(() => {
-        if (!cancelled) toast.error("Couldn't load supplier industries.");
+      .catch((err) => {
+        if (!cancelled)
+          toast.error(
+            apiErrorMessage(err, "Couldn't load supplier industries."),
+          );
       })
       .finally(() => {
         if (!cancelled) setLoadingIndustries(false);
@@ -97,10 +101,15 @@ export default function SwitchToSupplierModal({
       .then((data) => {
         if (!cancelled) setSubCategories(normalizeChoices(data));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setSubCategories([]);
-          toast.error("Couldn't load sub-categories for that industry.");
+          toast.error(
+            apiErrorMessage(
+              err,
+              "Couldn't load sub-categories for that industry.",
+            ),
+          );
         }
       })
       .finally(() => {

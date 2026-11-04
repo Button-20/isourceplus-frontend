@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import StarRating from "@/components/reviews/StarRating";
 import OrgSearchField from "@/components/reviews/OrgSearchField";
 import { createReview, updateReview } from "@/services/api/reviews.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -69,12 +70,7 @@ export default function ReviewModal({ open, onOpenChange, review, onSaved }) {
       onSaved?.();
       onOpenChange(false);
     } catch (err) {
-      toast.error(
-        err.response?.data?.detail ||
-          err.response?.data?.rating?.[0] ||
-          err.response?.data?.provided_object_id?.[0] ||
-          "Failed to save review.",
-      );
+      toast.error(apiErrorMessage(err, "Failed to save review."));
     } finally {
       setSaving(false);
     }

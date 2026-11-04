@@ -22,6 +22,7 @@
 // received + short ≤ ordered.
 import http from "@/services/lib/http";
 import { isMissingRoute } from "@/services/api/offers.service";
+import { apiErrorMessage, messageFromBody } from "@/services/lib/api-error";
 
 export { isMissingRoute };
 
@@ -47,10 +48,9 @@ export function rejectEnvelope(data, fallback) {
     !Array.isArray(data) &&
     (data.success === false || Number(data.code) >= 400)
   ) {
-    const errors = Array.isArray(data.errors) ? data.errors : [];
-    throw Object.assign(new Error(data.message || errors[0] || fallback), {
-      envelope: data,
-    });
+    const message =
+      messageFromBody(data.message) || messageFromBody(data.errors) || fallback;
+    throw Object.assign(new Error(message), { envelope: data });
   }
   return data;
 }
@@ -135,15 +135,5 @@ export async function updateGrnInspection(grnId, lines) {
 export function grnErrorMessage(err, fallback) {
   if (err?.envelope) return err.message || fallback;
   if (isMissingRoute(err)) return "This isn't available on the server yet.";
-  const body = err?.response?.data;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    return (
-      first(body.message) ||
-      first(body.detail) ||
-      first(body.errors) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

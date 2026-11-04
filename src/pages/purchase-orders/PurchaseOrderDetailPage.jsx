@@ -40,6 +40,7 @@ import {
 import LineItemsTable from "@/components/detail/LineItemsTable";
 import ArchiveButton from "@/components/archive/ArchiveButton";
 import { formatMoney } from "@/utils/money";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const statusTone = (status) => {
   const s = String(status || "").toLowerCase();
@@ -82,7 +83,9 @@ const PurchaseOrderDetailPage = () => {
           .then(setGrn)
           .catch(() => setGrn(null));
       } catch (error) {
-        toast.error("Failed to load purchase order details.");
+        toast.error(
+          apiErrorMessage(error, "Failed to load purchase order details."),
+        );
         console.error("Fetch purchase order error:", error);
       } finally {
         if (!quiet) setLoading(false);
@@ -132,9 +135,7 @@ const PurchaseOrderDetailPage = () => {
           return;
         }
       }
-      toast.error(
-        error.response?.data?.detail || "Failed to initiate sales invoice.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to initiate sales invoice."));
       console.error("Send sales invoice error:", error);
     } finally {
       setModalLoading(false);

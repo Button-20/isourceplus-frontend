@@ -143,15 +143,15 @@ export function NavUser({ user }) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => navigate("/dashboard/notifications?tab=inbox")}
+                >
                   <Bell />
                   Notifications
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/onboarding/user")}>
                   <Settings2 />
-                  <span onClick={() => navigate("/onboarding/user")}>
-                    Profile Settings
-                  </span>
+                  Profile Settings
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => navigate("/dashboard/security")}

@@ -31,6 +31,7 @@ import {
   segmentsFor,
   withSignupFooter,
 } from "@/utils/sms";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // SMS resale: buy units from a plan, then send single or bulk messages.
 // The API response shapes weren't specified, so every field is read
@@ -222,8 +223,8 @@ export default function SmsPage() {
     setBalanceLoading(true);
     try {
       setBalance(readBalance(await getSmsBalance()));
-    } catch {
-      toast.error("Couldn't load your SMS balance.");
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Couldn't load your SMS balance."));
     } finally {
       setBalanceLoading(false);
     }
@@ -233,8 +234,8 @@ export default function SmsPage() {
     setPlansLoading(true);
     try {
       setPlans(asList(await getSmsPlans()).map(normalizePlan));
-    } catch {
-      toast.error("Couldn't load SMS plans.");
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Couldn't load SMS plans."));
     } finally {
       setPlansLoading(false);
     }
@@ -246,8 +247,8 @@ export default function SmsPage() {
       setTransactions(
         asList(await getSmsTransactions()).map(normalizeTransaction),
       );
-    } catch {
-      toast.error("Couldn't load SMS transactions.");
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Couldn't load SMS transactions."));
     } finally {
       setTxLoading(false);
     }
@@ -257,8 +258,8 @@ export default function SmsPage() {
     setHistoryLoading(true);
     try {
       setHistory(asList(await getSentSmsHistory()).map(normalizeSent));
-    } catch {
-      toast.error("Couldn't load sent SMS history.");
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Couldn't load sent SMS history."));
     } finally {
       setHistoryLoading(false);
     }
@@ -308,13 +309,8 @@ export default function SmsPage() {
       loadBalance();
       loadHistory();
     } catch (err) {
-      const data = err.response?.data;
       toast.error(
-        data?.detail ||
-          data?.message?.[0] ||
-          data?.recipients?.[0] ||
-          (typeof data === "string" ? data : null) ||
-          "Couldn't send the SMS. Please try again.",
+        apiErrorMessage(err, "Couldn't send the SMS. Please try again."),
       );
     } finally {
       setSending(false);
@@ -342,12 +338,11 @@ export default function SmsPage() {
       loadBalance();
       loadTransactions();
     } catch (err) {
-      const data = err.response?.data;
       toast.error(
-        data?.detail ||
-          data?.plan_id?.[0] ||
-          (typeof data === "string" ? data : null) ||
+        apiErrorMessage(
+          err,
           "Couldn't complete the purchase. Please try again.",
+        ),
       );
     } finally {
       setPurchasingId(null);

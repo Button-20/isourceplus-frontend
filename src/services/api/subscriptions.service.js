@@ -12,7 +12,9 @@
 //
 //   GET  subscriptions/                       the company's subscriptions
 //   POST subscriptions/upgrade/?plan_name&plan_type[&plan_interval]
-//   POST subscriptions/{id}/activate/ | deactivate/   auto-renewal on / off
+//   GET  subscriptions/{id}/                  one subscription
+//   POST subscriptions/{id}/activate/ | deactivate/   reactivate / cancel
+//        (auto-renewal on / off)
 //   GET  subscriptions/{id}/payment-info/update/?is_email=true|false
 //        a link to update the saved card (emailed, or returned)
 //
@@ -22,6 +24,7 @@
 import http from "@/services/lib/http";
 import { storage } from "@/services/lib/storage";
 import { rejectEnvelope } from "@/services/api/grn.service";
+import { apiErrorMessage, messageFromBody } from "@/services/lib/api-error";
 
 export const SUBSCRIPTION_STATUS_LABELS = {
   PROCESSING: "Processing",
@@ -119,13 +122,36 @@ export async function listSubscriptions() {
   return Array.isArray(body) ? body : body?.results || [];
 }
 
-// The company's current subscription (newest first), or null.
-export async function getCurrentSubscription() {
-  const subs = await listSubscriptions();
-  const byNewest = [...subs].sort(
+export async function getSubscription(id) {
+  const { data } = await http.get(`subscriptions/${id}/`);
+  rejectEnvelope(data, "Couldn't load your subscription.");
+  return unwrap(data);
+}
+
+// Everything the management card needs, newest first:
+//   current   — the plan the company holds now (fresh from GET {id}/), or null
+//   cancelled — with no current plan, the latest cancelled one (it can be
+//               reactivated), or null
+//   history   — every subscription
+export async function getSubscriptionOverview() {
+  const history = [...(await listSubscriptions())].sort(
     (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
   );
-  return byNewest.find((s) => CURRENT_STATUSES.includes(s.status)) || null;
+  const held =
+    history.find((s) => !s.status || CURRENT_STATUSES.includes(s.status)) ||
+    null;
+  let current = held;
+  if (held?.id) {
+    try {
+      current = (await getSubscription(held.id)) || held;
+    } catch {
+      /* the list's copy will do */
+    }
+  }
+  const cancelled = held
+    ? null
+    : history.find((s) => s.status === "CANCELLED") || null;
+  return { current, cancelled, history };
 }
 
 // → { checkout } when the upgrade needs a payment, else { subscription }.
@@ -162,6 +188,11 @@ export async function setAutoRenew(id, on) {
   return unwrap(data);
 }
 
+// Cancel = stop renewing (the plan runs to the end of the paid period);
+// reactivate = renew again.
+export const cancelSubscription = (id) => setAutoRenew(id, false);
+export const reactivateSubscription = (id) => setAutoRenew(id, true);
+
 // A link to update the saved card: emailed (→ null) or returned.
 export async function requestCardUpdate(id, { email = false } = {}) {
   const { data } = await http.get(`subscriptions/${id}/payment-info/update/`, {
@@ -180,13 +211,8 @@ export async function requestCardUpdate(id, { email = false } = {}) {
 }
 
 export function subscriptionErrorMessage(err, fallback) {
-  if (err?.envelope || (err && !err.response)) return err.message || fallback;
-  const d = err?.response?.data;
-  return (
-    d?.message ||
-    d?.detail ||
-    (Array.isArray(d?.errors) && d.errors[0]) ||
-    d?.data?.message ||
-    fallback
-  );
+  // Some failures nest the message: { data: { message } }.
+  const body = err?.response?.data;
+  const nested = !messageFromBody(body) && messageFromBody(body?.data?.message);
+  return nested || apiErrorMessage(err, fallback);
 }

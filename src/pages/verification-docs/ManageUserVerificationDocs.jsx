@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -67,7 +68,7 @@ export default function ManageUserVerificationDocs() {
         }
         setDocuments(newDocs);
       } catch (err) {
-        toast.error("Failed to load data");
+        toast.error(apiErrorMessage(err, "Failed to load data"));
         console.error("Fetch error:", err);
       } finally {
         setLoading(false);
@@ -234,11 +235,7 @@ export default function ManageUserVerificationDocs() {
       clearForm();
     } catch (err) {
       console.error("Submit error:", err);
-      toast.error(
-        err.response?.data?.non_field_errors?.[0] ||
-          err.response?.data?.detail ||
-          "Operation failed",
-      );
+      toast.error(apiErrorMessage(err, "Operation failed"));
     } finally {
       setSubmitting(false);
     }
@@ -263,7 +260,7 @@ export default function ManageUserVerificationDocs() {
       setDocuments(newDocs);
     } catch (err) {
       console.error("Delete error:", err);
-      toast.error(err.response?.data?.detail || "Deletion failed");
+      toast.error(apiErrorMessage(err, "Deletion failed"));
     } finally {
       setSubmitting(false);
       setIsModalOpen(false);

@@ -36,6 +36,7 @@
 // every company's notifications.
 import http from "@/services/lib/http";
 import { isMissingRoute } from "@/services/api/offers.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const path = (id, action = "") =>
   `notifications/${encodeURIComponent(id)}/${action}`;
@@ -208,17 +209,5 @@ export async function updateNotificationSettings(id, fields) {
 export function notificationErrorMessage(err, fallback) {
   if (err?.unavailable) return err.message;
   if (isMissingRoute(err)) return "This isn't available on the server yet.";
-  const body = err?.response?.data;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    return (
-      first(body.detail) ||
-      first(body.Detail) ||
-      first(body.message) ||
-      first(body.enabled_categories) ||
-      first(body.quiet_hours_enabled) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

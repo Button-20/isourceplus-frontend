@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // Fallback only — the live list comes from GET procedure-choices/.
 const PROCEDURES = [
@@ -373,12 +374,7 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
       onCreated?.();
       close(false);
     } catch (error) {
-      toast.error(
-        error.response?.data?.non_field_errors?.[0] ||
-          error.response?.data?.title?.[0] ||
-          error.response?.data?.detail ||
-          "Failed to create waybill.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to create waybill."));
     } finally {
       setLoading(false);
     }

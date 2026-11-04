@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { prettify } from "@/utils/choices";
 import { getRecipientStatuses } from "@/services/api/recipients.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const fmt = (v) => {
   const d = v ? new Date(v) : null;
@@ -59,13 +60,8 @@ export default function RecipientStatusesPanel({ resource, refNum }) {
     try {
       setRows(await getRecipientStatuses(resource, refNum));
     } catch (err) {
-      const body = err.response?.data;
       setRows([]);
-      setError(
-        (body && typeof body === "object"
-          ? body.detail || body.message
-          : null) || "Couldn't load recipient statuses.",
-      );
+      setError(apiErrorMessage(err, "Couldn't load recipient statuses."));
     } finally {
       setLoading(false);
     }

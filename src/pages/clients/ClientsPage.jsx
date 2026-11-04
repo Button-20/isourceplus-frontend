@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import AddClientModal from "@/components/clients/AddClientModal";
 import { useAuth } from "@/services/context/app.context";
 import { CLIENT_TYPES, listClients } from "@/services/api/clients.service";
+import { apiErrorMessage, messageFromBody } from "@/services/lib/api-error";
 
 const TAB_ORDER = ["company", "transporter"];
 const TAB_ICONS = { company: Building2, transporter: Truck };
@@ -210,16 +211,12 @@ export default function ClientsPage() {
     } catch (err) {
       setRows([]);
       const status = err.response?.status;
-      const body = err.response?.data;
-      const detail =
-        body && typeof body === "object" ? body.detail || body.message : null;
       setError({
         status,
         message:
-          detail ||
-          (status >= 500
+          status >= 500 && !messageFromBody(err.response?.data)
             ? "The service ran into a problem. Please try again shortly."
-            : "Couldn't load this list."),
+            : apiErrorMessage(err, "Couldn't load this list."),
       });
     } finally {
       setLoading(false);

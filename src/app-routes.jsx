@@ -121,7 +121,9 @@ const fullRoutes = [
   { path: "/faq", element: <FaqPage /> },
   { path: "/use-cases", element: <UseCasesPage /> },
   { path: "/subscription/callback", element: <SubscriptionCallbackPage /> },
-  // The backend's SSO callback redirects here with a one-time ?code=.
+  // The backend's SSO callback redirects to /sso/callback with a one-time
+  // ?code= (or ?error=); /auth/sso/callback is kept as an alias.
+  { path: "/sso/callback", element: <SsoCallbackPage /> },
   { path: "/auth/sso/callback", element: <SsoCallbackPage /> },
 
   {

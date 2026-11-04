@@ -24,6 +24,7 @@ import {
 import { isDraftStatus } from "@/utils/status";
 import ArchiveButton from "@/components/archive/ArchiveButton";
 import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const RFxDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -44,7 +45,7 @@ const RFxDetailPage = () => {
         const response = await authAxios.get(`/rfxs/${refNum}/`);
         setRfx(response.data);
       } catch (error) {
-        toast.error("Failed to load RFx details.");
+        toast.error(apiErrorMessage(error, "Failed to load RFx details."));
         console.error("Fetch RFx details error:", error);
       } finally {
         setLoading(false);
@@ -84,7 +85,7 @@ const RFxDetailPage = () => {
           return;
         }
       }
-      toast.error(error.response?.data?.detail || "Failed to initiate offer.");
+      toast.error(apiErrorMessage(error, "Failed to initiate offer."));
       console.error("Send offer error:", error);
     } finally {
       setModalLoading(false);

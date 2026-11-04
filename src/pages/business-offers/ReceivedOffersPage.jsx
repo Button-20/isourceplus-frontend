@@ -31,6 +31,7 @@ import {
   getReceivedOffers,
   isMissingRoute,
 } from "@/services/api/offers.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const KIND_ICON = { rfx: FileText, tender: Gavel, waybill: Truck };
 
@@ -190,10 +191,7 @@ export default function ReceivedOffersPage({ kind, showTabs = false }) {
       })
       .catch((err) => {
         if (cancelled) return;
-        const msg =
-          err.response?.data?.detail ||
-          err.response?.data?.message ||
-          `Couldn't load your ${cfg.plural}.`;
+        const msg = apiErrorMessage(err, `Couldn't load your ${cfg.plural}.`);
         setEventsError(msg);
         if (page === 1) setEvents([]);
       })
@@ -225,10 +223,10 @@ export default function ReceivedOffersPage({ kind, showTabs = false }) {
       if (isMissingRoute(err)) {
         setOffersError("missing");
       } else {
-        const msg =
-          err.response?.data?.detail ||
-          err.response?.data?.message ||
-          "Couldn't load offers for this event.";
+        const msg = apiErrorMessage(
+          err,
+          "Couldn't load offers for this event.",
+        );
         setOffersError(msg);
         toast.error(msg);
       }

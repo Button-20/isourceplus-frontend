@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/app.context";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -23,10 +24,7 @@ export default function AddExistingEmployeePage() {
       toast.success("Existing user added as employee!");
       setEmail("");
     } catch (err) {
-      const data = err.response?.data || {};
-      toast.error(
-        data.error || data.detail || data.email?.[0] || "Failed to add existing user",
-      );
+      toast.error(apiErrorMessage(err, "Failed to add existing user"));
       console.error(err);
     } finally {
       setLoading(false);

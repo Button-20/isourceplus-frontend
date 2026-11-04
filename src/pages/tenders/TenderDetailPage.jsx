@@ -37,6 +37,7 @@ import {
 } from "@/components/detail/DetailShell";
 import ArchiveButton from "@/components/archive/ArchiveButton";
 import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const statusTone = (status) => {
   const value = (status || "").toLowerCase();
@@ -66,7 +67,7 @@ const TenderDetailPage = () => {
         const response = await authAxios.get(`/tenders/${refNum}/`);
         setTender(response.data);
       } catch (error) {
-        toast.error("Failed to load tender details.");
+        toast.error(apiErrorMessage(error, "Failed to load tender details."));
         console.error("Fetch tender details error:", error);
       } finally {
         setLoading(false);
@@ -108,7 +109,7 @@ const TenderDetailPage = () => {
           return;
         }
       }
-      toast.error(error.response?.data?.detail || "Failed to initiate offer.");
+      toast.error(apiErrorMessage(error, "Failed to initiate offer."));
       console.error("Send offer error:", error);
     } finally {
       setModalLoading(false);
@@ -127,7 +128,7 @@ const TenderDetailPage = () => {
       toast.success("Tender deleted successfully!");
       navigate("/dashboard/tenders");
     } catch (error) {
-      toast.error("Failed to delete tender.");
+      toast.error(apiErrorMessage(error, "Failed to delete tender."));
       console.error("Delete tender error:", error);
     } finally {
       setModalLoading(false);

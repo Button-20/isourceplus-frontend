@@ -28,10 +28,12 @@ import {
 } from "@/services/api/users.service";
 import {
   pendingTokenOf,
-  ssoAvailable,
+  probeRedirect,
+  socialLoginUrl,
   ssoRedirectUrl,
   twoFactorErrorMessage,
 } from "@/services/api/two-factor.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 export const AppContext = createContext();
 
@@ -168,14 +170,7 @@ export const AppProvider = ({ children }) => {
       toast(data.detail || "Signup successful");
       return data;
     } catch (err) {
-      const message =
-        err.response?.data?.non_field_errors?.[0] ||
-        err.response?.data?.email?.[0] ||
-        err.response?.data?.password1?.[0] ||
-        err.response?.data?.password2?.[0] ||
-        err.response?.data?.detail ||
-        err.message ||
-        "Signup failed. Please try again.";
+      const message = apiErrorMessage(err, "Signup failed. Please try again.");
       setError(message);
       toast.error(message);
       throw err;
@@ -238,12 +233,7 @@ export const AppProvider = ({ children }) => {
       await finishLogin(data, navigate);
       return data;
     } catch (err) {
-      const message =
-        err.response?.data?.email?.[0] ||
-        err.response?.data?.password?.[0] ||
-        err.response?.data?.detail ||
-        err.message ||
-        "Login failed. Please try again.";
+      const message = apiErrorMessage(err, "Login failed. Please try again.");
       setError(message);
       toast.error(message, { duration: AUTH_TOAST_MS });
       throw err;
@@ -273,15 +263,24 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Single sign-on: hand off to the provider (via the backend). A missing
-  // route is reported here rather than leaving the user on a 404 page.
-  const ssoLogin = async (provider, label = provider) => {
-    if (await ssoAvailable(provider)) {
-      window.location.assign(ssoRedirectUrl(provider));
+  // Hand off to an identity provider via the backend. If the backend won't
+  // redirect, its reason is shown here instead of leaving the user on an
+  // error page.
+  const handOff = async (url, label) => {
+    const { ok, message } = await probeRedirect(url);
+    if (ok) {
+      window.location.assign(url);
       return;
     }
-    toast.info(`${label} sign-in isn't available yet.`);
+    toast.error(message || `${label} sign-in isn't available yet.`);
   };
+
+  // Enterprise single sign-on (OpenID Connect).
+  const ssoLogin = () => handOff(ssoRedirectUrl(), "Single sign-on");
+
+  // Google / LinkedIn / Facebook.
+  const socialLogin = (provider, label = provider) =>
+    handOff(socialLoginUrl(provider), label);
 
   // Back from the provider: trade the one-time code for the session.
   const completeSsoLogin = async (code, navigate) => {
@@ -383,6 +382,7 @@ export const AppProvider = ({ children }) => {
         login,
         completeTwoFactorLogin,
         ssoLogin,
+        socialLogin,
         completeSsoLogin,
         logout,
         logoutAll,

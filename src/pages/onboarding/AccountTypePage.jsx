@@ -21,6 +21,7 @@ import Logo from "@/components/common/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { canCreateCompany, canCreateTransporter } from "@/utils/account-type";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const ACCOUNT_TYPES = [
   {
@@ -88,9 +89,11 @@ const AccountTypePage = () => {
       try {
         const { data } = await authAxios.get(`user-profiles/${userProfileId}/`);
         if (!cancelled) setJobTitle(data.job_title || null);
-      } catch {
+      } catch (err) {
         if (!cancelled)
-          toast.error("Couldn't load your profile. Please try again.");
+          toast.error(
+            apiErrorMessage(err, "Couldn't load your profile. Please try again."),
+          );
       } finally {
         if (!cancelled) setLoading(false);
       }

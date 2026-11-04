@@ -10,6 +10,7 @@
 // rating is 1–5 or null. Not deployed yet (2026-11-04): every route answers an
 // HTML 404.
 import http from "@/services/lib/http";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // The spec's FeedbackFeatureEnum, used until the choices endpoint answers.
 export const FEEDBACK_FEATURES = [
@@ -76,17 +77,5 @@ export async function deleteFeedback(id) {
 
 export function feedbackErrorMessage(err, fallback) {
   if (notDeployed(err)) return FEEDBACK_UNAVAILABLE;
-  const d = err?.response?.data;
-  if (d && typeof d === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    return (
-      first(d.detail) ||
-      first(d.message) ||
-      first(d.recommendation) ||
-      first(d.feature) ||
-      first(d.rating) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

@@ -29,6 +29,7 @@ import {
   canCreateOrganization,
 } from "@/utils/account-type";
 import ScrollToTop from "./ScrollToTop";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const JOB_TITLES = [
   "logistics manager",
@@ -47,22 +48,6 @@ const fieldClass =
 
 // Backend caps job_position at 255 characters (CharField max_length).
 const MAX_JOB_POSITION = 255;
-
-// Turn an API error body into a human-readable message. Handles a plain string,
-// DRF's `{ detail }`, and field errors like `{ job_position: ["too long"] }` so
-// the user sees the real reason instead of a generic failure.
-function extractApiError(data, fallback) {
-  if (!data) return fallback;
-  if (typeof data === "string") return data;
-  if (data.detail) return data.detail;
-  const firstKey = Object.keys(data)[0];
-  if (!firstKey) return fallback;
-  const value = data[firstKey];
-  const message = Array.isArray(value) ? value[0] : value;
-  if (typeof message !== "string") return fallback;
-  if (firstKey === "non_field_errors") return message;
-  return `${firstKey.replace(/_/g, " ")}: ${message}`;
-}
 
 const ProfileForm = ({ profileId }) => {
   const { authAxios, userProfileId } = useAuth();
@@ -102,7 +87,12 @@ const ProfileForm = ({ profileId }) => {
         });
         if (data.profile_photo) setPhotoPreview(data.profile_photo);
       } catch (error) {
-        toast.error("Failed to load profile. Please log in again.");
+        toast.error(
+          apiErrorMessage(
+            error,
+            "Failed to load profile. Please log in again.",
+          ),
+        );
       } finally {
         setFetching(false);
       }
@@ -200,9 +190,7 @@ const ProfileForm = ({ profileId }) => {
         );
       }
     } catch (error) {
-      toast.error(
-        extractApiError(error.response?.data, "Failed to update profile."),
-      );
+      toast.error(apiErrorMessage(error, "Failed to update profile."));
     } finally {
       setLoading(false);
     }

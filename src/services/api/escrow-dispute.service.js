@@ -13,6 +13,7 @@
 // must be SECURED or DISPUTED with funds on hold.
 import http from "@/services/lib/http";
 import { rejectEnvelope } from "@/services/api/grn.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // Grouped by the side that usually raises them — the server has the final
 // say on which reasons each party may use.
@@ -87,21 +88,5 @@ export async function listRaisedDisputes({ status, page = 1 }) {
 
 export function disputeErrorMessage(err, fallback) {
   if (err?.envelope) return err.message || fallback;
-  const body = err?.response?.data;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    const fieldErr =
-      body.errors && typeof body.errors === "object"
-        ? first(Object.values(body.errors)[0])
-        : null;
-    return (
-      first(body.message) ||
-      first(body.detail) ||
-      fieldErr ||
-      first(body.amount_in_dispute) ||
-      first(body.reason) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

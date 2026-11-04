@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/common/Logo";
 import { passwordResetRequest } from "@/services/api/auth.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -26,9 +27,7 @@ export function ForgotPasswordPage() {
       toast.success("Password reset link sent to your email");
     } catch (error) {
       toast.error(
-        error.response?.data?.email?.[0] ||
-          error.response?.data?.detail ||
-          "Failed to send reset link. Please try again.",
+        apiErrorMessage(error, "Failed to send reset link. Please try again."),
       );
     } finally {
       setLoading(false);

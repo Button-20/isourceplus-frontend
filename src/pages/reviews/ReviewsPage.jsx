@@ -32,6 +32,7 @@ import {
   getReceivedReviews,
   deleteReview,
 } from "@/services/api/reviews.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const asList = (data) => (Array.isArray(data) ? data : data?.results || []);
 
@@ -149,9 +150,9 @@ const ReviewsPage = () => {
     setMineLoading(true);
     try {
       setMine(asList(await getOrganizationReviews()));
-    } catch {
+    } catch (err) {
       setMine([]);
-      toast.error("Failed to load your reviews.");
+      toast.error(apiErrorMessage(err, "Failed to load your reviews."));
     } finally {
       setMineLoading(false);
     }
@@ -161,9 +162,9 @@ const ReviewsPage = () => {
     setReceivedLoading(true);
     try {
       setReceived(asList(await getReceivedReviews()));
-    } catch {
+    } catch (err) {
       setReceived([]);
-      toast.error("Failed to load received reviews.");
+      toast.error(apiErrorMessage(err, "Failed to load received reviews."));
     } finally {
       setReceivedLoading(false);
     }
@@ -192,7 +193,7 @@ const ReviewsPage = () => {
       fetchMine();
       fetchReceived();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to delete review.");
+      toast.error(apiErrorMessage(err, "Failed to delete review."));
     } finally {
       setDeleting(false);
     }

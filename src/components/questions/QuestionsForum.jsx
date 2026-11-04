@@ -11,6 +11,7 @@ import {
   submitAnswer,
   submitQuestion,
 } from "@/services/api/questions.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // Reusable Q&A forum for an entity detail page (iSourcePlus Q&A API). Drop in
 // with the entity slug and the parent resource's UUID:
@@ -56,9 +57,7 @@ function QuestionCard({ q }) {
       toast.success("Answer submitted.");
     } catch (err) {
       toast.error(
-        err.response?.data?.detail ||
-          err.response?.data?.answer?.[0] ||
-          "Couldn't submit the answer. Please try again.",
+        apiErrorMessage(err, "Couldn't submit the answer. Please try again."),
       );
     } finally {
       setSending(false);
@@ -158,8 +157,8 @@ export default function QuestionsForum({ entity, refNum, className }) {
     setLoading(true);
     try {
       setQuestions(await getQuestions(entity, refNum));
-    } catch {
-      toast.error("Couldn't load questions.");
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Couldn't load questions."));
     } finally {
       setLoading(false);
     }
@@ -182,9 +181,10 @@ export default function QuestionsForum({ entity, refNum, className }) {
       toast.success("Question submitted.");
     } catch (err) {
       toast.error(
-        err.response?.data?.detail ||
-          err.response?.data?.question?.[0] ||
+        apiErrorMessage(
+          err,
           "Couldn't submit your question. Please try again.",
+        ),
       );
     } finally {
       setSubmitting(false);

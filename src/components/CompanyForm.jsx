@@ -26,6 +26,7 @@ import { getDistrictChoices } from "@/services/api/transporters.service";
 // transporter and waitlist forms, so regions stay consistent across the app.
 import { getRegionChoices } from "@/services/api/waitlist.service";
 import { useAuth } from "@/services/context/app.context";
+import { apiErrorMessage } from "@/services/lib/api-error";
 import { storage } from "@/services/lib/storage";
 import { normalizeChoices, prettify } from "@/utils/choices";
 import { compressImage } from "@/utils/compress-image";
@@ -294,10 +295,10 @@ const CompanyForm = () => {
       .then((d) => {
         if (!cancelled) setRegionChoices(normalizeChoices(d));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setRegionChoices([]);
-          toast.error("Couldn't load regions.");
+          toast.error(apiErrorMessage(err, "Couldn't load regions."));
         }
       })
       .finally(() => {
@@ -334,10 +335,12 @@ const CompanyForm = () => {
       .then((data) => {
         if (!cancelled) setIndustryChoices(normalizeChoices(data));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setIndustryChoices([]);
-          toast.error("Couldn't load industries for that type.");
+          toast.error(
+            apiErrorMessage(err, "Couldn't load industries for that type."),
+          );
         }
       })
       .finally(() => {
@@ -361,10 +364,15 @@ const CompanyForm = () => {
       .then((data) => {
         if (!cancelled) setSubCategoryChoices(normalizeChoices(data));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setSubCategoryChoices([]);
-          toast.error("Couldn't load sub-categories for that industry.");
+          toast.error(
+            apiErrorMessage(
+              err,
+              "Couldn't load sub-categories for that industry.",
+            ),
+          );
         }
       })
       .finally(() => {
@@ -387,10 +395,10 @@ const CompanyForm = () => {
       .then((d) => {
         if (!cancelled) setDistrictChoices(normalizeChoices(d));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setDistrictChoices([]);
-          toast.error("Couldn't load districts.");
+          toast.error(apiErrorMessage(err, "Couldn't load districts."));
         }
       })
       .finally(() => {
@@ -568,8 +576,10 @@ const CompanyForm = () => {
     } catch (err) {
       console.error("Registration failed:", err);
       toast.error(
-        err.response?.data?.detail ||
+        apiErrorMessage(
+          err,
           "Registration failed. Please check your details and try again.",
+        ),
       );
     } finally {
       setSubmitting(false);

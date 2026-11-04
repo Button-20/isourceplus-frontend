@@ -37,6 +37,7 @@ import {
   getTransportMeansChoices,
 } from "@/services/api/transporters.service";
 import { getRegionChoices } from "@/services/api/waitlist.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const MAX_BIO = 255;
@@ -312,7 +313,7 @@ export default function EditTransporter() {
             toast.error("No transporter associated with this user");
           }
         } catch (err) {
-          toast.error("Failed to load transporter ID");
+          toast.error(apiErrorMessage(err, "Failed to load transporter ID"));
           console.error("Fetch user error:", err);
         } finally {
           setIdLoading(false);
@@ -362,8 +363,8 @@ export default function EditTransporter() {
           setFiles({ logo: null, image_front_view: null });
           setExistingVehicleImages(vehicleImageUrls(data.vehicle_images));
           setVehicleImages([]);
-        } catch {
-          toast.error("Failed to load transporter data");
+        } catch (err) {
+          toast.error(apiErrorMessage(err, "Failed to load transporter data"));
         } finally {
           setLoading(false);
         }
@@ -575,17 +576,7 @@ export default function EditTransporter() {
       navigate("/dashboard");
     } catch (err) {
       console.error("Update error:", err);
-      const data = err.response?.data;
-      const vehicleErr = data?.vehicle_images?.[0];
-      toast.error(
-        data?.detail ||
-          data?.country?.[0] ||
-          data?.logo?.[0] ||
-          data?.image_front_view?.[0] ||
-          (typeof vehicleErr === "string" ? vehicleErr : vehicleErr?.file?.[0]) ||
-          (typeof data === "string" ? data : null) ||
-          "Update failed",
-      );
+      toast.error(apiErrorMessage(err, "Update failed"));
     } finally {
       setSubmitting(false);
     }

@@ -17,6 +17,7 @@ import {
   fundPurchaseOrderEscrow,
   PAYMENT_METHODS,
 } from "@/services/api/escrow.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -54,10 +55,7 @@ export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured 
       onOpenChange(false);
     } catch (err) {
       toast.error(
-        err.response?.data?.message ||
-          err.response?.data?.errors?.payment_method?.[0] ||
-          err.response?.data?.detail ||
-          "Failed to fund escrow. Please try again.",
+        apiErrorMessage(err, "Failed to fund escrow. Please try again."),
       );
     } finally {
       setSaving(false);

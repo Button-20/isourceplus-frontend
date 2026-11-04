@@ -11,6 +11,7 @@
 import http from "@/services/lib/http";
 import { prettify } from "@/utils/choices";
 import { resolveMediaUrl } from "@/services/lib/env";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const BASE = { company: "companies", transporter: "transporters" };
 
@@ -112,17 +113,5 @@ export async function listClients(orgKind, clientType, { page = 1 } = {}) {
 }
 
 export function clientErrorMessage(err, fallback = "Couldn't add client.") {
-  const body = err?.response?.data;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    return (
-      first(body.detail) ||
-      first(body.message) ||
-      first(body.name) ||
-      first(body.non_field_errors) ||
-      first(body.error) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/app.context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { storage } from "@/services/lib/storage";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const DRAFT_KEY = "addEmployeeFormValues";
@@ -80,10 +81,7 @@ export default function AddNewEmployeePage() {
       setConfirm("");
       navigate("/dashboard/company/employees");
     } catch (err) {
-      const data = err.response?.data || {};
-      toast.error(
-        data.detail || data.error || data.email?.[0] || "Failed to create employee",
-      );
+      toast.error(apiErrorMessage(err, "Failed to create employee"));
       console.error(err);
     } finally {
       setProfileLoading(false);

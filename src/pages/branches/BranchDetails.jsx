@@ -26,6 +26,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 function Field({ icon: Icon, label, value }) {
   return (
@@ -55,7 +56,7 @@ const BranchDetails = () => {
         const response = await authAxios.get(`branches/${id}/`);
         setBranch(response.data);
       } catch (err) {
-        toast.error("Failed to load branch details");
+        toast.error(apiErrorMessage(err, "Failed to load branch details"));
         console.error("Error fetching branch:", err);
         navigate("/dashboard/branches", { replace: true });
       } finally {
@@ -72,7 +73,7 @@ const BranchDetails = () => {
       toast.success("Branch deleted successfully!");
       navigate("/dashboard/branches");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to delete branch");
+      toast.error(apiErrorMessage(err, "Failed to delete branch"));
       console.error("Error deleting branch:", err);
     } finally {
       setDeleting(false);

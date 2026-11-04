@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // Fallback only — the live list comes from GET spend-category-choices/.
 const SPEND_CATEGORIES = [
@@ -502,7 +503,7 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
       onCreated?.();
       close(false);
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to create RFx.");
+      toast.error(apiErrorMessage(error, "Failed to create RFx."));
     } finally {
       setLoading(false);
     }

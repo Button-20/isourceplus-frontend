@@ -6,6 +6,7 @@
 // is a 404); the detail route accepts PATCH, so approval sets the record's
 // own `is_approved` flag — the same field the create forms send.
 import http from "@/services/lib/http";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 export async function approveProformaInvoice(refNum) {
   const { data } = await http.patch(
@@ -16,16 +17,5 @@ export async function approveProformaInvoice(refNum) {
 }
 
 export function proformaErrorMessage(err, fallback) {
-  const body = err?.response?.data;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    return (
-      first(body.message) ||
-      first(body.detail) ||
-      first(body.is_approved) ||
-      first(body.non_field_errors) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

@@ -29,6 +29,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const AllBranches = () => {
   const { authAxios } = useAuth();
@@ -64,7 +65,7 @@ const AllBranches = () => {
           currentPage: page,
         });
       } catch (err) {
-        toast.error("Failed to fetch branches");
+        toast.error(apiErrorMessage(err, "Failed to fetch branches"));
         console.error("Error fetching branches:", err);
       } finally {
         setLoading(false);
@@ -93,7 +94,7 @@ const AllBranches = () => {
       setDeleteModal(null);
       fetchBranches(pagination.currentPage, searchTerm);
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to delete branch");
+      toast.error(apiErrorMessage(err, "Failed to delete branch"));
       console.error("Error deleting branch:", err);
     } finally {
       setDeleting(false);

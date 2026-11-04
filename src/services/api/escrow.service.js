@@ -14,6 +14,7 @@
 // segment is the purchase order's `ref_num` (the detail-page route param) — the
 // spec resolves the PO by ref_num.
 import http from "@/services/lib/http";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 export const PAYMENT_METHODS = ["MoMo", "Bank", "Card"];
 
@@ -96,21 +97,7 @@ export async function payPurchaseOrderManually(
 
 // First useful message from an escrow / payment error response.
 export function escrowErrorMessage(err, fallback) {
-  const body = err?.response?.data;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    const fieldErr = body.errors && Object.values(body.errors)[0];
-    return (
-      first(body.message) ||
-      first(body.detail) ||
-      first(body.reason) ||
-      first(body.payment_method) ||
-      first(body.payment_ref) ||
-      first(fieldErr) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }
 
 // POST purchase-orders/<ref_num>/confirm/receipt/goods-or-service/

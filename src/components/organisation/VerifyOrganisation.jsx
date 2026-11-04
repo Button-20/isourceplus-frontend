@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { verifyOrganisation } from "@/services/api/organisation.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -51,12 +52,10 @@ export default function VerifyOrganisation({
       setResult({ ok: true, name });
       onVerified?.({ tin, organisationName: name });
     } catch (err) {
-      const data = err.response?.data;
-      const message =
-        data?.message ||
-        data?.errors?.tin?.[0] ||
-        data?.detail ||
-        "Couldn't verify that TIN. Please check it and try again.";
+      const message = apiErrorMessage(
+        err,
+        "Couldn't verify that TIN. Please check it and try again.",
+      );
       setResult({ ok: false, message });
     } finally {
       setLoading(false);

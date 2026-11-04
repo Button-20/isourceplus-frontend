@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -48,10 +49,7 @@ export default function AddEmployeeModal({ open, onOpenChange, onAdded }) {
       onAdded?.();
       close(false);
     } catch (err) {
-      const data = err.response?.data || {};
-      toast.error(
-        data.detail || data.error || data.email?.[0] || "Failed to add employee",
-      );
+      toast.error(apiErrorMessage(err, "Failed to add employee"));
     } finally {
       setAdding(false);
     }

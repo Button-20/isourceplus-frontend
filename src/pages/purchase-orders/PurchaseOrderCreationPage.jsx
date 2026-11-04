@@ -21,6 +21,7 @@ import {
 } from "@/services/api/choices.service";
 import { normalizeChoices } from "@/utils/choices";
 import LineItemsTable from "@/components/detail/LineItemsTable";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -219,8 +220,10 @@ const PurchaseOrderCreationPage = () => {
           items: auto.items || [],
         }));
       } catch (err) {
-        const errorMessage =
-          err.response?.data?.detail || "Failed to load auto-population data.";
+        const errorMessage = apiErrorMessage(
+          err,
+          "Failed to load auto-population data.",
+        );
         setError(errorMessage);
         toast.error(errorMessage);
         console.error("Fetch auto-population data error:", err);
@@ -265,16 +268,7 @@ const PurchaseOrderCreationPage = () => {
       toast.success("Purchase order created successfully!");
       navigate("/dashboard/purchase-orders");
     } catch (err) {
-      const data = err.response?.data;
-      toast.error(
-        data?.detail ||
-          data?.title?.[0] ||
-          data?.type?.[0] ||
-          data?.preferred_payment_channel?.[0] ||
-          data?.currency?.[0] ||
-          data?.fund_escrow?.[0] ||
-          "Failed to create purchase order.",
-      );
+      toast.error(apiErrorMessage(err, "Failed to create purchase order."));
       console.error("Create purchase order error:", err);
     } finally {
       setSubmitting(false);

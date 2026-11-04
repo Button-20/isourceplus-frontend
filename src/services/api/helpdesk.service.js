@@ -10,6 +10,7 @@
 // Submitters can't edit or delete. status / queue / due_date / resolution
 // are server-controlled. Priority 1 (Critical) is clamped to 2 server-side.
 import http from "@/services/lib/http";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // tone → DetailShell StatusBadge: warn = awaiting support, open = resolved.
 export const TICKET_STATUS = {
@@ -75,18 +76,5 @@ export async function createTicket({
 }
 
 export function helpdeskErrorMessage(err, fallback) {
-  const body = err?.response?.data;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    return (
-      first(body.detail) ||
-      first(body.message) ||
-      first(body.title) ||
-      first(body.description) ||
-      first(body.priority) ||
-      first(body.attachment) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

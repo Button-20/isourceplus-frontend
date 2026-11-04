@@ -3,57 +3,75 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
+  Building2,
   Eye,
   EyeOff,
-  Mail,
   ShieldCheck,
 } from "lucide-react";
-import { FaFacebook, FaLinkedin } from "react-icons/fa";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AuthBrandPanel, { AuthBrandHeader } from "@/components/auth/AuthBrandPanel";
+import {
+  FacebookLogo,
+  GoogleLogo,
+  LinkedInLogo,
+} from "@/components/auth/BrandIcons";
 import { useAuth } from "@/services/context/app.context";
 
-// Single sign-on through the backend (account_auth/sso/redirect/{provider}/).
-function SocialButtons({ onProvider }) {
+// Social sign-in (auth/{provider}/) and enterprise single sign-on
+// (account_auth/sso/redirect/default/), both handed off through the backend.
+function SocialButtons() {
+  const { socialLogin, ssoLogin } = useAuth();
   const [busy, setBusy] = useState("");
   const go = async (provider, label) => {
     setBusy(provider);
     try {
-      await onProvider(provider, label);
+      await (provider === "sso" ? ssoLogin() : socialLogin(provider, label));
     } finally {
       setBusy("");
     }
   };
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
+        <Button
+          variant="outline"
+          type="button"
+          disabled={Boolean(busy)}
+          onClick={() => go("linkedin", "LinkedIn")}
+        >
+          <LinkedInLogo />
+          <span className="ml-1.5 hidden sm:inline">LinkedIn</span>
+        </Button>
+        <Button
+          variant="outline"
+          type="button"
+          disabled={Boolean(busy)}
+          onClick={() => go("google", "Google")}
+        >
+          <GoogleLogo />
+          <span className="ml-1.5 hidden sm:inline">Google</span>
+        </Button>
+        <Button
+          variant="outline"
+          type="button"
+          disabled={Boolean(busy)}
+          onClick={() => go("facebook", "Facebook")}
+        >
+          <FacebookLogo />
+          <span className="ml-1.5 hidden sm:inline">Facebook</span>
+        </Button>
+      </div>
       <Button
         variant="outline"
         type="button"
+        className="w-full"
         disabled={Boolean(busy)}
-        onClick={() => go("linkedin", "LinkedIn")}
+        onClick={() => go("sso")}
       >
-        <FaLinkedin className="text-[#0077B5]" />
-        <span className="ml-1.5 hidden sm:inline">LinkedIn</span>
-      </Button>
-      <Button
-        variant="outline"
-        type="button"
-        disabled={Boolean(busy)}
-        onClick={() => go("google", "Google")}
-      >
-        <Mail className="h-4 w-4" />
-        <span className="ml-1.5 hidden sm:inline">Google</span>
-      </Button>
-      <Button
-        variant="outline"
-        type="button"
-        disabled={Boolean(busy)}
-        onClick={() => go("facebook", "Facebook")}
-      >
-        <FaFacebook className="text-[#1877F2]" />
-        <span className="ml-1.5 hidden sm:inline">Facebook</span>
+        <Building2 className="h-4 w-4" />
+        <span className="ml-1.5">Company single sign-on (SSO)</span>
       </Button>
     </div>
   );
@@ -70,8 +88,10 @@ function TwoFactorStep({ pendingToken, onBack }) {
     e.preventDefault();
     try {
       await completeTwoFactorLogin(pendingToken, code, navigate);
-    } catch {
-      /* error surfaced via context toast + error state */
+    } catch (err) {
+      // The pending token lasts 5 minutes; once it's expired the password
+      // step has to be redone. Other errors show via the context's toast.
+      if (err?.response?.status === 401) onBack();
     }
   };
 
@@ -160,7 +180,7 @@ function Divider({ children }) {
 }
 
 export function LoginPage() {
-  const { login, loading, error, ssoLogin } = useAuth();
+  const { login, loading, error } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -274,7 +294,7 @@ export function LoginPage() {
               )}
 
               <Divider>or continue with</Divider>
-              <SocialButtons onProvider={ssoLogin} />
+              <SocialButtons />
             </>
           )}
         </div>
@@ -284,7 +304,7 @@ export function LoginPage() {
 }
 
 export function SignUpPage() {
-  const { signup, loading, error, ssoLogin } = useAuth();
+  const { signup, loading, error } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -381,7 +401,7 @@ export function SignUpPage() {
           )}
 
           <Divider>or continue with</Divider>
-          <SocialButtons onProvider={ssoLogin} />
+          <SocialButtons />
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             By continuing, you agree to our{" "}

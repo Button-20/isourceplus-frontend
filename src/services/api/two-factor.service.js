@@ -1,6 +1,6 @@
 // Two-factor authentication (TOTP) and single sign-on (SwaggerHub
-// "2fa_sso_api", 2026-11-04). The spec lists these under /account_auth/; like
-// the other auth routes they're served under /api/v1/.
+// "2fa_sso_api" + the backend's sso-2fa-integration.md, 2026-11-04). All under
+// /api/v1/.
 //
 //   GET  account_auth/2fa/status/          → { is_enabled }
 //   POST account_auth/2fa/enroll/          → { totp_secret, provisioning_uri,
@@ -9,18 +9,25 @@
 //   POST account_auth/2fa/disable/         { password, code } → { message }
 //   POST account_auth/2fa/backup-codes/    { password, code } → { backup_codes }
 //   POST account_auth/2fa/verify/          { pending_token, code } → tokens
-//        (finishes a login that answered two_fa_required: true)
+//        (finishes a login that answered { two_fa_required: true,
+//        pending_token, pending_token_expires_in: 300 }). 400 bad code,
+//        401 expired pending token, 429 locked out (5 misses → 5 minutes).
 //
-//   GET  account_auth/sso/redirect/{provider}/  → 302 to the identity provider
-//   GET  account_auth/sso/callback/             (the provider returns here; the
-//        backend redirects to the frontend with a one-time code)
-//   POST account_auth/sso/exchange/        { code } → tokens
+// Enterprise SSO (OpenID Connect; the only provider slug is "default"):
+//   GET  account_auth/sso/redirect/default/  → 302 to the identity provider
+//   GET  account_auth/sso/callback/          (the IdP returns here; the backend
+//        redirects to the frontend /sso/callback?code=… or ?error=<message>)
+//   POST account_auth/sso/exchange/          { code } → tokens or 2FA challenge
+//        (the code is single-use and lasts 5 minutes)
 //
-// Not deployed yet (2026-11-04): every route above answers an HTML 404.
+// Google / LinkedIn / Facebook are a separate, older social-login flow:
+//   GET  auth/{provider}/  → 302 to the provider
+//
 // `code` accepts a TOTP code or a backup code.
 import http from "@/services/lib/http";
 import { ensureCsrfToken } from "@/services/lib/csrf";
 import { getApiBaseUrl } from "@/services/lib/env";
+import { apiErrorMessage, messageFromBody } from "@/services/lib/api-error";
 
 export async function getTwoFactorStatus() {
   const { data } = await http.get("account_auth/2fa/status/");
@@ -72,30 +79,44 @@ export function qrCodeSrc(qr) {
   return `data:image/png;base64,${v}`;
 }
 
-// The login's pending 2FA token (its field name isn't in the spec).
-export const pendingTokenOf = (data) =>
-  data?.pending_token || data?.two_fa_token || data?.temp_token || "";
+// The login's pending 2FA token.
+export const pendingTokenOf = (data) => data?.pending_token || "";
 
-// Single sign-on. Provider ids aren't in the spec; these match the buttons.
-export const SSO_PROVIDERS = ["linkedin", "google", "facebook"];
+// Enterprise SSO's only provider slug.
+export const SSO_PROVIDER = "default";
 
-export const ssoRedirectUrl = (provider) =>
+export const ssoRedirectUrl = (provider = SSO_PROVIDER) =>
   `${getApiBaseUrl()}account_auth/sso/redirect/${encodeURIComponent(provider)}/`;
 
-// Whether the backend will hand this provider off (a redirect) — checked
-// before leaving the page so a missing route doesn't strand the user on the
-// server's 404 page.
-export async function ssoAvailable(provider) {
+// The older social sign-in: google | linkedin | facebook.
+export const socialLoginUrl = (provider) =>
+  `${getApiBaseUrl()}auth/${encodeURIComponent(provider)}/`;
+
+// Whether `url` hands the browser off (a redirect) — checked before leaving
+// the page so the user never lands on a bare error page. → { ok, message }
+// with the backend's reason when it won't (e.g. "SSO is not configured for
+// this provider.").
+export async function probeRedirect(url) {
   try {
-    const res = await fetch(ssoRedirectUrl(provider), {
+    const res = await fetch(url, {
       redirect: "manual",
       credentials: "include",
     });
-    return (
-      res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)
-    );
+    if (
+      res.type === "opaqueredirect" ||
+      (res.status >= 300 && res.status < 400)
+    )
+      return { ok: true };
+    let body = "";
+    try {
+      body = await res.text();
+      body = JSON.parse(body);
+    } catch {
+      /* plain text or HTML */
+    }
+    return { ok: false, message: messageFromBody(body) };
   } catch {
-    return false;
+    return { ok: false, message: "" };
   }
 }
 
@@ -109,17 +130,5 @@ export function twoFactorErrorMessage(
   const status = err?.response?.status;
   const body = err?.response?.data;
   if (status === 404 && typeof body === "string") return unavailable;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    return (
-      first(body.detail) ||
-      first(body.message) ||
-      first(body.code) ||
-      first(body.password) ||
-      first(body.non_field_errors) ||
-      first(body.pending_token) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

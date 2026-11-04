@@ -8,6 +8,7 @@
 // performs the action, never call these speculatively (no prefetching/probing)
 // — only from an explicit, confirmed user action.
 import http from "@/services/lib/http";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 export const ARCHIVE_KINDS = {
   rfx: { base: "rfxs", singular: "RFx", plural: "RFxs" },
@@ -57,9 +58,12 @@ export async function archiveAll(kind) {
   return { data, message: messageOf(data, `All ${plural} archived.`) };
 }
 
-// Readable error for a failed archive call.
+// Readable error for a failed archive call: the backend's own message, else a
+// permission note for a bare 403.
 export const archiveErrorMessage = (err, fallback) =>
-  messageOf(err?.response?.data, null) ||
-  (err?.response?.status === 403
-    ? "You don't have permission to archive this."
-    : fallback);
+  apiErrorMessage(
+    err,
+    err?.response?.status === 403
+      ? "You don't have permission to archive this."
+      : fallback,
+  );

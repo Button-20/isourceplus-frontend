@@ -29,6 +29,7 @@ import {
   isMissingRoute,
   listBusinessInvites,
 } from "@/services/api/invites.service";
+import { apiErrorMessage, messageFromBody } from "@/services/lib/api-error";
 
 // Suppliers see RFx and tender invitations; waybills are transporter-only.
 const TAB_ORDER = ["rfx", "tender"];
@@ -145,16 +146,12 @@ export default function BusinessInvitesPage() {
         setError("missing");
       } else {
         const status = err.response?.status;
-        const body = err.response?.data;
-        const detail =
-          body && typeof body === "object" ? body.detail || body.message : null;
         setError({
           status,
           message:
-            detail ||
-            (status >= 500
+            status >= 500 && !messageFromBody(err.response?.data)
               ? "The invitations service ran into a problem. Please try again shortly."
-              : "Couldn't load your invitations."),
+              : apiErrorMessage(err, "Couldn't load your invitations."),
         });
       }
     } finally {

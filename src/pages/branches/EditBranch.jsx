@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "@/contexts/app.context";
+import { useAuth } from "@/services/context/app.context";
+import { useLocationChoices } from "@/hooks/use-location-choices";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Building, MapPin, Save } from "lucide-react";
 
@@ -13,11 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
-const REGIONS = [{ value: "region", label: "Test Region" }];
-const DISTRICTS = [{ value: "district", label: "Test District" }];
+// Region and district come from the backend enums (useLocationChoices);
+// city and town have no choices endpoint yet (placeholder set matching
+// backend fixtures).
 const CITIES = [{ value: "city", label: "Test City" }];
 const TOWNS = [{ value: "town", label: "Test Town" }];
 
@@ -47,6 +50,19 @@ const EditBranch = () => {
   const set = (patch) => setFormData((v) => ({ ...v, ...patch }));
   const setLoc = (patch) =>
     setFormData((v) => ({ ...v, location: { ...v.location, ...patch } }));
+  // A new region clears the district (districts belong to a region).
+  const setLocField = (key, value) =>
+    setLoc(
+      key === "region" && value !== formData.location?.region
+        ? { region: value, district: "" }
+        : { [key]: value },
+    );
+
+  const { regions, regionsLoading, districts, districtsLoading } =
+    useLocationChoices({
+      region: formData.location?.region,
+      district: formData.location?.district,
+    });
 
   useEffect(() => {
     const fetchBranchData = async () => {
@@ -55,7 +71,7 @@ const EditBranch = () => {
         const response = await authAxios.get(`branches/${id}/`);
         setFormData(response.data);
       } catch (err) {
-        toast.error(err.response?.data?.detail || "Failed to load branch data");
+        toast.error(apiErrorMessage(err, "Failed to load branch data"));
         navigate(`/dashboard/branches/${id}`);
       } finally {
         setLoading(false);
@@ -81,11 +97,7 @@ const EditBranch = () => {
       toast.success("Branch updated successfully!");
       navigate(`/dashboard/branches/${id}`);
     } catch (err) {
-      toast.error(
-        err.response?.data?.detail ||
-          err.response?.data?.location?.non_field_errors?.[0] ||
-          "Error updating branch",
-      );
+      toast.error(apiErrorMessage(err, "Error updating branch"));
       console.error("Error updating branch:", err);
     } finally {
       setSubmitting(false);
@@ -175,8 +187,25 @@ const EditBranch = () => {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              { key: "region", label: "Region", options: REGIONS },
-              { key: "district", label: "District", options: DISTRICTS },
+              {
+                key: "region",
+                label: "Region",
+                options: regions,
+                placeholder: regionsLoading
+                  ? "Loading regions…"
+                  : "Select region",
+              },
+              {
+                key: "district",
+                label: "District",
+                options: districts,
+                disabled: !formData.location.region,
+                placeholder: !formData.location.region
+                  ? "Select a region first"
+                  : districtsLoading
+                    ? "Loading districts…"
+                    : "Select district",
+              },
               { key: "city", label: "City", options: CITIES },
               { key: "town", label: "Town", options: TOWNS },
             ].map((f) => (
@@ -186,10 +215,15 @@ const EditBranch = () => {
                 </label>
                 <Select
                   value={formData.location[f.key]}
-                  onValueChange={(v) => setLoc({ [f.key]: v })}
+                  onValueChange={(v) => setLocField(f.key, v)}
+                  disabled={f.disabled}
                 >
                   <SelectTrigger className="h-10 w-full">
-                    <SelectValue placeholder={`Select ${f.label.toLowerCase()}`} />
+                    <SelectValue
+                      placeholder={
+                        f.placeholder || `Select ${f.label.toLowerCase()}`
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {f.options.map((o) => (

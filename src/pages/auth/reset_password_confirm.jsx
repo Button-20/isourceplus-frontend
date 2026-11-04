@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/common/Logo";
 import { passwordResetConfirm } from "@/services/api/auth.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 export function ResetPasswordConfirmPage() {
   const { uid, token } = useParams();
@@ -43,12 +44,10 @@ export function ResetPasswordConfirmPage() {
       setTimeout(() => navigate("/login"), 2500);
     } catch (error) {
       toast.error(
-        error.response?.data?.new_password1?.[0] ||
-          error.response?.data?.new_password2?.[0] ||
-          error.response?.data?.token?.[0] ||
-          error.response?.data?.uid?.[0] ||
-          error.response?.data?.detail ||
+        apiErrorMessage(
+          error,
           "Failed to reset password. The link may have expired.",
+        ),
       );
     } finally {
       setLoading(false);

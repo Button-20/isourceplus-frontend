@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { normalizeChoices } from "@/utils/choices";
+import { apiErrorMessage } from "@/services/lib/api-error";
 import { storage } from "@/services/lib/storage";
 import {
   getIndustryChoices,
@@ -46,10 +47,10 @@ export default function SwitchToBuyerModal({ open, onOpenChange, onSwitched }) {
       .then((data) => {
         if (!cancelled) setIndustries(normalizeChoices(data));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setIndustries([]);
-          toast.error("Couldn't load buyer industries.");
+          toast.error(apiErrorMessage(err, "Couldn't load buyer industries."));
         }
       })
       .finally(() => {

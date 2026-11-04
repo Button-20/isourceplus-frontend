@@ -52,6 +52,7 @@ import {
   isEventOwner,
   isMissingRoute,
 } from "@/services/api/event-lists.service";
+import { apiErrorMessage, messageFromBody } from "@/services/lib/api-error";
 
 const ICONS = {
   rfx: FileText,
@@ -366,16 +367,12 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
         setError("missing");
       } else {
         const status = err.response?.status;
-        const body = err.response?.data;
-        const detail =
-          body && typeof body === "object" ? body.detail || body.message : null;
         setError({
           status,
           message:
-            detail ||
-            (status >= 500
+            status >= 500 && !messageFromBody(err.response?.data)
               ? "The service ran into a problem. Please try again shortly."
-              : `Couldn't load ${cfg.plural}.`),
+              : apiErrorMessage(err, `Couldn't load ${cfg.plural}.`),
         });
       }
     } finally {
@@ -404,16 +401,7 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
       toast.success(`${row.ref_num} approved.`);
       load();
     } catch (err) {
-      const body = err.response?.data;
-      const first = (v) => (Array.isArray(v) ? v[0] : v);
-      toast.error(
-        (body && typeof body === "object"
-          ? first(body.message) ||
-            first(body.detail) ||
-            first(body.is_approved) ||
-            first(body.non_field_errors)
-          : null) || `Couldn't approve ${row.ref_num}.`,
-      );
+      toast.error(apiErrorMessage(err, `Couldn't approve ${row.ref_num}.`));
       console.error("Approve error:", err);
     } finally {
       setApproving(null);
@@ -431,9 +419,7 @@ export default function EventManagementPage({ kind, kindTabs, listContext }) {
       setToDelete(null);
       load();
     } catch (err) {
-      toast.error(
-        err.response?.data?.detail || `Failed to delete ${cfg.singular}.`,
-      );
+      toast.error(apiErrorMessage(err, `Failed to delete ${cfg.singular}.`));
     } finally {
       setDeleting(false);
     }

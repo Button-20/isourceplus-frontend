@@ -3,6 +3,7 @@
 // client + proxy). Thin async wrappers that return the response body.
 
 import http from "@/services/lib/http";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // GET all companies. DRF list response: { count, next, previous, results }.
 export async function listCompanies() {
@@ -74,18 +75,5 @@ export async function supplierSwitch(body) {
 }
 
 export function supplierSwitchErrorMessage(err, fallback) {
-  const body = err?.response?.data;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    return (
-      first(body.detail) ||
-      first(body.message) ||
-      first(body.industry) ||
-      first(body.sub_category) ||
-      first(body.switch_permission) ||
-      first(body.error) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

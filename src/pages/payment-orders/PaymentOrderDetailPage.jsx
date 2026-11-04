@@ -47,6 +47,7 @@ import {
 } from "@/components/detail/DetailShell";
 import { isDraftStatus, normalizeStatus } from "@/utils/status";
 import WaybillPanel from "@/components/waybills/WaybillPanel";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -147,7 +148,9 @@ const PaymentOrderDetailPage = () => {
           payment_method: response.data.payment_method,
         });
       } catch (error) {
-        toast.error("Failed to load payment order details.");
+        toast.error(
+          apiErrorMessage(error, "Failed to load payment order details."),
+        );
         console.error("Fetch payment order error:", error);
       } finally {
         setLoading(false);
@@ -171,9 +174,7 @@ const PaymentOrderDetailPage = () => {
       setPaymentOrder(response.data);
       toast.success("Payment order updated successfully!");
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail || "Failed to update payment order.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to update payment order."));
       console.error("Update error:", error);
     } finally {
       setModalLoading(false);
@@ -249,12 +250,7 @@ const PaymentOrderDetailPage = () => {
         });
       }
       setDispatchErrors(fieldErrors);
-      toast.error(
-        data?.message ||
-          data?.detail ||
-          Object.values(fieldErrors)[0] ||
-          "Failed to dispatch payment order.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to dispatch payment order."));
       console.error("Dispatch error:", error);
     } finally {
       setDispatching(false);
@@ -273,7 +269,7 @@ const PaymentOrderDetailPage = () => {
       toast.success("Payment order deleted successfully!");
       navigate("/dashboard/payment-orders/issued");
     } catch (error) {
-      toast.error("Failed to delete payment order.");
+      toast.error(apiErrorMessage(error, "Failed to delete payment order."));
       console.error("Delete error:", error);
     } finally {
       setModalLoading(false);

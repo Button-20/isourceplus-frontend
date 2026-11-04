@@ -49,6 +49,7 @@ import {
 import { isDraftStatus } from "@/utils/status";
 import LineItemsTable from "@/components/detail/LineItemsTable";
 import { formatMoney } from "@/utils/money";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -113,7 +114,9 @@ const SalesInvoiceDetailPage = () => {
           priority: response.data.priority,
         });
       } catch (error) {
-        toast.error("Failed to load sales invoice details.");
+        toast.error(
+          apiErrorMessage(error, "Failed to load sales invoice details."),
+        );
         console.error("Fetch sales invoice error:", error);
       } finally {
         setLoading(false);
@@ -141,9 +144,7 @@ const SalesInvoiceDetailPage = () => {
       setSalesInvoice(response.data);
       toast.success("Sales invoice updated successfully!");
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail || "Failed to update sales invoice.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to update sales invoice."));
       console.error("Update error:", error);
     } finally {
       setModalLoading(false);
@@ -162,7 +163,7 @@ const SalesInvoiceDetailPage = () => {
       toast.success("Sales invoice deleted successfully!");
       navigate("/dashboard/sales-invoices");
     } catch (error) {
-      toast.error("Failed to delete sales invoice.");
+      toast.error(apiErrorMessage(error, "Failed to delete sales invoice."));
       console.error("Delete error:", error);
     } finally {
       setModalLoading(false);
@@ -207,9 +208,7 @@ const SalesInvoiceDetailPage = () => {
           return;
         }
       }
-      toast.error(
-        error.response?.data?.detail || "Failed to initiate payment order.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to initiate payment order."));
       console.error("Send payment order error:", error);
     } finally {
       setModalLoading(false);

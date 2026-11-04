@@ -18,6 +18,7 @@ import { getCompany } from "@/services/api/companies.service";
 import { getTransporter } from "@/services/api/transporters.service";
 import { sendSms } from "@/services/api/sms.service";
 import { invitationMessage, parseRecipients, segmentsFor } from "@/utils/sms";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // "SMS invitation": send the default sign-up invitation, on behalf of the
 // user's organisation, to typed or uploaded numbers. `balance` (units, or
@@ -78,13 +79,8 @@ export default function SmsInviteDialog({
       onSent?.();
       onOpenChange(false);
     } catch (err) {
-      const data = err.response?.data;
       toast.error(
-        data?.detail ||
-          data?.message?.[0] ||
-          data?.recipients?.[0] ||
-          (typeof data === "string" ? data : null) ||
-          "Couldn't send the invitation. Please try again.",
+        apiErrorMessage(err, "Couldn't send the invitation. Please try again."),
       );
     } finally {
       setSending(false);

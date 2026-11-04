@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EmployeeGrid from "@/components/employees/EmployeeGrid";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const AllTransporterEmployees = () => {
   const { authAxios, transporterId } = useAuth();
@@ -26,8 +27,8 @@ const AllTransporterEmployees = () => {
       );
       setEmployees(response.data.all_employees || []);
     } catch (err) {
-      setError(err.message || "Failed to fetch employees");
-      toast.error(err.response?.data?.detail || "Failed to load employees");
+      setError(apiErrorMessage(err, "Failed to fetch employees"));
+      toast.error(apiErrorMessage(err, "Failed to load employees"));
       console.error("Error fetching employees:", err);
     } finally {
       setLoading(false);

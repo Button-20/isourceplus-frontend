@@ -46,6 +46,7 @@ import {
   NO_DELIVERY,
   deliveryFormValue,
 } from "@/utils/delivery";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // Fallback only — the live list comes from GET spend-category-choices/.
 const SPEND_CATEGORIES = [
@@ -298,8 +299,9 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
       .then((d) => {
         if (!cancelled) setRegionChoices(normalizeChoices(d));
       })
-      .catch(() => {
-        if (!cancelled) toast.error("Couldn't load regions.");
+      .catch((err) => {
+        if (!cancelled)
+          toast.error(apiErrorMessage(err, "Couldn't load regions."));
       })
       .finally(() => {
         if (!cancelled) setRegionLoading(false);
@@ -321,10 +323,10 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
       .then((d) => {
         if (!cancelled) setDistrictChoices(normalizeChoices(d));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setDistrictChoices([]);
-          toast.error("Couldn't load districts.");
+          toast.error(apiErrorMessage(err, "Couldn't load districts."));
         }
       })
       .finally(() => {
@@ -485,12 +487,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
       onCreated?.(response.data);
       close(false);
     } catch (error) {
-      toast.error(
-        error.response?.data?.non_field_errors?.[0] ||
-          error.response?.data?.title?.[0] ||
-          error.response?.data?.detail ||
-          "Failed to create tender.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to create tender."));
     } finally {
       setLoading(false);
     }

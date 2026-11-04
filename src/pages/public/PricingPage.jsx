@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  Check,
-  MessageSquare,
-  Building,
-  AlertCircle,
-  CreditCard,
-  Loader2,
-  RefreshCw,
-} from "lucide-react";
+import { Check, MessageSquare, Building, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -15,6 +7,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 import { useAuth } from "@/services/context/app.context";
+import SubscriptionManager from "@/components/subscriptions/SubscriptionManager";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -36,12 +29,9 @@ import {
 } from "@/data/pricing-plans";
 import { isBuyerView } from "@/services/api/event-lists.service";
 import {
-  SUBSCRIPTION_STATUS_LABELS,
   findCheckout,
-  getCurrentSubscription,
-  requestCardUpdate,
+  getSubscriptionOverview,
   saveCheckout,
-  setAutoRenew,
   startSubscriptionCheckout,
   subscriptionErrorMessage,
   upgradeSubscription,
@@ -61,13 +51,6 @@ const ghs = (n) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
-
-const fmtDate = (v) => {
-  const d = v ? new Date(v) : null;
-  return d && !Number.isNaN(d.getTime())
-    ? d.toLocaleDateString(undefined, { dateStyle: "medium" })
-    : null;
-};
 
 const titleCase = (s) =>
   s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
@@ -107,8 +90,12 @@ export function PricingPage({ embedded = false }) {
   const [pending, setPending] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [subscription, setSubscription] = useState(null);
+  // { current, cancelled, history } — see getSubscriptionOverview.
+  const [overview, setOverview] = useState(null);
   const [subLoading, setSubLoading] = useState(false);
+  const [subError, setSubError] = useState("");
+  // The plan the company holds now; plan cards offer to switch from it.
+  const subscription = overview?.current || null;
 
   const plans = PLANS_BY_TAB[activeTab];
   const opportunityLabel =
@@ -135,20 +122,32 @@ export function PricingPage({ embedded = false }) {
 
   const loadSubscription = useCallback(async () => {
     if (!user || !token) {
-      setSubscription(null);
+      setOverview(null);
       return;
     }
     setSubLoading(true);
+    setSubError("");
     try {
-      setSubscription(await getCurrentSubscription());
+      setOverview(await getSubscriptionOverview());
     } catch (err) {
-      // No subscription yet (or none visible): show the plain plan cards.
       console.error("Subscription load error:", err);
-      setSubscription(null);
+      // A 404 just means there's nothing to show yet.
+      if (err?.response?.status === 404) setOverview(null);
+      else
+        setSubError(
+          subscriptionErrorMessage(err, "Please try again in a moment."),
+        );
     } finally {
       setSubLoading(false);
     }
   }, [user, token]);
+
+  const scrollToPlans = () => {
+    if (userRole && activeTab !== userRole) selectTab(userRole);
+    document
+      .getElementById("plans")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   useEffect(() => {
     loadSubscription();
@@ -313,21 +312,23 @@ export function PricingPage({ embedded = false }) {
         </div>
       </section>
 
-      {subscription && (
+      {(overview?.current || overview?.cancelled || subError) && (
         <section className="pb-8">
           <div className="container">
-            <CurrentSubscription
-              subscription={subscription}
+            <SubscriptionManager
+              overview={overview}
               loading={subLoading}
-              onChanged={setSubscription}
+              error={subError}
+              planType={userRole}
               onRefresh={loadSubscription}
+              onChangePlan={scrollToPlans}
             />
           </div>
         </section>
       )}
 
       {/* Plan cards */}
-      <section className="pb-16">
+      <section id="plans" className="scroll-mt-6 pb-16">
         <div className="container grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan) => {
             const interval = intervalOf(selectedIntervals[plan.name]);
@@ -607,196 +608,6 @@ export function PricingPage({ embedded = false }) {
               disabled={isLoading}
             >
               {isLoading ? "Processing..." : "Confirm"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-// The company's current plan: status, dates, auto-renewal and saved card.
-function CurrentSubscription({ subscription, loading, onChanged, onRefresh }) {
-  const [busy, setBusy] = useState("");
-  const [confirmOff, setConfirmOff] = useState(false);
-
-  const status = subscription.status;
-  const renewing = status === "ACTIVE" || status === "ATTENTION";
-  const canResume = status === "NOT_RENEW";
-  const trialEnds =
-    subscription.is_trial && fmtDate(subscription.trial_ends_at);
-  const nextPayment = fmtDate(subscription.next_payment_date);
-
-  const toggleRenew = async (on) => {
-    setBusy(on ? "on" : "off");
-    try {
-      const updated = await setAutoRenew(subscription.id, on);
-      toast.success(
-        on ? "Auto-renewal is back on." : "Auto-renewal is turned off.",
-      );
-      setConfirmOff(false);
-      if (updated && typeof updated === "object" && updated.id) {
-        onChanged(updated);
-      } else {
-        onRefresh();
-      }
-    } catch (err) {
-      toast.error(
-        subscriptionErrorMessage(err, "Couldn't update auto-renewal."),
-      );
-      console.error("Auto-renew error:", err);
-    } finally {
-      setBusy("");
-    }
-  };
-
-  const updateCard = async () => {
-    setBusy("card");
-    try {
-      const link = await requestCardUpdate(subscription.id);
-      if (link) {
-        toast.success("Your card update link is ready.", {
-          duration: 15000,
-          action: {
-            label: "Open",
-            onClick: () => window.open(link, "_blank", "noopener"),
-          },
-        });
-      } else {
-        await requestCardUpdate(subscription.id, { email: true });
-        toast.success("We've emailed you a link to update your card.");
-      }
-    } catch (err) {
-      toast.error(
-        subscriptionErrorMessage(err, "Couldn't get the card update link."),
-      );
-      console.error("Card update error:", err);
-    } finally {
-      setBusy("");
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card p-6 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Your subscription
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <h2 className="font-display text-xl font-bold">
-            {titleCase(subscription.plan) || "Plan"}
-          </h2>
-          {status && (
-            <span
-              className={cn(
-                "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                status === "ACTIVE"
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                  : status === "ATTENTION"
-                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                    : "bg-muted text-muted-foreground",
-              )}
-            >
-              {SUBSCRIPTION_STATUS_LABELS[status] || status}
-            </span>
-          )}
-          {subscription.is_trial && (
-            <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand">
-              Trial
-            </span>
-          )}
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {trialEnds
-            ? `Trial ends ${trialEnds}.`
-            : nextPayment
-              ? canResume
-                ? `Active until ${nextPayment}; it won't renew.`
-                : `Next payment ${nextPayment}.`
-              : ""}
-          {status === "ATTENTION" &&
-            " The last payment didn't go through — update your card."}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onRefresh}
-          disabled={loading || Boolean(busy)}
-          aria-label="Refresh subscription"
-        >
-          <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={updateCard}
-          disabled={Boolean(busy)}
-        >
-          {busy === "card" ? (
-            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-          ) : (
-            <CreditCard className="mr-1.5 h-4 w-4" />
-          )}
-          Update card
-        </Button>
-        {renewing && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setConfirmOff(true)}
-            disabled={Boolean(busy)}
-          >
-            Turn off auto-renewal
-          </Button>
-        )}
-        {canResume && (
-          <Button
-            size="sm"
-            className="bg-brand-gradient text-brand-foreground hover:opacity-90"
-            onClick={() => toggleRenew(true)}
-            disabled={Boolean(busy)}
-          >
-            {busy === "on" && (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-            )}
-            Turn on auto-renewal
-          </Button>
-        )}
-      </div>
-
-      <Dialog
-        open={confirmOff}
-        onOpenChange={(open) => !busy && setConfirmOff(open)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Turn off auto-renewal?</DialogTitle>
-            <DialogDescription>
-              Your plan won&apos;t renew
-              {nextPayment ? ` on ${nextPayment}` : ""}. You can turn
-              auto-renewal back on at any time before then.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmOff(false)}
-              disabled={Boolean(busy)}
-            >
-              Keep it on
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => toggleRenew(false)}
-              disabled={Boolean(busy)}
-            >
-              {busy === "off" && (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              )}
-              Turn off
             </Button>
           </DialogFooter>
         </DialogContent>

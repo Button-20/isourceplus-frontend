@@ -27,6 +27,7 @@ import {
   joinWaitlist,
 } from "@/services/api/waitlist.service";
 import { normalizeChoices } from "@/utils/choices";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // Pre-launch waitlist landing page, built from the "Strategic Plan to Build
 // Subscription Base" brief (Sept 2026 red corrections applied).
@@ -166,10 +167,10 @@ export default function WaitlistPage() {
       .then((data) => {
         if (!cancelled) setRegions(normalizeChoices(data));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setRegions([]);
-          toast.error("Couldn't load regions.");
+          toast.error(apiErrorMessage(err, "Couldn't load regions."));
         }
       })
       .finally(() => {
@@ -224,12 +225,8 @@ export default function WaitlistPage() {
         window.scrollTo({ top: 0, left: 0, behavior: "auto" }),
       );
     } catch (err) {
-      const data = err.response?.data;
       toast.error(
-        data?.email?.[0] ||
-          data?.detail ||
-          (typeof data === "string" ? data : null) ||
-          "Couldn't join the waitlist. Please try again.",
+        apiErrorMessage(err, "Couldn't join the waitlist. Please try again."),
       );
     } finally {
       setSubmitting(false);

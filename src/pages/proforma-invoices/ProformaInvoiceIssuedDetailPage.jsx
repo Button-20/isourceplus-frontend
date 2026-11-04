@@ -32,6 +32,7 @@ import { isDraftStatus } from "@/utils/status";
 import LineItemsTable from "@/components/detail/LineItemsTable";
 import { formatMoney } from "@/utils/money";
 import ArchiveButton from "@/components/archive/ArchiveButton";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const ProformaInvoiceIssuedDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -53,7 +54,9 @@ const ProformaInvoiceIssuedDetailPage = () => {
         const response = await authAxios.get(`proforma-invoices/${refNum}/`);
         setInvoice(response.data);
       } catch (error) {
-        toast.error("Failed to load proforma invoice details.");
+        toast.error(
+          apiErrorMessage(error, "Failed to load proforma invoice details."),
+        );
         console.error("Fetch invoice details error:", error);
       } finally {
         setLoading(false);
@@ -74,7 +77,7 @@ const ProformaInvoiceIssuedDetailPage = () => {
       toast.success("Proforma invoice deleted successfully.");
       navigate("/dashboard/proforma-invoices/issued");
     } catch (error) {
-      toast.error("Failed to delete proforma invoice.");
+      toast.error(apiErrorMessage(error, "Failed to delete proforma invoice."));
       console.error("Delete invoice error:", error);
     } finally {
       setDeleting(false);

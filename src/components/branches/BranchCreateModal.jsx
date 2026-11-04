@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/services/context/app.context";
+import { useLocationChoices } from "@/hooks/use-location-choices";
+import { apiErrorMessage } from "@/services/lib/api-error";
 import {
   Dialog,
   DialogContent,
@@ -28,9 +30,9 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-// API-defined choices (placeholder set matching backend fixtures).
-const REGIONS = [{ value: "region", label: "Test Region" }];
-const DISTRICTS = [{ value: "district", label: "Test District" }];
+// Region and district come from the backend enums (useLocationChoices);
+// city and town have no choices endpoint yet (placeholder set matching
+// backend fixtures).
 const CITIES = [{ value: "city", label: "Test City" }];
 const TOWNS = [{ value: "town", label: "Test Town" }];
 
@@ -62,6 +64,20 @@ export default function BranchCreateModal({ open, onOpenChange, onCreated }) {
   const set = (patch) => setValues((v) => ({ ...v, ...patch }));
   const setLoc = (patch) =>
     setValues((v) => ({ ...v, location: { ...v.location, ...patch } }));
+  // A new region clears the district (districts belong to a region).
+  const setLocField = (key, value) =>
+    setLoc(
+      key === "region" && value !== values.location.region
+        ? { region: value, district: "" }
+        : { [key]: value },
+    );
+
+  const { regions, regionsLoading, districts, districtsLoading } =
+    useLocationChoices({
+      region: values.location.region,
+      district: values.location.district,
+      enabled: open,
+    });
 
   const reset = () => {
     setValues(initialValues());
@@ -104,11 +120,7 @@ export default function BranchCreateModal({ open, onOpenChange, onCreated }) {
       onCreated?.();
       close(false);
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail ||
-          error.response?.data?.location?.non_field_errors?.[0] ||
-          "Failed to create branch.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to create branch."));
     } finally {
       setLoading(false);
     }
@@ -211,8 +223,25 @@ export default function BranchCreateModal({ open, onOpenChange, onCreated }) {
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
-                  { key: "region", label: "Region", options: REGIONS },
-                  { key: "district", label: "District", options: DISTRICTS },
+                  {
+                    key: "region",
+                    label: "Region",
+                    options: regions,
+                    placeholder: regionsLoading
+                      ? "Loading regions…"
+                      : "Select region",
+                  },
+                  {
+                    key: "district",
+                    label: "District",
+                    options: districts,
+                    disabled: !values.location.region,
+                    placeholder: !values.location.region
+                      ? "Select a region first"
+                      : districtsLoading
+                        ? "Loading districts…"
+                        : "Select district",
+                  },
                   { key: "city", label: "City", options: CITIES },
                   { key: "town", label: "Town", options: TOWNS },
                 ].map((f) => (
@@ -222,10 +251,15 @@ export default function BranchCreateModal({ open, onOpenChange, onCreated }) {
                     </label>
                     <Select
                       value={values.location[f.key]}
-                      onValueChange={(v) => setLoc({ [f.key]: v })}
+                      onValueChange={(v) => setLocField(f.key, v)}
+                      disabled={f.disabled}
                     >
                       <SelectTrigger className="h-10 w-full">
-                        <SelectValue placeholder={`Select ${f.label.toLowerCase()}`} />
+                        <SelectValue
+                          placeholder={
+                            f.placeholder || `Select ${f.label.toLowerCase()}`
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {f.options.map((o) => (

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/app.context";
 import { getCookie } from "@/utility/getCookie";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const EmailVerifyKeyPage = () => {
   const { authAxios, BASE_URL } = useAuth();
@@ -31,7 +32,7 @@ const EmailVerifyKeyPage = () => {
         toast.success("Email successfully verified!");
         navigate("/onboarding/user");
       } catch (err) {
-        toast.error(err.response?.data?.detail || "Verification failed");
+        toast.error(apiErrorMessage(err, "Verification failed"));
         setLoading(false);
       }
     };

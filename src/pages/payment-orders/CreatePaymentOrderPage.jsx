@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { getCurrencyChoices } from "@/services/api/choices.service";
 import { normalizeChoices } from "@/utils/choices";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -112,7 +113,9 @@ const CreatePaymentOrderPage = () => {
           items: Array.isArray(auto.items) ? auto.items.map(normalizeItem) : [],
         }));
       } catch (error) {
-        toast.error("Failed to load auto-population data.");
+        toast.error(
+          apiErrorMessage(error, "Failed to load auto-population data."),
+        );
         console.error("Fetch auto-population error:", error);
       } finally {
         setLoading(false);
@@ -179,15 +182,7 @@ const CreatePaymentOrderPage = () => {
       );
       navigate(refNum ? `/dashboard/payment-orders/${refNum}` : "/dashboard/payment-orders");
     } catch (error) {
-      toast.error(
-        error.response?.data?.detail ||
-          error.response?.data?.name?.[0] ||
-          error.response?.data?.title?.[0] ||
-          error.response?.data?.spend_category?.[0] ||
-          error.response?.data?.currency?.[0] ||
-          error.response?.data?.note?.[0] ||
-          "Failed to create payment order.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to create payment order."));
       console.error("Create error:", error);
     } finally {
       setSubmitting(false);

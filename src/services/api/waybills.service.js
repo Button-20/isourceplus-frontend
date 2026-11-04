@@ -14,6 +14,7 @@
 // Lists (in-house / out-sourced / transporter-accessed) live in
 // event-lists.service as the Waybills page's tabs.
 import http from "@/services/lib/http";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const form = (fields) => {
   const fd = new FormData();
@@ -69,19 +70,5 @@ export async function markWaybillArrived(refNum, location) {
 }
 
 export function waybillErrorMessage(err, fallback) {
-  const body = err?.response?.data;
-  if (body && typeof body === "object") {
-    const first = (v) => (Array.isArray(v) ? v[0] : v);
-    const fieldErr = body.errors && Object.values(body.errors)[0];
-    return (
-      first(body.message) ||
-      first(body.detail) ||
-      first(body.origin) ||
-      first(body.destination) ||
-      first(body.location) ||
-      first(fieldErr) ||
-      fallback
-    );
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }

@@ -8,6 +8,7 @@ import { useAuth } from "@/services/context/app.context";
 import Logo from "@/components/common/Logo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const CODE_LENGTH = 6;
 
@@ -69,7 +70,7 @@ const MobileVerificationPage = () => {
       toast.success("Phone number verified successfully!");
       navigate(redirectTo);
     } catch (error) {
-      toast.error(error.response?.data?.error || "Verification failed");
+      toast.error(apiErrorMessage(error, "Verification failed"));
     } finally {
       setLoading(false);
     }
@@ -84,7 +85,7 @@ const MobileVerificationPage = () => {
       toast.success("Verification code resent!");
       startCountdown();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to resend code");
+      toast.error(apiErrorMessage(error, "Failed to resend code"));
       setResendDisabled(false);
     }
   };

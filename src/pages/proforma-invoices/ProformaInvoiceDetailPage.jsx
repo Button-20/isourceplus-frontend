@@ -36,6 +36,7 @@ import {
   proformaErrorMessage,
 } from "@/services/api/proforma.service";
 import { isBuyerView } from "@/services/api/event-lists.service";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const ProformaInvoiceDetailPage = () => {
   const { authAxios, jobTitle, companyId, transporterId, viewMode } = useAuth();
@@ -58,7 +59,9 @@ const ProformaInvoiceDetailPage = () => {
         const response = await authAxios.get(`proforma-invoices/${refNum}/`);
         setInvoice(response.data);
       } catch (error) {
-        toast.error("Failed to load proforma invoice details.");
+        toast.error(
+          apiErrorMessage(error, "Failed to load proforma invoice details."),
+        );
         console.error("Fetch proforma invoice error:", error);
       } finally {
         setLoading(false);
@@ -95,9 +98,7 @@ const ProformaInvoiceDetailPage = () => {
           return;
         }
       }
-      toast.error(
-        error.response?.data?.detail || "Failed to initiate purchase order.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to initiate purchase order."));
       console.error("Send purchase order error:", error);
     } finally {
       setModalLoading(false);

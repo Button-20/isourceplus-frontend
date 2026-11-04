@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { storage } from "@/services/lib/storage";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const DRAFT_KEY = "addBusinessDocsFormValues";
@@ -120,7 +121,7 @@ export default function AddBusinessDocs() {
             } else {
               toast.error(
                 "Failed to load business documents: " +
-                  (err.response?.statusText || err.message),
+                  apiErrorMessage(err, err.response?.statusText || err.message),
               );
               console.error("Fetch error:", err);
             }
@@ -395,14 +396,7 @@ export default function AddBusinessDocs() {
       storage.remove(DRAFT_KEY);
     } catch (err) {
       console.error("Submit error:", err);
-      toast.error(
-        err.response?.data?.orientation?.[0] ||
-          err.response?.data?.upload_files?.[0]?.file?.[0] ||
-          err.response?.data?.doc_type?.[0] ||
-          err.response?.data?.non_field_errors?.[0] ||
-          err.response?.data?.detail ||
-          "Operation failed",
-      );
+      toast.error(apiErrorMessage(err, "Operation failed"));
     } finally {
       setSubmitting(false);
     }
@@ -432,7 +426,7 @@ export default function AddBusinessDocs() {
       setDocuments(newDocs);
     } catch (err) {
       console.error("Delete error:", err);
-      toast.error(err.response?.data?.detail || "Deletion failed");
+      toast.error(apiErrorMessage(err, "Deletion failed"));
     } finally {
       setSubmitting(false);
       setIsModalOpen(false);

@@ -26,6 +26,7 @@ import {
   NO_DELIVERY,
   deliveryPayload,
 } from "@/utils/delivery";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -207,7 +208,9 @@ export default function ProformaOfferForm({
           items: hasItems && Array.isArray(items) ? items.map(emptyItem) : [],
         }));
       } catch (error) {
-        toast.error("Failed to load auto-population data.");
+        toast.error(
+          apiErrorMessage(error, "Failed to load auto-population data."),
+        );
         console.error("Fetch auto-population error:", error);
       } finally {
         setLoading(false);
@@ -328,13 +331,7 @@ export default function ProformaOfferForm({
       );
       navigate(refNum ? `/dashboard/proforma-invoices/${refNum}` : backTo);
     } catch (error) {
-      const data = error.response?.data;
-      toast.error(
-        data?.message ||
-          data?.detail ||
-          data?.non_field_errors?.[0] ||
-          "Failed to create proforma invoice.",
-      );
+      toast.error(apiErrorMessage(error, "Failed to create proforma invoice."));
       console.error("Create proforma invoice error:", error);
     } finally {
       setSubmitting(false);

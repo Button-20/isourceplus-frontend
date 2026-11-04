@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/app.context";
 import { getCookie } from "@/utility/getCookie";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const EmailVerificationPage = () => {
   const { authAxios } = useAuth();
@@ -36,7 +37,7 @@ const EmailVerificationPage = () => {
       toast.success("Verification link sent! Check your inbox.");
       // navigate to “check your email” screen or leave here
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to send link");
+      toast.error(apiErrorMessage(err, "Failed to send link"));
     } finally {
       setLoading(false);
     }

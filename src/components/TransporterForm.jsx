@@ -29,6 +29,7 @@ import { useAuth } from "@/services/context/app.context";
 import { storage } from "@/services/lib/storage";
 import { compressImage } from "@/utils/compress-image";
 import { normalizeChoices, prettify } from "@/utils/choices";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 // Create-transporter form. Matches the Cargo Transporters API (OpenAPI v1):
 // POST /transporters/ as multipart/form-data with required logo +
@@ -230,10 +231,10 @@ const TransporterForm = () => {
       .then((data) => {
         if (!cancelled) setChoices(normalizeChoices(data));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setChoices([]);
-          toast.error(`Couldn't load ${label}.`);
+          toast.error(apiErrorMessage(err, `Couldn't load ${label}.`));
         }
       })
       .finally(() => {
@@ -303,10 +304,10 @@ const TransporterForm = () => {
       .then((d) => {
         if (!cancelled) setDistrictChoices(normalizeChoices(d));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setDistrictChoices([]);
-          toast.error("Couldn't load districts.");
+          toast.error(apiErrorMessage(err, "Couldn't load districts."));
         }
       })
       .finally(() => {
@@ -610,16 +611,8 @@ const TransporterForm = () => {
       navigate("/dashboard/transporter/edit");
     } catch (err) {
       console.error("Registration failed", err);
-      const data = err.response?.data;
-      const vehicleErr = data?.vehicle_images?.[0];
       toast.error(
-        data?.detail ||
-          data?.country?.[0] ||
-          data?.logo?.[0] ||
-          data?.image_front_view?.[0] ||
-          (typeof vehicleErr === "string" ? vehicleErr : vehicleErr?.file?.[0]) ||
-          (typeof data === "string" ? data : null) ||
-          "Registration failed. Please try again.",
+        apiErrorMessage(err, "Registration failed. Please try again."),
       );
     } finally {
       setSubmitting(false);

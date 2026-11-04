@@ -36,6 +36,7 @@ import { getDistrictChoices } from "@/services/api/transporters.service";
 import { getRegionChoices } from "@/services/api/waitlist.service";
 import { normalizeChoices, prettify } from "@/utils/choices";
 import { compressImage } from "@/utils/compress-image";
+import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const MAX_TOTAL_UPLOAD = 900 * 1024; // keep under the backend's ~1MB request cap
@@ -242,7 +243,7 @@ const EditCompany = () => {
             toast.error("No company associated with this user");
           }
         } catch (err) {
-          toast.error("Failed to load company ID");
+          toast.error(apiErrorMessage(err, "Failed to load company ID"));
           console.error("Fetch user error:", err);
         } finally {
           setIdLoading(false);
@@ -293,8 +294,8 @@ const EditCompany = () => {
           logo: data.logo || null,
           image_front_view: data.image_front_view || null,
         });
-      } catch {
-        toast.error("Failed to load company data");
+      } catch (err) {
+        toast.error(apiErrorMessage(err, "Failed to load company data"));
       } finally {
         setLoading(false);
       }
@@ -567,7 +568,7 @@ const EditCompany = () => {
       toast.success("Company updated successfully!");
       navigate("/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Update failed");
+      toast.error(apiErrorMessage(err, "Update failed"));
     } finally {
       setSubmitting(false);
     }
