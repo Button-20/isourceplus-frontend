@@ -1,16 +1,18 @@
-// Subscription management for the signed-in company: what it's on (fresh from
-// GET subscriptions/{id}/), and the actions — change plan (upgrade), cancel,
-// reactivate and update the payment method — plus its subscription history.
-import { useState } from "react";
+// The company's subscriptions as cards. Each card can be viewed in full
+// (fresh from GET subscriptions/{id}/) and cancelled (POST …/deactivate/) or
+// reactivated (POST …/activate/). The plan the company holds now also gets
+// "Change plan" and "Update payment method".
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowUpRight,
   CreditCard,
   ExternalLink,
-  History,
+  Eye,
   Loader2,
   Mail,
+  PackageOpen,
   RefreshCw,
   RotateCcw,
   XCircle,
@@ -29,6 +31,7 @@ import { cn } from "@/lib/utils";
 import {
   SUBSCRIPTION_STATUS_LABELS,
   cancelSubscription,
+  getSubscription,
   reactivateSubscription,
   requestCardUpdate,
   subscriptionErrorMessage,
@@ -48,6 +51,11 @@ const fmtDate = (v) => {
 
 const titleCase = (s) =>
   s ? String(s).charAt(0) + String(s).slice(1).toLowerCase() : "";
+
+// Statuses that still renew, so can be cancelled.
+const CANCELLABLE = ["ACTIVE", "ATTENTION", "PROCESSING"];
+// Statuses that can be switched back on.
+const REACTIVATABLE = ["NOT_RENEW", "CANCELLED"];
 
 const STATUS_STYLES = {
   ACTIVE: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -72,13 +80,245 @@ function StatusBadge({ status }) {
   );
 }
 
-function Detail({ label, children }) {
-  if (!children) return null;
+function Detail({ label, children, className }) {
+  if (!children && children !== 0) return null;
   return (
-    <div>
+    <div className={className}>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-sm font-medium">{children}</dd>
+      <dd className="mt-0.5 text-sm font-medium break-words">{children}</dd>
     </div>
+  );
+}
+
+// One line on what this subscription's status means for the company.
+function statusNote(sub) {
+  const until = fmtDate(sub.next_payment_date);
+  switch (sub.status) {
+    case "ATTENTION":
+      return "The last payment didn't go through. Update your payment method to keep the plan.";
+    case "NOT_RENEW":
+      return `Cancelled — stays active${until ? ` until ${until}` : " until the end of the paid period"}.`;
+    case "CANCELLED":
+      return "This subscription was cancelled.";
+    case "PROCESSING":
+      return "The payment is being processed.";
+    default:
+      return sub.is_upgrading ? "A plan change is being processed." : "";
+  }
+}
+
+function SubscriptionCard({
+  sub,
+  isCurrent,
+  busy,
+  onView,
+  onCancel,
+  onReactivate,
+}) {
+  const nextPayment = fmtDate(sub.next_payment_date);
+  const note = statusNote(sub);
+  return (
+    <div
+      className={cn(
+        "flex flex-col rounded-2xl border bg-card p-5",
+        isCurrent ? "border-brand/40 ring-1 ring-brand/20" : "border-border/70",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {isCurrent ? "Current plan" : "Subscription"}
+          </p>
+          <h3 className="mt-0.5 font-display text-lg font-bold">
+            {titleCase(sub.plan) || "Plan"}
+          </h3>
+        </div>
+        <div className="flex flex-wrap justify-end gap-1.5">
+          <StatusBadge status={sub.status} />
+          {sub.is_trial && (
+            <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand">
+              Trial
+            </span>
+          )}
+        </div>
+      </div>
+
+      <dl className="mt-4 grid flex-1 grid-cols-2 content-start gap-3">
+        <Detail label="Started">
+          {fmtDate(sub.start_date || sub.created_at)}
+        </Detail>
+        <Detail
+          label={sub.status === "NOT_RENEW" ? "Active until" : "Next payment"}
+        >
+          {sub.status === "CANCELLED" || sub.status === "COMPLETED"
+            ? ""
+            : nextPayment}
+        </Detail>
+        <Detail label="Trial ends">
+          {sub.is_trial ? fmtDate(sub.trial_ends_at) : ""}
+        </Detail>
+        <Detail label="Billed to">{sub.entity_name}</Detail>
+      </dl>
+
+      {note && (
+        <p
+          className={cn(
+            "mt-3 text-xs",
+            sub.status === "ATTENTION"
+              ? "text-amber-700 dark:text-amber-300"
+              : "text-muted-foreground",
+          )}
+        >
+          {note}
+        </p>
+      )}
+
+      <div className="mt-4 flex flex-wrap gap-2 border-t border-border/60 pt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onView(sub)}
+          disabled={Boolean(busy)}
+        >
+          <Eye className="mr-1.5 h-4 w-4" />
+          View
+        </Button>
+        {CANCELLABLE.includes(sub.status) && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={() => onCancel(sub)}
+            disabled={Boolean(busy)}
+          >
+            <XCircle className="mr-1.5 h-4 w-4" />
+            Cancel
+          </Button>
+        )}
+        {REACTIVATABLE.includes(sub.status) && (
+          <Button
+            size="sm"
+            className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+            onClick={() => onReactivate(sub)}
+            disabled={Boolean(busy)}
+          >
+            <RotateCcw className="mr-1.5 h-4 w-4" />
+            Reactivate
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Full details of one subscription, read fresh from GET subscriptions/{id}/.
+function ViewSubscriptionDialog({ sub, planType, onClose, onCancel }) {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!sub?.id) return;
+    let cancelled = false;
+    setDetail(sub);
+    setError("");
+    setLoading(true);
+    getSubscription(sub.id)
+      .then((d) => !cancelled && d && setDetail(d))
+      .catch((err) => {
+        if (cancelled) return;
+        setError(
+          subscriptionErrorMessage(
+            err,
+            "Couldn't load the latest details — showing what we have.",
+          ),
+        );
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [sub]);
+
+  const d = detail || sub || {};
+  const nextPayment = fmtDate(d.next_payment_date);
+  const branches = Array.isArray(d.branches) ? d.branches.length : null;
+
+  return (
+    <Dialog open={Boolean(sub)} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="font-montserrat sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex flex-wrap items-center gap-2">
+            {titleCase(d.plan) || "Subscription"}
+            <StatusBadge status={d.status} />
+            {d.is_trial && (
+              <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand">
+                Trial
+              </span>
+            )}
+            {loading && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </DialogTitle>
+          <DialogDescription>
+            {statusNote(d) || "Your subscription details."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {error && (
+          <p className="flex items-start gap-2 rounded-lg bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            {error}
+          </p>
+        )}
+
+        <dl className="grid grid-cols-2 gap-4 rounded-xl border border-border/60 p-4">
+          <Detail label="Plan">{titleCase(d.plan)}</Detail>
+          <Detail label="Plan type">{titleCase(planType)}</Detail>
+          <Detail label="Status">
+            {SUBSCRIPTION_STATUS_LABELS[d.status] || titleCase(d.status)}
+          </Detail>
+          <Detail label="Billed to">{d.entity_name}</Detail>
+          <Detail label="Started">{fmtDate(d.start_date)}</Detail>
+          <Detail
+            label={d.status === "NOT_RENEW" ? "Active until" : "Next payment"}
+          >
+            {d.status === "CANCELLED" || d.status === "COMPLETED"
+              ? ""
+              : nextPayment}
+          </Detail>
+          <Detail label="Trial">{d.is_trial ? "Yes" : "No"}</Detail>
+          <Detail label="Trial ends">
+            {d.is_trial ? fmtDate(d.trial_ends_at) : ""}
+          </Detail>
+          <Detail label="Branches covered">{branches}</Detail>
+          <Detail label="Plan change">
+            {d.is_upgrading ? "In progress" : ""}
+          </Detail>
+          <Detail label="Created">{fmtDate(d.created_at)}</Detail>
+          <Detail label="Last updated">{fmtDate(d.updated_at)}</Detail>
+          <Detail label="Subscription ID" className="col-span-2">
+            {d.id && (
+              <span className="font-mono text-xs text-muted-foreground">
+                {d.id}
+              </span>
+            )}
+          </Detail>
+        </dl>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+          {CANCELLABLE.includes(d.status) && (
+            <Button variant="destructive" onClick={() => onCancel(d)}>
+              <XCircle className="mr-1.5 h-4 w-4" />
+              Cancel subscription
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -87,16 +327,17 @@ export default function SubscriptionManager({
   loading,
   error,
   planType,
+  showEmpty = false,
   onRefresh,
   onChangePlan,
 }) {
-  const { current, cancelled, history = [] } = overview || {};
-  const sub = current || cancelled;
+  const { current, history = [] } = overview || {};
   const [busy, setBusy] = useState("");
-  // "cancel" | "reactivate" | "card" while its dialog is open.
-  const [dialog, setDialog] = useState(null);
+  const [viewing, setViewing] = useState(null);
+  // { sub, mode: "cancel" | "reactivate" } while confirming.
+  const [confirm, setConfirm] = useState(null);
+  const [cardOpen, setCardOpen] = useState(false);
   const [cardLink, setCardLink] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
 
   if (error) {
     return (
@@ -104,7 +345,7 @@ export default function SubscriptionManager({
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
           <div>
-            <p className="font-medium">Couldn&apos;t load your subscription</p>
+            <p className="font-medium">Couldn&apos;t load your subscriptions</p>
             <p className="text-sm text-muted-foreground">{error}</p>
           </div>
         </div>
@@ -117,51 +358,66 @@ export default function SubscriptionManager({
       </div>
     );
   }
-  if (!sub) return null;
 
-  const status = sub.status;
-  const renewing = Boolean(current) && status !== "NOT_RENEW";
-  const canReactivate = status === "NOT_RENEW" || status === "CANCELLED";
-  const nextPayment = fmtDate(sub.next_payment_date);
-  const trialEnds = sub.is_trial ? fmtDate(sub.trial_ends_at) : "";
+  if (history.length === 0) {
+    if (!showEmpty || !overview) return null;
+    return (
+      <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
+          <PackageOpen className="h-5 w-5" />
+        </span>
+        <p className="mt-3 font-display text-base font-semibold">
+          No subscription yet
+        </p>
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+          Choose a plan below to subscribe or start a trial. Your subscription
+          will show here.
+        </p>
+        <Button
+          size="sm"
+          className="mt-4 bg-brand-gradient text-brand-foreground hover:opacity-90"
+          onClick={onChangePlan}
+        >
+          Choose a plan
+        </Button>
+      </div>
+    );
+  }
 
-  const note =
-    status === "ATTENTION"
-      ? "The last payment didn't go through. Update your payment method to keep your plan."
-      : status === "NOT_RENEW"
-        ? `Cancelled — your plan stays active${nextPayment ? ` until ${nextPayment}` : " until the end of the paid period"}. Reactivate to keep it.`
-        : status === "CANCELLED"
-          ? "This subscription was cancelled. Reactivate it, or choose a plan below."
-          : status === "PROCESSING"
-            ? "Your payment is being processed."
-            : sub.is_upgrading
-              ? "Your plan change is being processed."
-              : "";
+  // The current plan first, then the rest newest first.
+  const cards = current
+    ? [current, ...history.filter((h) => h.id !== current.id)]
+    : history;
 
-  const close = () => {
+  const closeCard = () => {
     if (busy) return;
-    setDialog(null);
+    setCardOpen(false);
     setCardLink("");
   };
 
-  const changeRenewal = async (on) => {
-    setBusy(on ? "reactivate" : "cancel");
+  const changeRenewal = async () => {
+    const { sub, mode } = confirm;
+    setBusy(mode);
     try {
-      await (on ? reactivateSubscription(sub.id) : cancelSubscription(sub.id));
+      await (mode === "reactivate"
+        ? reactivateSubscription(sub.id)
+        : cancelSubscription(sub.id));
+      const until = fmtDate(sub.next_payment_date);
       toast.success(
-        on
+        mode === "reactivate"
           ? "Your subscription is active again."
-          : `Subscription cancelled.${nextPayment ? ` Your plan stays active until ${nextPayment}.` : ""}`,
+          : `Subscription cancelled.${until ? ` Your plan stays active until ${until}.` : ""}`,
       );
-      setDialog(null);
+      setConfirm(null);
+      setViewing(null);
       onRefresh();
     } catch (err) {
       toast.error(
         subscriptionErrorMessage(
           err,
-          on
-            ? "Couldn't reactivate your subscription."
-            : "Couldn't cancel your subscription.",
+          mode === "reactivate"
+            ? "Couldn't reactivate the subscription."
+            : "Couldn't cancel the subscription.",
         ),
       );
       console.error("Subscription renewal error:", err);
@@ -173,12 +429,12 @@ export default function SubscriptionManager({
   const getCardLink = async () => {
     setBusy("link");
     try {
-      const link = await requestCardUpdate(sub.id);
+      const link = await requestCardUpdate(current.id);
       if (link) setCardLink(link);
       else {
-        await requestCardUpdate(sub.id, { email: true });
+        await requestCardUpdate(current.id, { email: true });
         toast.success("We've emailed you a link to update your card.");
-        setDialog(null);
+        setCardOpen(false);
       }
     } catch (err) {
       toast.error(
@@ -193,9 +449,9 @@ export default function SubscriptionManager({
   const emailCardLink = async () => {
     setBusy("email");
     try {
-      await requestCardUpdate(sub.id, { email: true });
+      await requestCardUpdate(current.id, { email: true });
       toast.success("We've emailed you a link to update your card.");
-      setDialog(null);
+      setCardOpen(false);
     } catch (err) {
       toast.error(
         subscriptionErrorMessage(err, "Couldn't email the card update link."),
@@ -206,204 +462,108 @@ export default function SubscriptionManager({
     }
   };
 
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-      <div className="flex flex-col gap-4 p-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {current ? "Your subscription" : "Your last subscription"}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-xl font-bold">
-              {titleCase(sub.plan) || "Plan"}
-            </h2>
-            <StatusBadge status={status} />
-            {sub.is_trial && (
-              <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand">
-                Trial
-              </span>
-            )}
-          </div>
-          {note && (
-            <p
-              className={cn(
-                "mt-1.5 text-sm",
-                status === "ATTENTION"
-                  ? "text-amber-700 dark:text-amber-300"
-                  : "text-muted-foreground",
-              )}
-            >
-              {note}
-            </p>
-          )}
-        </div>
+  const confirmSub = confirm?.sub;
+  const confirmUntil = fmtDate(confirmSub?.next_payment_date);
 
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-display text-lg font-semibold">
+            Your subscriptions
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            View a subscription&apos;s details, or cancel one you no longer
+            need.
+          </p>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={onRefresh}
             disabled={loading || Boolean(busy)}
-            aria-label="Refresh subscription"
+            aria-label="Refresh subscriptions"
             title="Refresh"
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </Button>
           {current && (
-            <Button
-              size="sm"
-              className="bg-brand-gradient text-brand-foreground hover:opacity-90"
-              onClick={onChangePlan}
-              disabled={Boolean(busy)}
-            >
-              <ArrowUpRight className="mr-1.5 h-4 w-4" />
-              Change plan
-            </Button>
-          )}
-          {current && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDialog("card")}
-              disabled={Boolean(busy)}
-            >
-              <CreditCard className="mr-1.5 h-4 w-4" />
-              Update payment method
-            </Button>
-          )}
-          {renewing && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              onClick={() => setDialog("cancel")}
-              disabled={Boolean(busy)}
-            >
-              <XCircle className="mr-1.5 h-4 w-4" />
-              Cancel subscription
-            </Button>
-          )}
-          {canReactivate && (
-            <Button
-              size="sm"
-              className="bg-brand-gradient text-brand-foreground hover:opacity-90"
-              onClick={() => setDialog("reactivate")}
-              disabled={Boolean(busy)}
-            >
-              <RotateCcw className="mr-1.5 h-4 w-4" />
-              Reactivate
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCardOpen(true)}
+                disabled={Boolean(busy)}
+              >
+                <CreditCard className="mr-1.5 h-4 w-4" />
+                Update payment method
+              </Button>
+              <Button
+                size="sm"
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+                onClick={onChangePlan}
+                disabled={Boolean(busy)}
+              >
+                <ArrowUpRight className="mr-1.5 h-4 w-4" />
+                Change plan
+              </Button>
+            </>
           )}
         </div>
       </div>
 
-      <dl className="grid grid-cols-2 gap-4 border-t border-border/60 px-6 py-4 sm:grid-cols-3 lg:grid-cols-6">
-        <Detail label="Plan type">{titleCase(planType)}</Detail>
-        <Detail label="Billed to">{sub.entity_name}</Detail>
-        <Detail label="Started">{fmtDate(sub.start_date)}</Detail>
-        <Detail label="Trial ends">{trialEnds}</Detail>
-        <Detail
-          label={status === "NOT_RENEW" ? "Active until" : "Next payment"}
-        >
-          {status === "CANCELLED" ? "" : nextPayment}
-        </Detail>
-        <Detail label="Branches">
-          {Array.isArray(sub.branches) && sub.branches.length > 0
-            ? sub.branches.length
-            : ""}
-        </Detail>
-      </dl>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {cards.map((sub) => (
+          <SubscriptionCard
+            key={sub.id}
+            sub={sub}
+            isCurrent={current?.id === sub.id}
+            busy={busy}
+            onView={setViewing}
+            onCancel={(s) => setConfirm({ sub: s, mode: "cancel" })}
+            onReactivate={(s) => setConfirm({ sub: s, mode: "reactivate" })}
+          />
+        ))}
+      </div>
 
-      {history.length > 1 && (
-        <div className="border-t border-border/60">
-          <button
-            type="button"
-            onClick={() => setShowHistory((v) => !v)}
-            className="flex w-full items-center gap-2 px-6 py-3 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <History className="h-4 w-4" />
-            {showHistory ? "Hide" : "Show"} subscription history (
-            {history.length})
-          </button>
-          {showHistory && (
-            <div className="overflow-x-auto px-6 pb-4">
-              <table className="w-full text-left text-sm">
-                <thead className="text-xs text-muted-foreground">
-                  <tr>
-                    <th className="py-2 pr-4 font-medium">Plan</th>
-                    <th className="py-2 pr-4 font-medium">Status</th>
-                    <th className="py-2 pr-4 font-medium">Started</th>
-                    <th className="py-2 pr-4 font-medium">
-                      Next / last payment
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="[&>tr]:border-t [&>tr]:border-border/60">
-                  {history.map((h) => (
-                    <tr key={h.id}>
-                      <td className="py-2 pr-4">
-                        {titleCase(h.plan) || "—"}
-                        {h.is_trial && (
-                          <span className="ml-1.5 text-xs text-brand">
-                            (trial)
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2 pr-4">
-                        <StatusBadge status={h.status} />
-                      </td>
-                      <td className="py-2 pr-4">
-                        {fmtDate(h.start_date || h.created_at) || "—"}
-                      </td>
-                      <td className="py-2 pr-4">
-                        {fmtDate(h.next_payment_date) || "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+      <ViewSubscriptionDialog
+        sub={viewing}
+        planType={planType}
+        onClose={() => setViewing(null)}
+        onCancel={(s) => setConfirm({ sub: s, mode: "cancel" })}
+      />
 
       {/* Cancel / reactivate */}
       <Dialog
-        open={dialog === "cancel" || dialog === "reactivate"}
-        onOpenChange={(o) => !o && close()}
+        open={Boolean(confirm)}
+        onOpenChange={(o) => !o && !busy && setConfirm(null)}
       >
         <DialogContent className="font-montserrat sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {dialog === "cancel"
-                ? "Cancel your subscription?"
-                : "Reactivate your subscription?"}
+              {confirm?.mode === "reactivate"
+                ? "Reactivate this subscription?"
+                : "Cancel this subscription?"}
             </DialogTitle>
             <DialogDescription>
-              {dialog === "cancel"
-                ? `It won't renew${nextPayment ? ` on ${nextPayment}` : ""}. You keep your ${titleCase(sub.plan)} plan until then, and can reactivate it at any time before it ends.`
-                : `Your ${titleCase(sub.plan)} plan will renew automatically${nextPayment && status !== "CANCELLED" ? ` on ${nextPayment}` : ""} using your saved payment method.`}
+              {confirm?.mode === "reactivate"
+                ? `Your ${titleCase(confirmSub?.plan)} plan will renew automatically${confirmUntil && confirmSub?.status !== "CANCELLED" ? ` on ${confirmUntil}` : ""} using your saved payment method.`
+                : `It won't renew${confirmUntil ? ` on ${confirmUntil}` : ""}. You keep your ${titleCase(confirmSub?.plan)} plan until then, and can reactivate it before it ends.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={close} disabled={Boolean(busy)}>
-              {dialog === "cancel" ? "Keep subscription" : "Not now"}
+            <Button
+              variant="outline"
+              onClick={() => setConfirm(null)}
+              disabled={Boolean(busy)}
+            >
+              {confirm?.mode === "reactivate" ? "Not now" : "Keep subscription"}
             </Button>
-            {dialog === "cancel" ? (
-              <Button
-                variant="destructive"
-                onClick={() => changeRenewal(false)}
-                disabled={Boolean(busy)}
-              >
-                {busy === "cancel" && (
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                )}
-                Cancel subscription
-              </Button>
-            ) : (
+            {confirm?.mode === "reactivate" ? (
               <Button
                 className="bg-brand-gradient text-brand-foreground hover:opacity-90"
-                onClick={() => changeRenewal(true)}
+                onClick={changeRenewal}
                 disabled={Boolean(busy)}
               >
                 {busy === "reactivate" && (
@@ -411,13 +571,24 @@ export default function SubscriptionManager({
                 )}
                 Reactivate
               </Button>
+            ) : (
+              <Button
+                variant="destructive"
+                onClick={changeRenewal}
+                disabled={Boolean(busy)}
+              >
+                {busy === "cancel" && (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                )}
+                Cancel subscription
+              </Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Update payment method */}
-      <Dialog open={dialog === "card"} onOpenChange={(o) => !o && close()}>
+      <Dialog open={cardOpen} onOpenChange={(o) => !o && closeCard()}>
         <DialogContent className="font-montserrat sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Update payment method</DialogTitle>
@@ -435,7 +606,7 @@ export default function SubscriptionManager({
                 href={cardLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => setTimeout(close, 0)}
+                onClick={() => setTimeout(closeCard, 0)}
               >
                 <ExternalLink className="mr-1.5 h-4 w-4" />
                 Open the secure page

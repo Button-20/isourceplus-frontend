@@ -132,7 +132,8 @@ export function PricingPage({ embedded = false }) {
     } catch (err) {
       console.error("Subscription load error:", err);
       // A 404 just means there's nothing to show yet.
-      if (err?.response?.status === 404) setOverview(null);
+      if (err?.response?.status === 404)
+        setOverview({ current: null, cancelled: null, history: [] });
       else
         setSubError(
           subscriptionErrorMessage(err, "Please try again in a moment."),
@@ -312,7 +313,11 @@ export function PricingPage({ embedded = false }) {
         </div>
       </section>
 
-      {(overview?.current || overview?.cancelled || subError) && (
+      {/* In the dashboard the section always shows (an empty state when
+          there's no subscription); on the public page only when there's one. */}
+      {(overview?.history?.length > 0 ||
+        subError ||
+        (embedded && overview)) && (
         <section className="pb-8">
           <div className="container">
             <SubscriptionManager
@@ -320,6 +325,7 @@ export function PricingPage({ embedded = false }) {
               loading={subLoading}
               error={subError}
               planType={userRole}
+              showEmpty={embedded}
               onRefresh={loadSubscription}
               onChangePlan={scrollToPlans}
             />
