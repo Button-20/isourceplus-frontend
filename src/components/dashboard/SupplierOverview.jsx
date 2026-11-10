@@ -16,7 +16,7 @@ import {
   getActiveBizOffers,
   getActiveBizsAwarded,
   getPaymentOrdersIssuedValue,
-  getReceivedPayments,
+  getIssuedPaymentOrders,
   getSalesInvoiceValue,
   getTotalBuyers,
 } from "@/services/api/supplierDashboard.service";
@@ -91,10 +91,10 @@ const METRICS = [
     href: "/dashboard/payment-orders",
   },
   {
-    key: "receivedPayments",
+    key: "issuedPaymentOrders",
     icon: HandCoins,
-    label: "Received Payment Orders",
-    fetch: getReceivedPayments,
+    label: "Issued Payment Orders",
+    fetch: getIssuedPaymentOrders,
     href: "/dashboard/payment-orders",
   },
   {
