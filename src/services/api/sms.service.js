@@ -29,6 +29,15 @@ export async function purchaseSmsUnits(planId) {
   return data;
 }
 
+// After Paystack redirects back (?reference=…), confirm the charge so the
+// backend credits the balance. Idempotent — safe to call more than once.
+export async function verifySmsPurchase(reference) {
+  const { data } = await http.get("customer/sms/verify-purchase/", {
+    params: { reference },
+  });
+  return data;
+}
+
 export async function getSmsTransactions() {
   const { data } = await http.get("customer/sms/transactions/");
   return data;

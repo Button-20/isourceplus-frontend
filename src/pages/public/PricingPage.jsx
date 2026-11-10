@@ -460,8 +460,12 @@ export function PricingPage({ embedded = false }) {
                         variant="outline"
                         className="flex-1"
                         onClick={() => begin(plan, "trial")}
-                        disabled={isLoading}
-                        title="Trials are quarterly"
+                        disabled={isLoading || interval.value !== "quarterly"}
+                        title={
+                          interval.value === "quarterly"
+                            ? "Trials are quarterly"
+                            : "Trials are only available on quarterly billing"
+                        }
                       >
                         Start Trial
                       </Button>
