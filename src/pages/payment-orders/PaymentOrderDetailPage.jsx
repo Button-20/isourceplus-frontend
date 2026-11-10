@@ -316,9 +316,11 @@ const PaymentOrderDetailPage = () => {
   const created = formatDateTime(paymentOrder.created_at);
   const updated = formatDateTime(paymentOrder.updated_at);
   const isDraft = isDraftStatus(paymentOrder.status);
+  // Dispatch is only allowed once the order has been approved/published.
+  const isPublished = normalizeStatus(paymentOrder.status) === "published";
   // Dispatched once the backend has attached a goods delivery note or waybill.
   const isDispatched = Boolean(paymentOrder.gdn || paymentOrder.wb);
-  const canDispatch = canManage && isDraft && !isDispatched;
+  const canDispatch = canManage && isPublished && !isDispatched;
 
   return (
     <DetailPage
@@ -482,8 +484,8 @@ const PaymentOrderDetailPage = () => {
                 onClick={openDispatch}
                 disabled={modalLoading || dispatching || !canDispatch}
                 title={
-                  !isDraft
-                    ? "Only open payment orders can be dispatched"
+                  !isPublished
+                    ? "Only published payment orders can be dispatched"
                     : undefined
                 }
               >
