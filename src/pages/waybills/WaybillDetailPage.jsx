@@ -56,7 +56,7 @@ const statusTone = (status) => {
 };
 
 const WaybillDetailPage = () => {
-  const { authAxios, jobTitle } = useAuth();
+  const { authAxios, jobTitle, companyId, transporterId } = useAuth();
   const { refNum } = useParams();
   const [waybill, setWaybill] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -167,11 +167,20 @@ const WaybillDetailPage = () => {
   const created = formatDateTime(waybill.created_at);
   const updated = formatDateTime(waybill.updated_at);
   const isLogisticsManager = jobTitle === "logistics manager";
+  // The party assigned to deliver (a transporter, or an in-house company) gets
+  // the directions and arrival actions. `receiving_company` is a hyperlinked
+  // URL whose trailing path segment is the receiving entity's id.
+  const receivingCompanyId = waybill.receiving_company
+    ? String(waybill.receiving_company).split("/").filter(Boolean).pop()
+    : null;
+  const myEntityId = companyId || transporterId;
+  const isReceivingParty =
+    Boolean(receivingCompanyId) && receivingCompanyId === myEntityId;
   // Transporter delivery actions: directions any time; arrival once, while
   // the delivery is still open.
   const tracking = String(waybill.tracking_status || "").toUpperCase();
   const canMarkArrival =
-    isLogisticsManager &&
+    isReceivingParty &&
     !waybill.arrived_at &&
     !["DELIVERED", "CANCELLED"].includes(tracking);
 
@@ -334,7 +343,7 @@ const WaybillDetailPage = () => {
           )}
         </Section>
 
-        {(isLogisticsManager || canCreateWaybill) && (
+        {(isLogisticsManager || canCreateWaybill || isReceivingParty) && (
           <DetailFooter>
             <Button variant="outline" onClick={() => navigate(backTo)}>
               Cancel
@@ -400,7 +409,7 @@ const WaybillDetailPage = () => {
         )}
       </DetailCard>
 
-      {isLogisticsManager && <WaybillDirectionsPanel waybill={waybill} />}
+      {isReceivingParty && <WaybillDirectionsPanel waybill={waybill} />}
 
       {/* Invited transporters: viewed / responded (issuer only). */}
       {canCreateWaybill && (
