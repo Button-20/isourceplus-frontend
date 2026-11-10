@@ -5,6 +5,7 @@ import {
   Loader2,
   ArrowLeft,
   Building2,
+  Copy,
   MapPinCheck,
   Rocket,
   Trash2,
@@ -209,6 +210,16 @@ const WaybillDetailPage = () => {
     }
   };
 
+  const copyRef = async (value) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(String(value));
+      toast.success("Reference copied.");
+    } catch {
+      toast.error("Couldn't copy the reference.");
+    }
+  };
+
   return (
     <DetailPage onBack={() => navigate(backTo)} backLabel={backLabel}>
       <DetailCard>
@@ -229,10 +240,26 @@ const WaybillDetailPage = () => {
 
         <Section title="Waybill details">
           <DetailGrid>
-            <Row label="Reference">{waybill.ref_num}</Row>
+            <Row label="Reference">
+              <button
+                type="button"
+                onClick={() => copyRef(waybill.ref_num)}
+                className="group inline-flex items-center gap-1.5 text-left font-medium text-foreground hover:text-brand"
+                title="Click to copy reference"
+              >
+                {waybill.ref_num}
+                <Copy className="h-3.5 w-3.5 text-muted-foreground group-hover:text-brand" />
+              </button>
+            </Row>
             <Row label="Title">{waybill.title}</Row>
             <Row label="Issuing company">{waybill.issuing_company_info}</Row>
             <Row label="Procedure">{waybill.procedure}</Row>
+            <Row label="Waybill type">
+              {prettify(String(waybill.waybill_type || "")) || "N/A"}
+            </Row>
+            <Row label="Delivery type">
+              {prettify(String(waybill.do_delivery || "")) || "N/A"}
+            </Row>
             <Row label="Spend category">{waybill.spend_category}</Row>
             <Row label="Priority">
               {waybill.priority === "urgent" ? "Urgent" : "Non-Urgent"}
