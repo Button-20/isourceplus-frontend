@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Coins,
   Loader2,
@@ -22,6 +23,7 @@ import {
   getSmsTransactions,
   purchaseSmsUnits,
   sendSms,
+  verifySmsPurchase,
 } from "@/services/api/sms.service";
 import RecipientsField from "@/components/sms/RecipientsField";
 import SmsInviteDialog from "@/components/sms/SmsInviteDialog";
@@ -33,6 +35,7 @@ import {
 } from "@/utils/sms";
 import { apiErrorMessage } from "@/services/lib/api-error";
 
+// Create a pull request
 // SMS resale: buy units from a plan, then send single or bulk messages.
 // The API response shapes weren't specified, so every field is read
 // defensively (see the normalisers below) — adjust the key lists once the real
@@ -218,6 +221,8 @@ export default function SmsPage() {
   const [recipientsRaw, setRecipientsRaw] = useState("");
   const [sending, setSending] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const verifiedRef = useRef(false);
 
   const loadBalance = useCallback(async () => {
     setBalanceLoading(true);
@@ -271,6 +276,38 @@ export default function SmsPage() {
     loadTransactions();
     loadHistory();
   }, [loadBalance, loadPlans, loadTransactions, loadHistory]);
+
+  // Complete an SMS purchase when Paystack redirects back with ?reference=….
+  // The backend credits the balance idempotently via verify-purchase/.
+  useEffect(() => {
+    const reference =
+      searchParams.get("reference") || searchParams.get("trxref");
+    if (!reference || verifiedRef.current) return;
+    verifiedRef.current = true;
+
+    (async () => {
+      try {
+        const res = await verifySmsPurchase(reference);
+        if (res?.success || /success/i.test(String(res?.status || ""))) {
+          toast.success("Payment confirmed — your SMS units have been credited.");
+        } else {
+          toast.error(
+            "Payment couldn't be confirmed. It may take a moment — try refreshing.",
+          );
+        }
+        loadBalance();
+        loadTransactions();
+      } catch (err) {
+        toast.error(apiErrorMessage(err, "Couldn't verify the SMS payment."));
+      } finally {
+        // Drop the payment params so a page refresh doesn't re-verify.
+        const next = new URLSearchParams(searchParams);
+        next.delete("reference");
+        next.delete("trxref");
+        setSearchParams(next, { replace: true });
+      }
+    })();
+  }, [searchParams, setSearchParams, loadBalance, loadTransactions]);
 
   // --- send ---
   const recipients = useMemo(
