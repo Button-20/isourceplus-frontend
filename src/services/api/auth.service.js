@@ -52,6 +52,15 @@ export async function exchangeSsoCode(code) {
   return data;
 }
 
+// Social login (Google/LinkedIn): the one-time code the backend's social
+// callback handed the frontend → the session (or a 2FA pending login).
+export async function exchangeSocialCode(code) {
+  await ensureCsrfToken();
+  const { data } = await http.post("account_auth/social/exchange/", { code });
+  if (!data?.two_fa_required) persistSession(data);
+  return data;
+}
+
 export async function signupRequest({ email, password1, password2 }) {
   await ensureCsrfToken();
   const { data } = await http.post("account_auth/registration/", {

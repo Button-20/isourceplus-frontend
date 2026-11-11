@@ -15,6 +15,7 @@ import { ENV } from "@/services/lib/env";
 import { ensureCsrfToken, clearCsrfToken } from "@/services/lib/csrf";
 import {
   exchangeSsoCode,
+  exchangeSocialCode,
   loginRequest,
   signupRequest,
   verifyTwoFactorLogin,
@@ -291,6 +292,16 @@ export const AppProvider = ({ children }) => {
     return data;
   };
 
+  // Back from a social provider (Google/LinkedIn): trade the code for the
+  // session (or a two_fa_required pending login).
+  const completeSocialLogin = async (code, navigate) => {
+    const data = await exchangeSocialCode(code);
+    const pending = twoFactorStep(data);
+    if (pending) return pending;
+    await finishLogin(data, navigate);
+    return data;
+  };
+
   const refreshTokenFunction = async () => {
     await refreshSession();
     // Keep the session marked authenticated (a real bearer if one was stored).
@@ -384,6 +395,7 @@ export const AppProvider = ({ children }) => {
         ssoLogin,
         socialLogin,
         completeSsoLogin,
+        completeSocialLogin,
         logout,
         logoutAll,
         error,
