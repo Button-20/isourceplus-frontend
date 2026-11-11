@@ -20,6 +20,9 @@ export const ENV = {
   DEV: raw.DEV,
   PROD: raw.PROD,
   SERVER_URL,
+  // The frontend's own public origin (used in outbound copy such as SMS
+  // sign-up links). Defaults to the production domain; override with VITE_APP_URL.
+  APP_URL: (raw.VITE_APP_URL || "https://isourceplus.com").replace(/\/+$/, ""),
   // ALWAYS use a same-origin relative path. The backend authenticates with
   // HttpOnly cookies, which are only sent when the request is first-party
   // (same origin as the page). Any cross-origin absolute URL turns those into
