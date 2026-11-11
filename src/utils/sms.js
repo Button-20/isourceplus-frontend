@@ -1,6 +1,8 @@
 // Shared SMS helpers: recipient parsing, segment counting and the platform's
 // default messages (sign-up footer on bulk SMS, invitation text).
 
+import { ENV } from "@/services/lib/env";
+
 // Accept numbers separated by commas, spaces, semicolons or new lines and
 // normalise Ghanaian numbers to the international 233XXXXXXXXX form the API
 // expects. Duplicates are dropped.
@@ -24,7 +26,7 @@ export const SEGMENT = 160;
 export const segmentsFor = (text) =>
   text.length ? Math.ceil(text.length / SEGMENT) : 0;
 
-export const PLATFORM_URL = "https://www.isourceplus.com";
+export const PLATFORM_URL = ENV.APP_URL;
 
 // Appended to every bulk SMS the user sends.
 export const SIGNUP_FOOTER = `Sign-up Now! To Ghana's No.1 Biggest & Most Reliable Sourcing Platform ${PLATFORM_URL}`;
