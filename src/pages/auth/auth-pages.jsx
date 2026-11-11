@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AuthBrandPanel, { AuthBrandHeader } from "@/components/auth/AuthBrandPanel";
 import {
-  FacebookLogo,
   GoogleLogo,
   LinkedInLogo,
 } from "@/components/auth/BrandIcons";
@@ -34,7 +33,7 @@ function SocialButtons() {
   };
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <Button
           variant="outline"
           type="button"
@@ -52,15 +51,6 @@ function SocialButtons() {
         >
           <GoogleLogo />
           <span className="ml-1.5 hidden sm:inline">Google</span>
-        </Button>
-        <Button
-          variant="outline"
-          type="button"
-          disabled={Boolean(busy)}
-          onClick={() => go("facebook", "Facebook")}
-        >
-          <FacebookLogo />
-          <span className="ml-1.5 hidden sm:inline">Facebook</span>
         </Button>
       </div>
       <Button

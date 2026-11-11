@@ -107,6 +107,7 @@ import { FaqPage } from "./pages/public/FaqPage";
 import FeedbackPage from "./pages/feedback/FeedbackPage";
 import SecurityPage from "./pages/security/SecurityPage";
 import { SsoCallbackPage } from "./pages/auth/SsoCallbackPage";
+import { SocialCallbackPage } from "./pages/auth/SocialCallbackPage";
 import { UseCasesPage } from "./pages/public/UseCasesPage";
 
 const fullRoutes = [
@@ -125,6 +126,9 @@ const fullRoutes = [
   // ?code= (or ?error=); /auth/sso/callback is kept as an alias.
   { path: "/sso/callback", element: <SsoCallbackPage /> },
   { path: "/auth/sso/callback", element: <SsoCallbackPage /> },
+  // Social login (Google/LinkedIn) callback — the backend's exchange-token
+  // callback redirects here with a one-time ?code= (or ?error=).
+  { path: "/social/callback", element: <SocialCallbackPage /> },
 
   {
     element: <ProtectedAuthRoute />,
