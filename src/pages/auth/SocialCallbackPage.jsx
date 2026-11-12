@@ -23,7 +23,7 @@ export function SocialCallbackPage() {
     started.current = true;
 
     const providerError =
-      params.get("error") === "access_denied"
+      ["access_denied", "user_cancelled_login"].includes(params.get("error"))
         ? "You cancelled the sign-in."
         : params.get("error_description") || params.get("error");
     const code = params.get("code");
