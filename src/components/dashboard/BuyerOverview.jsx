@@ -8,7 +8,6 @@ import {
   ShoppingCart,
   Wallet,
   ArrowRight,
-  Activity,
   ArrowLeftRight,
 } from "lucide-react";
 
@@ -35,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import EventsCard from "@/components/dashboard/EventsCard";
 
 const num = (obj, key) => Number(obj?.[key] ?? 0) || 0;
 const sumValues = (obj) =>
@@ -46,20 +46,6 @@ const formatMoney = (n) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Number(n) || 0);
-
-// monitor-events-frequency returns an array; normalize items defensively.
-function toSeries(data) {
-  if (!Array.isArray(data)) return [];
-  return data.map((item, i) => {
-    if (item && typeof item === "object") {
-      const label =
-        item.event ?? item.name ?? item.label ?? item.type ?? `Event ${i + 1}`;
-      const value = Number(item.count ?? item.frequency ?? item.total ?? 0) || 0;
-      return { label: String(label), value };
-    }
-    return { label: `Event ${i + 1}`, value: Number(item) || 0 };
-  });
-}
 
 /* -------------------------------- cards -------------------------------- */
 
@@ -139,50 +125,6 @@ function ComparisonCard({ title, data, parts, comparedKey, loading }) {
               <span className="font-semibold">{compared.toFixed(1)}%</span>
             </div>
           </>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function EventsCard({ data, loading }) {
-  const series = toSeries(data);
-  const max = Math.max(1, ...series.map((s) => s.value));
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Activity className="h-4 w-4 text-brand" /> Activity frequency
-        </CardTitle>
-        <CardDescription>Your recent buyer events.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {loading ? (
-          <>
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-          </>
-        ) : series.length ? (
-          series.slice(0, 8).map((s) => (
-            <div key={s.label} className="flex items-center gap-3">
-              <span className="w-44 shrink-0 truncate text-sm text-muted-foreground">
-                {s.label}
-              </span>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-brand-gradient"
-                  style={{ width: `${(s.value / max) * 100}%` }}
-                />
-              </div>
-              <span className="w-8 shrink-0 text-right text-sm font-medium">
-                {s.value}
-              </span>
-            </div>
-          ))
-        ) : (
-          <p className="py-2 text-sm text-muted-foreground">
-            No recent events yet.
-          </p>
         )}
       </CardContent>
     </Card>
@@ -318,7 +260,11 @@ export default function BuyerOverview() {
         />
       </div>
 
-      <EventsCard data={data.events} loading={loading} />
+      <EventsCard
+        data={data.events}
+        loading={loading}
+        description="Your recent buyer events."
+      />
     </div>
   );
 }

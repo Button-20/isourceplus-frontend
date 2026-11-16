@@ -20,10 +20,12 @@ import {
   getSalesInvoiceValue,
   getTotalBuyers,
   getPayments,
+  getEventsFrequency,
 } from "@/services/api/supplierDashboard.service";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import EventsCard from "@/components/dashboard/EventsCard";
 
 // Pull a single numeric metric out of the various shapes these endpoints may
 // return: a bare number, a `{ key: value }` object carrying one metric, or a
@@ -160,13 +162,18 @@ export default function SupplierOverview() {
     let cancelled = false;
     // Fetch every card independently — one failing endpoint never blanks the
     // rest of the dashboard.
-    Promise.allSettled(METRICS.map((m) => m.fetch())).then((results) => {
+    Promise.allSettled([
+      ...METRICS.map((m) => m.fetch()),
+      getEventsFrequency(),
+    ]).then((results) => {
       if (cancelled) return;
       const data = {};
       METRICS.forEach((m, i) => {
         data[m.key] =
           results[i].status === "fulfilled" ? results[i].value : null;
       });
+      const events = results[METRICS.length];
+      data.events = events?.status === "fulfilled" ? events.value : null;
       setState({ loading: false, data });
     });
     return () => {
@@ -203,6 +210,13 @@ export default function SupplierOverview() {
             />
           );
         })}
+      </div>
+      <div className="mt-6">
+        <EventsCard
+          data={data.events}
+          loading={loading}
+          description="Your recent supplier activity."
+        />
       </div>
     </div>
   );

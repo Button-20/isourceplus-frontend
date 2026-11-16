@@ -21,3 +21,5 @@ export const getSalesInvoiceValue = () =>
   get("supplier-dashboard/sales-invoice-value/");
 export const getTotalBuyers = () => get("supplier-dashboard/total-buyers/");
 export const getPayments = () => get("supplier-dashboard/payments/");
+export const getEventsFrequency = () =>
+  get("supplier-dashboard/monitor-events-frequency/");
