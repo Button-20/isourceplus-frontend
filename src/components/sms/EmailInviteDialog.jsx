@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import EmailRecipientsField from "@/components/sms/EmailRecipientsField";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/services/context/app.context";
 import { getCompany } from "@/services/api/companies.service";
@@ -107,29 +108,11 @@ export default function EmailInviteDialog({ open, onOpenChange, onSent }) {
 
         <div className="space-y-5">
           {/* Recipients */}
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <label
-                htmlFor="email-invite-recipients"
-                className="text-sm font-medium"
-              >
-                Recipients
-              </label>
-              <span className="text-xs text-muted-foreground">
-                {recipients.length} valid email{recipients.length === 1 ? "" : "s"}
-              </span>
-            </div>
-            <Textarea
-              id="email-invite-recipients"
-              rows={3}
-              value={recipientsRaw}
-              onChange={(e) => setRecipientsRaw(e.target.value)}
-              placeholder={"customer@example.com, supplier@example.com"}
-            />
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              One or many — separate with commas, spaces or new lines.
-            </p>
-          </div>
+          <EmailRecipientsField
+            id="email-invite-recipients"
+            value={recipientsRaw}
+            onChange={setRecipientsRaw}
+          />
 
           {/* Default / custom message toggle */}
           <div className="grid grid-cols-2 gap-1 rounded-full bg-muted/40 p-1">
