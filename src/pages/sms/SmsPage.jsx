@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
+  getSentEmailInvitations,
   getSentSmsHistory,
   getSmsBalance,
   getSmsPlans,
@@ -156,6 +157,15 @@ const normalizeSent = (s) => {
   };
 };
 
+const normalizeEmailInvite = (s) => ({
+  id: pick(s, ["id"]),
+  date: pick(s, ["created_at", "created", "date", "timestamp"]),
+  recipient: pick(s, ["recipient", "email", "to"], "—"),
+  subject: pick(s, ["subject", "title"], ""),
+  message: pick(s, ["message", "text", "body"], ""),
+  status: pick(s, ["status", "state"], "—"),
+});
+
 const statusTone = (s) => {
   const v = String(s || "").toLowerCase();
   if (/(purchase|credit|success|paid|delivered|complete|approved)/.test(v))
@@ -219,6 +229,9 @@ export default function SmsPage() {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
 
+  const [emailInvites, setEmailInvites] = useState([]);
+  const [emailInvitesLoading, setEmailInvitesLoading] = useState(true);
+
   const [message, setMessage] = useState("");
   const [recipientsRaw, setRecipientsRaw] = useState("");
   const [sending, setSending] = useState(false);
@@ -273,12 +286,28 @@ export default function SmsPage() {
     }
   }, []);
 
+  const loadEmailInvites = useCallback(async () => {
+    setEmailInvitesLoading(true);
+    try {
+      setEmailInvites(
+        asList(await getSentEmailInvitations()).map(normalizeEmailInvite),
+      );
+    } catch (err) {
+      toast.error(
+        apiErrorMessage(err, "Couldn't load sent email invitations."),
+      );
+    } finally {
+      setEmailInvitesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadBalance();
     loadPlans();
     loadTransactions();
     loadHistory();
-  }, [loadBalance, loadPlans, loadTransactions, loadHistory]);
+    loadEmailInvites();
+  }, [loadBalance, loadPlans, loadTransactions, loadHistory, loadEmailInvites]);
 
   // Complete an SMS purchase when Paystack redirects back with ?reference=….
   // The backend credits the balance idempotently via verify-purchase/.
@@ -394,6 +423,7 @@ export default function SmsPage() {
     loadPlans();
     loadTransactions();
     loadHistory();
+    loadEmailInvites();
   };
 
   return (
@@ -466,6 +496,9 @@ export default function SmsPage() {
           </TabsTrigger>
           <TabsTrigger value="history" className="rounded-full">
             Sent history
+          </TabsTrigger>
+          <TabsTrigger value="email-invites" className="rounded-full">
+            Email invitations
           </TabsTrigger>
         </TabsList>
 
@@ -756,6 +789,57 @@ export default function SmsPage() {
             />
           )}
         </TabsContent>
+
+        {/* ---------------------------------------------- email invitations */}
+        <TabsContent value="email-invites" className="mt-5">
+          {emailInvitesLoading ? (
+            <TableSkeleton />
+          ) : emailInvites.length ? (
+            <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">Sent</th>
+                    <th className="px-4 py-3">Recipient</th>
+                    <th className="px-4 py-3">Subject</th>
+                    <th className="px-4 py-3">Message</th>
+                    <th className="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emailInvites.map((s, i) => (
+                    <tr
+                      key={String(s.id ?? i)}
+                      className="border-t border-border align-top"
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {formatDateTime(s.date)}
+                      </td>
+                      <td className="px-4 py-3">{s.recipient}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {s.subject || "—"}
+                      </td>
+                      <td className="max-w-md px-4 py-3 text-muted-foreground">
+                        <span className="line-clamp-2" title={s.message}>
+                          {s.message || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusPill value={s.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState
+              icon={Mail}
+              title="No email invitations sent yet"
+              hint="Invitations you send by email will be listed here."
+            />
+          )}
+        </TabsContent>
       </Tabs>
 
       <SmsInviteDialog
@@ -770,6 +854,9 @@ export default function SmsPage() {
       <EmailInviteDialog
         open={emailInviteOpen}
         onOpenChange={setEmailInviteOpen}
+        onSent={() => {
+          loadEmailInvites();
+        }}
       />
     </div>
   );
