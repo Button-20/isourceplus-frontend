@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { prettify } from "@/utils/choices";
 import { resolveMediaUrl } from "@/services/lib/env";
+import ItemThumbnail from "@/components/detail/ItemThumbnail";
 
 const fmtDateTime = (v) => {
   if (!v) return "—";
@@ -187,6 +188,7 @@ export default function WaybillPanel({ waybill }) {
                 <thead>
                   <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-4 py-2.5 font-medium">#</th>
+                    <th className="px-4 py-2.5 font-medium">Image</th>
                     <th className="px-4 py-2.5 font-medium">Name</th>
                     <th className="px-4 py-2.5 font-medium">Description</th>
                     <th className="px-4 py-2.5 text-right font-medium">Qty</th>
@@ -201,6 +203,9 @@ export default function WaybillPanel({ waybill }) {
                     <tr key={it.id ?? i} className="align-top">
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {i + 1}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <ItemThumbnail image={it.image} name={it.name} />
                       </td>
                       <td className="px-4 py-2.5 font-medium">
                         {it.name || "N/A"}

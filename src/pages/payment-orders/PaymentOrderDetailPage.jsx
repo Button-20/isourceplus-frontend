@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
-import { resolveMediaUrl } from "@/services/lib/env";
 import { toast } from "sonner";
 import { getPriorityChoices } from "@/services/api/choices.service";
 import { normalizeChoices, prettify } from "@/utils/choices";
@@ -16,6 +15,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
+import ItemThumbnail from "@/components/detail/ItemThumbnail";
 import {
   format,
   formatDistanceToNow,
@@ -435,6 +435,7 @@ const PaymentOrderDetailPage = () => {
                 <thead>
                   <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-4 py-2.5 font-medium">#</th>
+                    <th className="px-4 py-2.5 font-medium">Image</th>
                     <th className="px-4 py-2.5 font-medium">Name</th>
                     <th className="px-4 py-2.5 font-medium">Description</th>
                     <th className="px-4 py-2.5 font-medium">Quantity</th>
@@ -447,17 +448,11 @@ const PaymentOrderDetailPage = () => {
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {i + 1}
                       </td>
+                      <td className="px-4 py-2.5">
+                        <ItemThumbnail image={item.image} name={item.name} />
+                      </td>
                       <td className="px-4 py-2.5 font-medium">
-                        <div className="flex items-center gap-3">
-                          {item.image ? (
-                            <img
-                              src={resolveMediaUrl(item.image)}
-                              alt={item.name || "Item"}
-                              className="h-10 w-10 shrink-0 rounded-md border border-border/60 object-cover"
-                            />
-                          ) : null}
-                          <span>{item.name}</span>
-                        </div>
+                        <span>{item.name}</span>
                       </td>
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {item.description || "N/A"}
