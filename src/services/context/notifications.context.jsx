@@ -26,6 +26,8 @@ import {
   forgetRead,
   trashNotification,
   listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
   markNotificationUnread,
   normalizeNotification,
   rememberRead,
@@ -176,8 +178,11 @@ export function NotificationsProvider({ enabled = true, children }) {
       }
       if (
         !socketRef.current?.send({ action: "mark_read", notification_id: id })
-      )
+      ) {
         rememberRead(id);
+        // Persist over REST so a page refresh keeps it read.
+        markNotificationRead(id).catch(() => {});
+      }
     },
     [items],
   );
@@ -199,6 +204,8 @@ export function NotificationsProvider({ enabled = true, children }) {
     [...ids, ...itemsRef.current.map((n) => n.id)].forEach(rememberRead);
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnread(0);
+    // Persist over REST so a refresh keeps them read.
+    markAllNotificationsRead().catch(() => {});
     return true;
   }, []);
 

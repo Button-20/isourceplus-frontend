@@ -181,6 +181,12 @@ export const markNotificationUnread = action("mark-as-unread");
 export const archiveNotification = action("archive");
 export const unarchiveNotification = action("remove-from-archive");
 
+// Mark one notification read over REST (GET notifications/<id>/ marks it read
+// server-side). Used as the fallback when the socket isn't available.
+export async function markNotificationRead(id) {
+  await http.get(`notifications/${encodeURIComponent(id)}/`);
+}
+
 export async function archiveAllNotifications() {
   const { data } = await http.get("notifications/archive-all/");
   return detailOf(data);
@@ -188,6 +194,11 @@ export async function archiveAllNotifications() {
 
 export async function trashAllNotifications() {
   const { data } = await http.post("notifications/trash-all/", {});
+  return detailOf(data);
+}
+
+export async function markAllNotificationsRead() {
+  const { data } = await http.post("notifications/mark-all-read/", {});
   return detailOf(data);
 }
 
