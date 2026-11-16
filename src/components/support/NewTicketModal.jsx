@@ -27,6 +27,7 @@ import {
   createTicket,
   helpdeskErrorMessage,
 } from "@/services/api/helpdesk.service";
+import { FEEDBACK_FEATURES } from "@/services/api/feedback.service";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const MAX_TITLE = 200;
@@ -37,6 +38,7 @@ export default function NewTicketModal({ open, onOpenChange, onCreated }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("3");
+  const [category, setCategory] = useState("");
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef(null);
@@ -46,6 +48,7 @@ export default function NewTicketModal({ open, onOpenChange, onCreated }) {
     setTitle("");
     setDescription("");
     setPriority("3");
+    setCategory("");
     setFile(null);
   }, [open]);
 
@@ -71,6 +74,7 @@ export default function NewTicketModal({ open, onOpenChange, onCreated }) {
         title: title.trim(),
         description: description.trim(),
         priority: Number(priority),
+        category: category || undefined,
         attachment: file,
       });
       toast.success(
@@ -132,6 +136,27 @@ export default function NewTicketModal({ open, onOpenChange, onCreated }) {
               placeholder="What were you doing, what did you expect, and what happened instead? Include any reference numbers."
               required
             />
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              Category{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </label>
+            <Select value={category || undefined} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="What is this about?" />
+              </SelectTrigger>
+              <SelectContent>
+                {FEEDBACK_FEATURES.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

@@ -19,6 +19,7 @@ import {
   getMyTicket,
   helpdeskErrorMessage,
 } from "@/services/api/helpdesk.service";
+import { FEEDBACK_FEATURES, featureLabel } from "@/services/api/feedback.service";
 
 const fmt = (v) => {
   const d = v ? new Date(v) : null;
@@ -92,6 +93,9 @@ export default function TicketDetailPage() {
           <DetailGrid>
             <Row label="Priority">
               {TICKET_PRIORITY[ticket.priority] || "—"}
+            </Row>
+            <Row label="Category">
+              {featureLabel(ticket.category, FEEDBACK_FEATURES)}
             </Row>
             <Row label="Queue">{ticket.queue || "—"}</Row>
             <Row label="Filed">{fmt(ticket.created)}</Row>
