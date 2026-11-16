@@ -246,7 +246,7 @@ export default function BuyerOverview() {
     {
       icon: Users,
       label: "Registered Suppliers",
-      value: num(data.totalSuppliers, "customer_base"),
+      value: num(data.totalSuppliers, "customer_base_supplier"),
     },
     {
       icon: ShoppingCart,
