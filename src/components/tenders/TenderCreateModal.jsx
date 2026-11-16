@@ -109,6 +109,7 @@ const emptyItem = (unit = "pc") => ({
   quantity: 1,
   discount: "",
   attachment: null,
+  image: null,
   special_handling: [],
 });
 
@@ -466,6 +467,8 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
           data.append(`items[${index}][discount]`, item.discount);
         if (item.attachment instanceof File)
           data.append(`items[${index}][attachment]`, item.attachment);
+        if (item.image instanceof File)
+          data.append(`items[${index}][image]`, item.image);
         item.special_handling.forEach((h, hi) => {
           data.append(
             `items[${index}][special_handling][${hi}][handling_description]`,
@@ -918,6 +921,23 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                       {item.attachment && (
                         <p className="mt-1 text-xs text-muted-foreground">
                           {item.attachment.name}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className={labelClass}>Image</label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setItem(i, {
+                            image: e.target.files?.[0] || null,
+                          })
+                        }
+                      />
+                      {item.image && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.image.name}
                         </p>
                       )}
                     </div>

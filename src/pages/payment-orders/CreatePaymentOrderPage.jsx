@@ -52,6 +52,7 @@ const normalizeItem = (item) => ({
   // Auto-population returns a URL/string for existing attachments; only a
   // File can be re-uploaded, so anything else is dropped from the payload.
   attachment: item?.attachment instanceof File ? item.attachment : null,
+  image: item?.image instanceof File ? item.image : null,
   special_handles: Array.isArray(item?.special_handles)
     ? item.special_handles.map((h) => ({
         handling_description:

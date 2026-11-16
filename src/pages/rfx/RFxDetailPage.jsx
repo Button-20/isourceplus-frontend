@@ -1,6 +1,7 @@
 // File: RFxDetailPage.jsx
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
+import { resolveMediaUrl } from "@/services/lib/env";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Building2, Send } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -212,14 +213,25 @@ const RFxDetailPage = () => {
                         {i + 1}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="font-medium">
-                          {item.name || "N/A"}
-                        </span>
-                        {item.description && (
-                          <span className="block text-xs text-muted-foreground">
-                            {item.description}
-                          </span>
-                        )}
+                        <div className="flex items-start gap-3">
+                          {item.image ? (
+                            <img
+                              src={resolveMediaUrl(item.image)}
+                              alt={item.name || "Item"}
+                              className="h-10 w-10 shrink-0 rounded-md border border-border/60 object-cover"
+                            />
+                          ) : null}
+                          <div className="min-w-0">
+                            <span className="font-medium">
+                              {item.name || "N/A"}
+                            </span>
+                            {item.description && (
+                              <span className="block text-xs text-muted-foreground">
+                                {item.description}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-2.5">{item.quantity}</td>
                       <td className="px-4 py-2.5">{item.unit_of_measure}</td>

@@ -75,6 +75,7 @@ const emptyItem = (unit = "pc") => ({
   extra_value: "",
   extra_value_TnCs: "",
   attachment: null,
+  image: null,
   special_handles: [],
 });
 
@@ -355,6 +356,8 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
           );
         if (item.attachment instanceof File)
           data.append(`items[${index}][attachment]`, item.attachment);
+        if (item.image instanceof File)
+          data.append(`items[${index}][image]`, item.image);
         item.special_handles.forEach((h, hi) => {
           data.append(
             `items[${index}][special_handles][${hi}][handling_description]`,
@@ -728,6 +731,18 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
                         onChange={(e) =>
                           setItem(i, {
                             attachment: e.target.files?.[0] ?? null,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Image</label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setItem(i, {
+                            image: e.target.files?.[0] ?? null,
                           })
                         }
                       />
