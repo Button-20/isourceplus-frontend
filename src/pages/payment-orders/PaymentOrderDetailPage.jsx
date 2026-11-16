@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
+import { resolveMediaUrl } from "@/services/lib/env";
 import { toast } from "sonner";
 import { getPriorityChoices } from "@/services/api/choices.service";
 import { normalizeChoices, prettify } from "@/utils/choices";
@@ -437,7 +438,18 @@ const PaymentOrderDetailPage = () => {
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {i + 1}
                       </td>
-                      <td className="px-4 py-2.5 font-medium">{item.name}</td>
+                      <td className="px-4 py-2.5 font-medium">
+                        <div className="flex items-center gap-3">
+                          {item.image ? (
+                            <img
+                              src={resolveMediaUrl(item.image)}
+                              alt={item.name || "Item"}
+                              className="h-10 w-10 shrink-0 rounded-md border border-border/60 object-cover"
+                            />
+                          ) : null}
+                          <span>{item.name}</span>
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5 text-muted-foreground">
                         {item.description || "N/A"}
                       </td>

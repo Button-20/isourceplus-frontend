@@ -79,6 +79,7 @@ const toPayloadItem = (item) => {
   const handles = normalizeSpecialHandles(item?.special_handles);
   if (handles.length) out.special_handles = handles;
   if (item?.attachment instanceof File) out.attachment = item.attachment;
+  if (item?.image instanceof File) out.image = item.image;
   return out;
 };
 

@@ -7,6 +7,7 @@
 // document's own total when given, otherwise the sum of the rows.
 
 import { formatMoney } from "@/utils/money";
+import { resolveMediaUrl } from "@/services/lib/env";
 
 const toNumber = (v) => {
   if (v === null || v === undefined || v === "") return null;
@@ -71,15 +72,26 @@ export default function LineItemsTable({
               <tr key={item.id ?? i} className="align-top">
                 <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
                 <td className="px-4 py-2.5">
-                  <p className="font-medium">{item.name || "N/A"}</p>
-                  {item.extra_value && (
-                    <p className="text-xs text-muted-foreground">
-                      + {item.extra_value}
-                      {item.extra_value_TnCs
-                        ? ` (${item.extra_value_TnCs})`
-                        : ""}
-                    </p>
-                  )}
+                  <div className="flex items-start gap-3">
+                    {item.image ? (
+                      <img
+                        src={resolveMediaUrl(item.image)}
+                        alt={item.name || "Item"}
+                        className="h-10 w-10 shrink-0 rounded-md border border-border/60 object-cover"
+                      />
+                    ) : null}
+                    <div className="min-w-0">
+                      <p className="font-medium">{item.name || "N/A"}</p>
+                      {item.extra_value && (
+                        <p className="text-xs text-muted-foreground">
+                          + {item.extra_value}
+                          {item.extra_value_TnCs
+                            ? ` (${item.extra_value_TnCs})`
+                            : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">
                   {item.description || "N/A"}
