@@ -61,9 +61,15 @@ export async function createTicket({
   title,
   description,
   priority,
+  category,
   attachment,
 }) {
-  const fields = { title, description, ...(priority ? { priority } : {}) };
+  const fields = {
+    title,
+    description,
+    ...(priority ? { priority } : {}),
+    ...(category ? { category } : {}),
+  };
   if (!attachment) {
     const { data } = await http.post("my-tickets/", fields);
     return data;

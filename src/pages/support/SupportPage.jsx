@@ -25,6 +25,7 @@ import {
   helpdeskErrorMessage,
   listMyTickets,
 } from "@/services/api/helpdesk.service";
+import { FEEDBACK_FEATURES, featureLabel } from "@/services/api/feedback.service";
 
 const fmt = (v) => {
   const d = v ? new Date(v) : null;
@@ -149,6 +150,7 @@ export default function SupportPage() {
                 <tr className="border-b border-border/70 bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-3 font-medium">Ticket</th>
                   <th className="px-5 py-3 font-medium">Title</th>
+                  <th className="px-5 py-3 font-medium">Category</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium">Priority</th>
                   <th className="px-5 py-3 font-medium">Last updated</th>
@@ -166,6 +168,9 @@ export default function SupportPage() {
                     </td>
                     <td className="max-w-md px-5 py-3">
                       <span className="line-clamp-1">{t.title}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">
+                      {featureLabel(t.category, FEEDBACK_FEATURES)}
                     </td>
                     <td className="px-5 py-3">
                       <TicketStatus status={t.status} />
