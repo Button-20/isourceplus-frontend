@@ -39,8 +39,11 @@ import {
   emptyNotificationTrash,
   listArchivedNotifications,
   listNotifications,
+  listTrashNotifications,
   notificationErrorMessage,
   notificationLink,
+  removeFromTrashNotification,
+  trashAllNotifications,
   trashNotification,
   unarchiveNotification,
 } from "@/services/api/notifications.service";
@@ -49,6 +52,7 @@ import { useNotifications } from "@/services/context/notifications.context";
 const TABS = [
   ["inbox", Inbox, "Inbox"],
   ["archived", Archive, "Archived"],
+  ["trash", Trash2, "Trash"],
   ["settings", Settings, "Settings"],
 ];
 
@@ -108,7 +112,9 @@ export default function NotificationsPage() {
     try {
       const res = await (tab === "archived"
         ? listArchivedNotifications({ page })
-        : listNotifications({ page }));
+        : tab === "trash"
+          ? listTrashNotifications({ page })
+          : listNotifications({ page }));
       setRows(res.items);
       setEmptyMessage(res.emptyMessage);
       setLegacy(Boolean(res.legacy));
@@ -243,11 +249,42 @@ export default function NotificationsPage() {
       const detail = await emptyNotificationTrash();
       toast.success(detail || "Trash emptied.");
       setConfirming(null);
+      setPage(1);
+      await load();
     } catch (err) {
       toast.error(notificationErrorMessage(err, "Couldn't empty the trash."));
     } finally {
       setBulkBusy(false);
     }
+  };
+
+  const trashAll = async () => {
+    setBulkBusy(true);
+    try {
+      const detail = await trashAllNotifications();
+      toast.success(detail || "Notifications moved to trash.");
+      setConfirming(null);
+      setPage(1);
+      await load();
+      ctx?.refresh();
+    } catch (err) {
+      toast.error(
+        notificationErrorMessage(err, "Couldn't move them to trash."),
+      );
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const removeFromTrash = async (n) => {
+    if (
+      await run(
+        n.id,
+        () => removeFromTrashNotification(n.id),
+        "Couldn't remove it.",
+      )
+    )
+      dropRow(n.id);
   };
 
   const onBrand =
@@ -302,17 +339,27 @@ export default function NotificationsPage() {
                     <CheckCheck className="mr-1.5 h-4 w-4" /> Mark all read
                   </Button>
                   {!legacy && (
-                    <Button
-                      onClick={() => setConfirming("archive")}
-                      disabled={bulkBusy || rows.length === 0}
-                      className="bg-white text-brand hover:bg-white/90"
-                    >
-                      <Archive className="mr-1.5 h-4 w-4" /> Archive all
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => setConfirming("archive")}
+                        disabled={bulkBusy || rows.length === 0}
+                        className="bg-white text-brand hover:bg-white/90"
+                      >
+                        <Archive className="mr-1.5 h-4 w-4" /> Archive all
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setConfirming("trash")}
+                        disabled={bulkBusy || rows.length === 0}
+                        className={onBrand}
+                      >
+                        <Trash2 className="mr-1.5 h-4 w-4" /> Move all to trash
+                      </Button>
+                    </>
                   )}
                 </>
               )}
-              {!legacy && (
+              {tab === "trash" && !legacy && (
                 <Button
                   variant="outline"
                   onClick={() => setConfirming("empty")}
@@ -380,19 +427,27 @@ export default function NotificationsPage() {
           <div className="flex flex-col items-center px-6 py-16 text-center">
             {tab === "archived" ? (
               <Archive className="h-8 w-8 text-muted-foreground/60" />
+            ) : tab === "trash" ? (
+              <Trash2 className="h-8 w-8 text-muted-foreground/60" />
             ) : (
               <Inbox className="h-8 w-8 text-muted-foreground/60" />
             )}
             <p className="mt-3 font-medium">
-              {tab === "archived" ? "Nothing archived" : "You're all caught up"}
+              {tab === "archived"
+                ? "Nothing archived"
+                : tab === "trash"
+                  ? "Trash is empty"
+                  : "You're all caught up"}
             </p>
             <p className="mt-1 max-w-md text-sm text-muted-foreground">
               {emptyMessage ||
-                (tab !== "archived"
-                  ? "New notifications about your documents will show up here."
-                  : legacy
-                    ? "Archiving isn't available on the server yet."
-                    : "Notifications you archive will be kept here.")}
+                (tab === "trash"
+                  ? "Notifications you move to the trash will be kept here."
+                  : tab !== "archived"
+                    ? "New notifications about your documents will show up here."
+                    : legacy
+                      ? "Archiving isn't available on the server yet."
+                      : "Notifications you archive will be kept here.")}
             </p>
           </div>
         ) : (
@@ -403,7 +458,14 @@ export default function NotificationsPage() {
                   notification={n}
                   onOpen={() => open(n)}
                   actions={
-                    tab === "archived" ? (
+                    tab === "trash" ? (
+                      <RowAction
+                        icon={Trash2}
+                        label="Remove permanently"
+                        busy={busyId === n.id}
+                        onClick={() => removeFromTrash(n)}
+                      />
+                    ) : tab === "archived" ? (
                       <>
                         <RowAction
                           icon={ArchiveRestore}
@@ -478,12 +540,16 @@ export default function NotificationsPage() {
             <DialogTitle>
               {confirming === "empty"
                 ? "Empty the trash?"
-                : "Archive all notifications?"}
+                : confirming === "trash"
+                  ? "Move all notifications to trash?"
+                  : "Archive all notifications?"}
             </DialogTitle>
             <DialogDescription>
               {confirming === "empty"
                 ? "Every notification you've moved to the trash is deleted for good. This can't be undone."
-                : "Every notification in your inbox moves to Archived, not just the ones on this page. You can move any of them back later."}
+                : confirming === "trash"
+                  ? "Every notification in your inbox moves to the trash. Empty the trash later to delete them for good."
+                  : "Every notification in your inbox moves to Archived, not just the ones on this page. You can move any of them back later."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -506,6 +572,19 @@ export default function NotificationsPage() {
                   <Trash2 className="mr-1.5 h-4 w-4" />
                 )}
                 Empty trash
+              </Button>
+            ) : confirming === "trash" ? (
+              <Button
+                variant="destructive"
+                onClick={trashAll}
+                disabled={bulkBusy}
+              >
+                {bulkBusy ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                )}
+                Move to trash
               </Button>
             ) : (
               <Button onClick={archiveAll} disabled={bulkBusy}>
