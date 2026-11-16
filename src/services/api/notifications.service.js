@@ -156,6 +156,22 @@ export async function listArchivedNotifications({ page = 1 } = {}) {
   }
 }
 
+export async function listTrashNotifications({ page = 1 } = {}) {
+  try {
+    return await list("notifications/trash/", page);
+  } catch (err) {
+    if (!notDeployed(err) && !isMissingRoute(err)) throw err;
+    return {
+      items: [],
+      count: 0,
+      next: null,
+      previous: null,
+      emptyMessage: "",
+      legacy: true,
+    };
+  }
+}
+
 const action = (name) => async (id) => {
   const { data } = await http.get(path(id, `${name}/`));
   return detailOf(data);
@@ -170,10 +186,20 @@ export async function archiveAllNotifications() {
   return detailOf(data);
 }
 
+export async function trashAllNotifications() {
+  const { data } = await http.post("notifications/trash-all/", {});
+  return detailOf(data);
+}
+
 // Trash: soft-delete one notification; emptying the trash deletes every
 // trashed one for good. (Not deployed yet, 2026-11-04.)
 export async function trashNotification(id) {
   const { data } = await http.post(path(id, "move-to-trash/"), {});
+  return detailOf(data);
+}
+
+export async function removeFromTrashNotification(id) {
+  const { data } = await http.post(path(id, "remove-from-trash/"), {});
   return detailOf(data);
 }
 
