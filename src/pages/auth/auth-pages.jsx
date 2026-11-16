@@ -17,6 +17,8 @@ import {
   LinkedInLogo,
 } from "@/components/auth/BrandIcons";
 import { useAuth } from "@/services/context/app.context";
+import { toast } from "sonner";
+import Turnstile from "@/components/auth/Turnstile";
 
 // Social sign-in (auth/{provider}/) and enterprise single sign-on
 // (account_auth/sso/redirect/default/), both handed off through the backend.
@@ -177,6 +179,8 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileKey, setTurnstileKey] = useState(0);
   // Set when the account has 2FA on (from the password step, or handed over
   // by the SSO callback).
   const [pendingToken, setPendingToken] = useState(
@@ -185,11 +189,17 @@ export function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (!turnstileToken) {
+      toast.error("Please complete the security check to continue.");
+      return;
+    }
     try {
-      const res = await login(email, password, navigate);
+      const res = await login(email, password, turnstileToken, navigate);
       if (res?.twoFactorRequired) setPendingToken(res.pendingToken);
     } catch {
-      /* error surfaced via context toast + error state */
+      // The Turnstile token is single-use — reset the widget for retries.
+      setTurnstileToken("");
+      setTurnstileKey((k) => k + 1);
     }
   };
 
@@ -267,6 +277,13 @@ export function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
+
+                <Turnstile
+                  key={turnstileKey}
+                  onVerify={setTurnstileToken}
+                  onExpire={() => setTurnstileToken("")}
+                  onError={() => setTurnstileToken("")}
+                />
 
                 <Button
                   type="submit"

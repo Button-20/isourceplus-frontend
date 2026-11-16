@@ -23,6 +23,9 @@ export const ENV = {
   // The frontend's own public origin (used in outbound copy such as SMS
   // sign-up links). Defaults to the production domain; override with VITE_APP_URL.
   APP_URL: (raw.VITE_APP_URL || "https://isourceplus.com").replace(/\/+$/, ""),
+  // Cloudflare Turnstile site key for the login page. Defaults to the public
+  // test key (always passes); override with VITE_TURNSTILE_SITE_KEY.
+  TURNSTILE_SITE_KEY: raw.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA",
   // ALWAYS use a same-origin relative path. The backend authenticates with
   // HttpOnly cookies, which are only sent when the request is first-party
   // (same origin as the page). Any cross-origin absolute URL turns those into

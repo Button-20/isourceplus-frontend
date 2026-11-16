@@ -224,11 +224,11 @@ export const AppProvider = ({ children }) => {
       ? { twoFactorRequired: true, pendingToken: pendingTokenOf(data) }
       : null;
 
-  const login = async (email, password, navigate) => {
+  const login = async (email, password, turnstileToken, navigate) => {
     setError(null);
     setLoading(true);
     try {
-      const data = await loginRequest({ email, password });
+      const data = await loginRequest({ email, password, turnstileToken });
       const pending = twoFactorStep(data);
       if (pending) return pending;
       await finishLogin(data, navigate);
