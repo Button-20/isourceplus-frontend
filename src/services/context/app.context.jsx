@@ -161,11 +161,11 @@ export const AppProvider = ({ children }) => {
     setRefreshToken(data.refresh || null);
   };
 
-  const signup = async (email, password1, password2, navigate) => {
+  const signup = async (email, password1, password2, turnstileToken, navigate) => {
     setError(null);
     setLoading(true);
     try {
-      const data = await signupRequest({ email, password1, password2 });
+      const data = await signupRequest({ email, password1, password2, turnstileToken });
       applySession(data);
       navigate("/onboarding/user", { replace: true });
       toast(data.detail || "Signup successful");

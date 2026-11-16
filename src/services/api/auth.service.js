@@ -62,12 +62,13 @@ export async function exchangeSocialCode(code) {
   return data;
 }
 
-export async function signupRequest({ email, password1, password2 }) {
+export async function signupRequest({ email, password1, password2, turnstileToken }) {
   await ensureCsrfToken();
   const { data } = await http.post("account_auth/registration/", {
     email: email.trim(),
     password1,
     password2,
+    turnstile_token: turnstileToken,
   });
   persistSession(data);
   return data;

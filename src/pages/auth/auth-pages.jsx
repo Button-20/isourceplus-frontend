@@ -318,13 +318,21 @@ export function SignUpPage() {
   const [password1, setPassword1] = useState("");
   const [password2, setPassword2] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
+    if (!turnstileToken) {
+      toast.error("Please complete the security check to continue.");
+      return;
+    }
     try {
-      await signup(email, password1, password2, navigate);
+      await signup(email, password1, password2, turnstileToken, navigate);
     } catch {
-      /* error surfaced via context toast + error state */
+      // The Turnstile token is single-use — reset the widget for retries.
+      setTurnstileToken("");
+      setTurnstileKey((k) => k + 1);
     }
   };
 
@@ -390,6 +398,13 @@ export function SignUpPage() {
               value={password2}
               onChange={(e) => setPassword2(e.target.value)}
               required
+            />
+
+            <Turnstile
+              key={turnstileKey}
+              onVerify={setTurnstileToken}
+              onExpire={() => setTurnstileToken("")}
+              onError={() => setTurnstileToken("")}
             />
 
             <Button
