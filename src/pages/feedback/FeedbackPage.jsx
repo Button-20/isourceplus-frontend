@@ -43,7 +43,7 @@ import {
   updateFeedback,
 } from "@/services/api/feedback.service";
 
-const EMPTY = { feature: "", rating: 0, recommendation: "" };
+const EMPTY = { feature: "", rating: 0, recommendation: "", issue: "" };
 
 function StarRating({ value, onChange, size = "h-6 w-6", readOnly = false }) {
   return (
@@ -159,6 +159,7 @@ export default function FeedbackPage() {
       feature: row.feature || "",
       rating: Number(row.rating) || 0,
       recommendation: row.recommendation || "",
+      issue: row.issue || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -245,6 +246,24 @@ export default function FeedbackPage() {
               value={form.recommendation}
               onChange={(e) => set("recommendation", e.target.value)}
               placeholder="What worked, what didn't, and what you'd change."
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="feedback_issue"
+              className="mb-1 block text-sm font-medium"
+            >
+              Describe the issue{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </label>
+            <Textarea
+              id="feedback_issue"
+              rows={3}
+              value={form.issue}
+              onChange={(e) => set("issue", e.target.value)}
+              placeholder="Any bug, error, or problem you ran into."
             />
           </div>
           <div className="flex flex-wrap gap-2">
@@ -344,6 +363,14 @@ export default function FeedbackPage() {
                     <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">
                       {r.recommendation}
                     </p>
+                    {r.issue && (
+                      <p className="mt-2 whitespace-pre-line rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">
+                          Issue:{" "}
+                        </span>
+                        {r.issue}
+                      </p>
+                    )}
                   </div>
                   <div className="flex shrink-0 items-start gap-1">
                     <Button

@@ -50,10 +50,11 @@ export async function listFeedbackFeatures() {
 export const featureLabel = (value, features = FEEDBACK_FEATURES) =>
   features.find((f) => f.value === value)?.label || value || "—";
 
-const body = ({ feature, rating, recommendation }) => ({
+const body = ({ feature, rating, recommendation, issue }) => ({
   feature,
   rating: rating || null,
   recommendation: recommendation.trim(),
+  issue: (issue ?? "").trim(),
 });
 
 export async function listMyFeedback() {
