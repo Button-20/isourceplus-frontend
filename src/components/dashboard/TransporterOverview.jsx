@@ -15,6 +15,7 @@ import {
   getPaymentOrdersIssuedValue,
   getSalesInvoiceValue,
   getTotalBuyersAndSuppliers,
+  getPayments,
 } from "@/services/api/transporterDashboard.service";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,16 @@ const METRICS = [
     href: "/dashboard/payment-orders",
   },
   {
+    key: "payments",
+    icon: Wallet,
+    label: "Payments",
+    fetch: getPayments,
+    href: "/dashboard/payment-orders",
+    mainKey: "issued_payment_orders",
+    subKey: "received_payments",
+    subLabel: "received",
+  },
+  {
     key: "buyersAndSuppliers",
     icon: Users,
     label: "Total Buyers & Suppliers",
@@ -84,7 +95,7 @@ const METRICS = [
   },
 ];
 
-function StatCard({ icon: Icon, label, value, prefix, loading, href }) {
+function StatCard({ icon: Icon, label, value, sub, prefix, loading, href }) {
   return (
     <Card className="transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/5">
       <CardContent className="flex items-start justify-between p-5">
@@ -97,6 +108,9 @@ function StatCard({ icon: Icon, label, value, prefix, loading, href }) {
               {prefix ?? ""}
               {value}
             </p>
+          )}
+          {sub && !loading && (
+            <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>
           )}
           {href && !loading && (
             <Button
@@ -144,7 +158,13 @@ export default function TransporterOverview() {
       <h2 className="mb-3 font-display text-lg font-semibold">Overview</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {METRICS.map((m) => {
-          const metricValue = pickMetric(data[m.key]);
+          const raw = data[m.key];
+          const metricValue = m.mainKey
+            ? Number(raw?.[m.mainKey] ?? 0) || 0
+            : pickMetric(raw);
+          const sub = m.subKey
+            ? `${Number(raw?.[m.subKey] ?? 0) || 0} ${m.subLabel}`
+            : undefined;
           return (
             <StatCard
               key={m.key}
@@ -155,6 +175,7 @@ export default function TransporterOverview() {
               value={
                 m.money ? formatMoney(metricValue) : formatCount(metricValue)
               }
+              sub={sub}
               href={m.href}
             />
           );

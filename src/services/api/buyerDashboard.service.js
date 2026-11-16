@@ -21,3 +21,4 @@ export const getPoToPaymentPercentages = () =>
   get("buyer-dashboard/po-pmt-inflow-outflow-compared-percentages/");
 export const getEventsFrequency = () =>
   get("buyer-dashboard/monitor-events-frequency/");
+export const getPayments = () => get("buyer-dashboard/payments/");

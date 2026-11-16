@@ -17,3 +17,4 @@ export const getSalesInvoiceValue = () =>
   get("transporter-dashboard/sales-invoice-value/");
 export const getTotalBuyersAndSuppliers = () =>
   get("transporter-dashboard/total-buyers-and-suppliers/");
+export const getPayments = () => get("transporter-dashboard/payments/");
