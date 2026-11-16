@@ -22,11 +22,12 @@ function persistSession(data) {
 
 // With 2FA on, login answers { two_fa_required: true, pending_token } and no
 // session; verifyTwoFactorLogin() finishes it.
-export async function loginRequest({ email, password }) {
+export async function loginRequest({ email, password, turnstileToken }) {
   await ensureCsrfToken();
   const { data } = await http.post("account_auth/login/", {
     email: email.trim(),
     password,
+    turnstile_token: turnstileToken,
   });
   if (!data?.two_fa_required) persistSession(data);
   return data;
@@ -61,12 +62,13 @@ export async function exchangeSocialCode(code) {
   return data;
 }
 
-export async function signupRequest({ email, password1, password2 }) {
+export async function signupRequest({ email, password1, password2, turnstileToken }) {
   await ensureCsrfToken();
   const { data } = await http.post("account_auth/registration/", {
     email: email.trim(),
     password1,
     password2,
+    turnstile_token: turnstileToken,
   });
   persistSession(data);
   return data;

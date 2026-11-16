@@ -161,11 +161,11 @@ export const AppProvider = ({ children }) => {
     setRefreshToken(data.refresh || null);
   };
 
-  const signup = async (email, password1, password2, navigate) => {
+  const signup = async (email, password1, password2, turnstileToken, navigate) => {
     setError(null);
     setLoading(true);
     try {
-      const data = await signupRequest({ email, password1, password2 });
+      const data = await signupRequest({ email, password1, password2, turnstileToken });
       applySession(data);
       navigate("/onboarding/user", { replace: true });
       toast(data.detail || "Signup successful");
@@ -224,11 +224,11 @@ export const AppProvider = ({ children }) => {
       ? { twoFactorRequired: true, pendingToken: pendingTokenOf(data) }
       : null;
 
-  const login = async (email, password, navigate) => {
+  const login = async (email, password, turnstileToken, navigate) => {
     setError(null);
     setLoading(true);
     try {
-      const data = await loginRequest({ email, password });
+      const data = await loginRequest({ email, password, turnstileToken });
       const pending = twoFactorStep(data);
       if (pending) return pending;
       await finishLogin(data, navigate);
