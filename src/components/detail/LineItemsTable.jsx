@@ -7,7 +7,7 @@
 // document's own total when given, otherwise the sum of the rows.
 
 import { formatMoney } from "@/utils/money";
-import { resolveMediaUrl } from "@/services/lib/env";
+import ItemThumbnail from "@/components/detail/ItemThumbnail";
 
 const toNumber = (v) => {
   if (v === null || v === undefined || v === "") return null;
@@ -52,6 +52,7 @@ export default function LineItemsTable({
         <thead>
           <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <th className="px-4 py-2.5 font-medium">#</th>
+            <th className="px-4 py-2.5 font-medium">Image</th>
             <th className="px-4 py-2.5 font-medium">Name</th>
             <th className="px-4 py-2.5 font-medium">Description</th>
             <th className="px-4 py-2.5 text-right font-medium">Qty</th>
@@ -72,25 +73,19 @@ export default function LineItemsTable({
               <tr key={item.id ?? i} className="align-top">
                 <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
                 <td className="px-4 py-2.5">
-                  <div className="flex items-start gap-3">
-                    {item.image ? (
-                      <img
-                        src={resolveMediaUrl(item.image)}
-                        alt={item.name || "Item"}
-                        className="h-10 w-10 shrink-0 rounded-md border border-border/60 object-cover"
-                      />
-                    ) : null}
-                    <div className="min-w-0">
-                      <p className="font-medium">{item.name || "N/A"}</p>
-                      {item.extra_value && (
-                        <p className="text-xs text-muted-foreground">
-                          + {item.extra_value}
-                          {item.extra_value_TnCs
-                            ? ` (${item.extra_value_TnCs})`
-                            : ""}
-                        </p>
-                      )}
-                    </div>
+                  <ItemThumbnail image={item.image} name={item.name} />
+                </td>
+                <td className="px-4 py-2.5">
+                  <div className="min-w-0">
+                    <p className="font-medium">{item.name || "N/A"}</p>
+                    {item.extra_value && (
+                      <p className="text-xs text-muted-foreground">
+                        + {item.extra_value}
+                        {item.extra_value_TnCs
+                          ? ` (${item.extra_value_TnCs})`
+                          : ""}
+                      </p>
+                    )}
                   </div>
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground">
@@ -131,7 +126,7 @@ export default function LineItemsTable({
         <tfoot>
           <tr className="border-t border-border/70 bg-muted/30">
             <td
-              colSpan={6}
+              colSpan={7}
               className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"
             >
               {totalLabel}

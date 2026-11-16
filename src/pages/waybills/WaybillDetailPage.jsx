@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/app.context";
-import { resolveMediaUrl } from "@/services/lib/env";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -15,6 +14,7 @@ import {
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
+import ItemThumbnail from "@/components/detail/ItemThumbnail";
 import {
   format,
   formatDistanceToNow,
@@ -333,6 +333,7 @@ const WaybillDetailPage = () => {
                 <thead>
                   <tr className="border-b border-border/70 bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-4 py-2.5 font-medium">#</th>
+                    <th className="px-4 py-2.5 font-medium">Image</th>
                     <th className="px-4 py-2.5 font-medium">
                       Item description
                     </th>
@@ -350,24 +351,18 @@ const WaybillDetailPage = () => {
                         {i + 1}
                       </td>
                       <td className="px-4 py-2.5">
-                        <div className="flex items-start gap-3">
-                          {item.image ? (
-                            <img
-                              src={resolveMediaUrl(item.image)}
-                              alt={item.name || "Item"}
-                              className="h-10 w-10 shrink-0 rounded-md border border-border/60 object-cover"
-                            />
-                          ) : null}
-                          <div className="min-w-0">
-                            <span className="font-medium">
-                              {item.name || "N/A"}
+                        <ItemThumbnail image={item.image} name={item.name} />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="min-w-0">
+                          <span className="font-medium">
+                            {item.name || "N/A"}
+                          </span>
+                          {item.description && (
+                            <span className="block text-xs text-muted-foreground">
+                              {item.description}
                             </span>
-                            {item.description && (
-                              <span className="block text-xs text-muted-foreground">
-                                {item.description}
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-2.5">{item.quantity}</td>
