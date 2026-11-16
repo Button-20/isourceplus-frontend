@@ -37,6 +37,7 @@ import {
 } from "@/services/api/proforma.service";
 import { isBuyerView } from "@/services/api/event-lists.service";
 import { apiErrorMessage } from "@/services/lib/api-error";
+import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
 
 const ProformaInvoiceDetailPage = () => {
   const { authAxios, jobTitle, companyId, transporterId, viewMode } = useAuth();
@@ -185,6 +186,14 @@ const ProformaInvoiceDetailPage = () => {
           logo={invoice.issuing_company_display_logo}
           title={invoice.title || "Untitled invoice"}
           subtitle={invoice.ref_num}
+          actions={
+            <ChatIssuerButton
+              issuerRef={invoice.issuing_company_ref}
+              documentType="procure.proformainvoice"
+              documentId={invoice.id}
+              subject={invoice.title || invoice.ref_num}
+            />
+          }
           badge={
             <StatusBadge
               label={isDraftStatus(invoice.status) ? "Open" : "Closed"}

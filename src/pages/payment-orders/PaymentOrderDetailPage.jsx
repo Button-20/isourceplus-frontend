@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
+import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
 import {
   format,
   formatDistanceToNow,
@@ -333,6 +334,14 @@ const PaymentOrderDetailPage = () => {
           icon={Wallet}
           title={paymentOrder.title || "Untitled order"}
           subtitle={paymentOrder.ref_num}
+          actions={
+            <ChatIssuerButton
+              issuerRef={paymentOrder.issuing_company_ref}
+              documentType="procure.paymentorder"
+              documentId={paymentOrder.id}
+              subject={paymentOrder.title || paymentOrder.ref_num}
+            />
+          }
           badge={
             <StatusBadge
               label={
