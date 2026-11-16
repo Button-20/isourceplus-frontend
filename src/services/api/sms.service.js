@@ -65,3 +65,8 @@ export async function sendEmailInvitation({ message, recipients }) {
   });
   return data;
 }
+
+export async function getSentEmailInvitations() {
+  const { data } = await http.get("customer/sms/sent-email-invitations/history/");
+  return data;
+}
