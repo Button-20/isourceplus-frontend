@@ -26,6 +26,7 @@ import { isDraftStatus } from "@/utils/status";
 import ArchiveButton from "@/components/archive/ArchiveButton";
 import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
 import { apiErrorMessage } from "@/services/lib/api-error";
+import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
 
 const RFxDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -149,6 +150,14 @@ const RFxDetailPage = () => {
           logo={rfx.issuing_company_display_logo}
           title={rfx.title || "Untitled RFx"}
           subtitle={rfx.ref_num}
+          actions={
+            <ChatIssuerButton
+              issuerRef={rfx.issuing_company_ref}
+              documentType="procure.rfx"
+              documentId={rfx.id}
+              subject={rfx.title || rfx.ref_num}
+            />
+          }
           badge={
             <StatusBadge
               label={isDraftStatus(rfx.status) ? "Open" : "Closed"}

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
+import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
 import {
   format,
   formatDistanceToNow,
@@ -229,6 +230,14 @@ const WaybillDetailPage = () => {
           logo={waybill.issuing_company_display_logo}
           title={waybill.title || "Untitled waybill"}
           subtitle={waybill.ref_num}
+          actions={
+            <ChatIssuerButton
+              issuerRef={waybill.issuing_company_ref}
+              documentType="procure.waybill"
+              documentId={waybill.id}
+              subject={waybill.title || waybill.ref_num}
+            />
+          }
           badge={
             waybill.status ? (
               <StatusBadge

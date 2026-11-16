@@ -18,6 +18,7 @@ import {
   Wallet,
   Star,
   MessageSquare,
+  MessageCircle,
   Handshake,
   PackageCheck,
   ShieldAlert,
@@ -383,6 +384,7 @@ export function DashboardLayout() {
         },
         { title: "Reviews", icon: Star, url: "/dashboard/reviews" },
         { title: "SMS", icon: MessageSquare, url: "/dashboard/sms" },
+        { title: "Messages", icon: MessageCircle, url: "/dashboard/messages" },
       ],
     },
   ];

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
+import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
 import {
   format,
   formatDistanceToNow,
@@ -192,6 +193,14 @@ const TenderDetailPage = () => {
           logo={tender.issuing_company_display_logo}
           title={tender.title || "Untitled tender"}
           subtitle={tender.ref_num}
+          actions={
+            <ChatIssuerButton
+              issuerRef={tender.issuing_company_ref}
+              documentType="procure.tender"
+              documentId={tender.id}
+              subject={tender.title || tender.ref_num}
+            />
+          }
           badge={
             tender.status ? (
               <StatusBadge

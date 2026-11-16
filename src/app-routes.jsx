@@ -106,6 +106,8 @@ import ClientsPage from "./pages/clients/ClientsPage";
 import { FaqPage } from "./pages/public/FaqPage";
 import FeedbackPage from "./pages/feedback/FeedbackPage";
 import SecurityPage from "./pages/security/SecurityPage";
+import MessagesPage from "./pages/messaging/MessagesPage";
+import ConversationPage from "./pages/messaging/ConversationPage";
 import { SsoCallbackPage } from "./pages/auth/SsoCallbackPage";
 import { SocialCallbackPage } from "./pages/auth/SocialCallbackPage";
 import { UseCasesPage } from "./pages/public/UseCasesPage";
@@ -283,6 +285,8 @@ const fullRoutes = [
       { path: "support", element: <SupportPage /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "feedback", element: <FeedbackPage /> },
+      { path: "messages", element: <MessagesPage /> },
+      { path: "messages/:conversationId", element: <ConversationPage /> },
       { path: "security", element: <SecurityPage /> },
       { path: "delivery-notes", element: <DeliveryNotesPage /> },
       { path: "disputes", element: <DisputesPage /> },

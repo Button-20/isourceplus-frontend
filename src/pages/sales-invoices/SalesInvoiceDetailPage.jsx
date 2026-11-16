@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
+import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
 import {
   format,
   formatDistanceToNow,
@@ -269,6 +270,14 @@ const SalesInvoiceDetailPage = () => {
           icon={Wallet}
           title={salesInvoice.title || "Untitled invoice"}
           subtitle={salesInvoice.ref_num}
+          actions={
+            <ChatIssuerButton
+              issuerRef={salesInvoice.issuing_company_ref}
+              documentType="procure.salesinvoice"
+              documentId={salesInvoice.id}
+              subject={salesInvoice.title || salesInvoice.ref_num}
+            />
+          }
           badge={
             <StatusBadge
               label={isDraft ? "Open" : "Closed"}

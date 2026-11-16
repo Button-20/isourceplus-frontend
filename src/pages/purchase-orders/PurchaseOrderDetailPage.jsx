@@ -25,6 +25,7 @@ import GrnInspectionPanel from "@/components/grn/GrnInspectionPanel";
 import { findGrnForPurchaseOrder } from "@/services/api/grn.service";
 import { canDisputeEscrow } from "@/services/api/escrow-dispute.service";
 import { isBuyerView } from "@/services/api/event-lists.service";
+import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -231,6 +232,14 @@ const PurchaseOrderDetailPage = () => {
           icon={ShoppingCart}
           title={purchaseOrder.title || purchaseOrder.ref_num}
           subtitle={purchaseOrder.ref_num}
+          actions={
+            <ChatIssuerButton
+              issuerRef={purchaseOrder.issuing_company_ref}
+              documentType="procure.purchaseorder"
+              documentId={purchaseOrder.id}
+              subject={purchaseOrder.title || purchaseOrder.ref_num}
+            />
+          }
           badge={
             purchaseOrder.status ? (
               <StatusBadge
