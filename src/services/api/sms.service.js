@@ -55,3 +55,13 @@ export async function sendSms({ message, recipients }) {
   });
   return data;
 }
+
+// Email invitation: same shape as sendSms, but recipients are email addresses.
+// The message is the final body (default or custom + appended footer).
+export async function sendEmailInvitation({ message, recipients }) {
+  const { data } = await http.post("customer/sms/email-invitation/", {
+    message,
+    recipients,
+  });
+  return data;
+}

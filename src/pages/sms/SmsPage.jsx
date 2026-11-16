@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   Coins,
   Loader2,
+  Mail,
   MessageSquare,
   RefreshCw,
   Send,
@@ -26,6 +27,7 @@ import {
   verifySmsPurchase,
 } from "@/services/api/sms.service";
 import RecipientsField from "@/components/sms/RecipientsField";
+import EmailInviteDialog from "@/components/sms/EmailInviteDialog";
 import SmsInviteDialog from "@/components/sms/SmsInviteDialog";
 import {
   SIGNUP_FOOTER,
@@ -221,6 +223,7 @@ export default function SmsPage() {
   const [recipientsRaw, setRecipientsRaw] = useState("");
   const [sending, setSending] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [emailInviteOpen, setEmailInviteOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const verifiedRef = useRef(false);
 
@@ -416,6 +419,13 @@ export default function SmsPage() {
             className="bg-white text-brand hover:bg-white/90"
           >
             <UserPlus className="mr-1.5 h-4 w-4" /> SMS invitation
+          </Button>
+          <Button
+            type="button"
+            onClick={() => setEmailInviteOpen(true)}
+            className="bg-white text-brand hover:bg-white/90"
+          >
+            <Mail className="mr-1.5 h-4 w-4" /> Email invitation
           </Button>
           <div className="flex items-center gap-3 rounded-2xl bg-white/15 px-5 py-4">
             <Coins className="h-6 w-6" />
@@ -756,6 +766,10 @@ export default function SmsPage() {
           loadBalance();
           loadHistory();
         }}
+      />
+      <EmailInviteDialog
+        open={emailInviteOpen}
+        onOpenChange={setEmailInviteOpen}
       />
     </div>
   );

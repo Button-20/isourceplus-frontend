@@ -39,3 +39,27 @@ export const withSignupFooter = (message) => {
 // The default sign-up invitation, sent on behalf of the user's organisation.
 export const invitationMessage = (orgName) =>
   `${orgName ? `${orgName} invites` : "We invite"} you to sign-up on www.isourceplus.com, Ghana's No.1 Biggest & Reliable Sourcing Platform for us to do business efficiently and effectively.\n\nConnect.Source.Pay\n\nThank you!`;
+
+// A basic email-address shape check used when collecting invitation recipients.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Accept emails separated by commas, spaces, semicolons or new lines and drop
+// duplicates (case-insensitively, keeping the first spelling). Invalid tokens
+// are ignored so pasted lists still work.
+export const parseEmailRecipients = (raw) => {
+  const seen = new Map();
+  String(raw || "")
+    .split(/[\s,;]+/)
+    .forEach((tok) => {
+      const email = tok.trim();
+      if (!email || !EMAIL_RE.test(email)) return;
+      const key = email.toLowerCase();
+      if (!seen.has(key)) seen.set(key, email);
+    });
+  return Array.from(seen.values());
+};
+
+// The default sign-up invitation email, sent on behalf of the user's
+// organisation (single-spaced, matching the email invitation copy).
+export const emailInvitationMessage = (orgName) =>
+  `${orgName ? `${orgName} invites` : "We invite"} you to sign-up on www.isourceplus.com, Ghana's No.1 Biggest & Reliable Sourcing Platform for us to do business efficiently and effectively.  Connect.Source.Pay  Thank you!`;
