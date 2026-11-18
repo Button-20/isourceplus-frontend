@@ -58,7 +58,8 @@ const UNITS = [
 // Sentinel for the optional extra_value Select (Radix items can't be "").
 const NO_EXTRA_VALUE = "__none__";
 
-const STEPS = ["Details", "Reach", "Items"];
+const STEPS = ["Details", "Reach", "Items", "Review"];
+const REVIEW_STEP = STEPS.length - 1;
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 // Default unit for a new item: "pc" when the loaded list has it, else the
@@ -94,6 +95,7 @@ const initialValues = (unit) => ({
   is_approved: true,
   region: "",
   district: "",
+  sales_invoice_ref_num: "",
   items: [emptyItem(unit)],
 });
 
@@ -252,7 +254,8 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
   };
 
   const validateStep = () => {
-    if (step === 0) {
+    const runAll = step === REVIEW_STEP;
+    if (step === 0 || runAll) {
       if (!values.title.trim()) {
         toast.error("Title is required");
         return false;
@@ -288,7 +291,7 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
         return false;
       }
     }
-    if (step === 2) {
+    if (step === 2 || runAll) {
       if (!values.items.length) {
         toast.error("Add at least one item");
         return false;
@@ -333,6 +336,8 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
       data.append("expected_delivery_date", values.expected_delivery_date);
       data.append("delivery_deadline", toIso(values.delivery_deadline));
       data.append("is_approved", values.is_approved);
+      if (values.sales_invoice_ref_num.trim())
+        data.append("sales_invoice_ref_num", values.sales_invoice_ref_num.trim());
       // Waybills from this form are always out-sourced to transporters.
       data.append("do_delivery", "out_source");
       data.append("waybill_type", "outsourced");
@@ -467,6 +472,21 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
                   onChange={(e) => set({ destination: e.target.value })}
                   placeholder="Issuer's preferred address"
                   maxLength={255}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>
+                  Sales invoice reference{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <Input
+                  value={values.sales_invoice_ref_num}
+                  onChange={(e) =>
+                    set({ sales_invoice_ref_num: e.target.value })
+                  }
+                  placeholder="e.g. SINV-2026-001 — auto-fills waybill items"
                 />
               </div>
               <div>
@@ -861,6 +881,67 @@ export default function WaybillCreateModal({ open, onOpenChange, onCreated }) {
               >
                 <Plus className="h-4 w-4" /> Add item
               </Button>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Review your waybill before creating it.
+              </p>
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Title</dt>
+                  <dd className="text-sm font-medium">{values.title || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Procedure</dt>
+                  <dd className="text-sm font-medium">{values.procedure}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Priority</dt>
+                  <dd className="text-sm font-medium">{values.priority}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Origin</dt>
+                  <dd className="text-sm font-medium">{values.origin || "—"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-muted-foreground">Destination</dt>
+                  <dd className="text-sm font-medium">{values.destination || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">
+                    Expected delivery
+                  </dt>
+                  <dd className="text-sm font-medium">
+                    {values.expected_delivery_date || "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">
+                    Sales invoice ref
+                  </dt>
+                  <dd className="text-sm font-medium">
+                    {values.sales_invoice_ref_num || "—"}
+                  </dd>
+                </div>
+              </dl>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  Items ({values.items.length})
+                </p>
+                <ul className="space-y-1 text-sm">
+                  {values.items.map((it, i) => (
+                    <li key={i} className="flex justify-between gap-2">
+                      <span>{it.name || "—"}</span>
+                      <span className="text-muted-foreground">
+                        {it.quantity} × {it.unit_of_measure} @ {it.unit_price}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           )}
         </div>
