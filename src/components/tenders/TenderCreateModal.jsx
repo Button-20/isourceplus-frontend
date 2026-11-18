@@ -94,7 +94,8 @@ const UNITS = [
   { value: "gal", label: "Gallon (gal)" },
 ];
 
-const STEPS = ["Details", "Reach", "Items", "Commercial", "Evaluation", "Attachments"];
+const STEPS = ["Details", "Reach", "Items", "Commercial", "Evaluation", "Attachments", "Review"];
+const REVIEW_STEP = STEPS.length - 1;
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 // Fallback only — live list comes from GET tender/type-choices/ (now Goods/…).
@@ -443,7 +444,8 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
   };
 
   const validateStep = () => {
-    if (step === 0) {
+    const runAll = step === REVIEW_STEP;
+    if (step === 0 || runAll) {
       if (!values.title.trim()) {
         toast.error("Title is required");
         return false;
@@ -472,7 +474,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
         return false;
       }
     }
-    if (step === 1) {
+    if (step === 1 || runAll) {
       if (!values.region) {
         toast.error("Region is required");
         return false;
@@ -482,7 +484,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
         return false;
       }
     }
-    if (step === 2) {
+    if (step === 2 || runAll) {
       if (!values.items.length) {
         toast.error("Add at least one item");
         return false;
@@ -498,7 +500,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
         }
       }
     }
-    if (step === 4 && values.evaluation_criteria.length) {
+    if ((step === 4 || runAll) && values.evaluation_criteria.length) {
       const weights = values.evaluation_criteria.reduce(
         (s, c) => s + (Number(c.weight) || 0),
         0,
@@ -508,7 +510,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
         return false;
       }
     }
-    if (step === 5) {
+    if (step === 5 || runAll) {
       for (const a of values.attachments) {
         if (a.name && !a.file) {
           toast.error("Each named attachment needs a file");
@@ -1489,6 +1491,61 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
               >
                 <Paperclip className="h-4 w-4" /> Add attachment
               </Button>
+            </div>
+          )}
+
+          {step === 6 && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Review your tender before creating it.
+              </p>
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Title</dt>
+                  <dd className="text-sm font-medium">{values.title || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Tender type</dt>
+                  <dd className="text-sm font-medium">
+                    {typeChoices.find((o) => o.value === values.tender_type)
+                      ?.label || values.tender_type || "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Procedure</dt>
+                  <dd className="text-sm font-medium">{values.procedure}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Method</dt>
+                  <dd className="text-sm font-medium">{values.method}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-muted-foreground">Description</dt>
+                  <dd className="text-sm font-medium">
+                    {values.description || "—"}
+                  </dd>
+                </div>
+              </dl>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  Items ({values.items.length})
+                </p>
+                <ul className="space-y-1 text-sm">
+                  {values.items.map((it, i) => (
+                    <li key={i} className="flex justify-between gap-2">
+                      <span>{it.name || "—"}</span>
+                      <span className="text-muted-foreground">
+                        {it.quantity} × {it.unit_of_measure}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+                <span>Requirements: {values.requirements.length}</span>
+                <span>Evaluation criteria: {values.evaluation_criteria.length}</span>
+                <span>Attachments: {values.attachments.length}</span>
+              </div>
             </div>
           )}
         </div>

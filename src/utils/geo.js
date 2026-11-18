@@ -11,8 +11,20 @@ export function currentPositionString() {
         resolve(
           `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`,
         ),
-      () => reject(new Error("Couldn't get your location. Enter it manually.")),
-      { enableHighAccuracy: true, timeout: 10000 },
+      (err) => {
+        // Give a useful reason instead of one generic message. Lower-accuracy
+        // requests work on desktops/WiFi where a high-accuracy GPS fix times out.
+        const message =
+          err?.code === 1
+            ? "Location permission was denied. Allow it in your browser, or enter your location manually."
+            : err?.code === 3
+              ? "Couldn't get your location in time. Try again or enter it manually."
+              : "Couldn't get your location. Enter it manually.";
+        reject(new Error(message));
+      },
+      // Lower accuracy + longer timeout + cached fix are far more reliable
+      // across desktop and mobile; high-accuracy timed out on many devices.
+      { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 },
     );
   });
 }
