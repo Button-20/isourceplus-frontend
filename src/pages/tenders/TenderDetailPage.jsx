@@ -13,6 +13,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
 import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
 import ItemThumbnail from "@/components/detail/ItemThumbnail";
+import EvaluationPanel from "@/components/procurement/EvaluationPanel";
 import {
   format,
   formatDistanceToNow,
@@ -306,6 +307,12 @@ const TenderDetailPage = () => {
             </p>
           )}
         </Section>
+
+        {isLeadBuyer && (
+          <Section title="Evaluation">
+            <EvaluationPanel kind="tender" refNum={tender.ref_num} />
+          </Section>
+        )}
 
         <Section title="Attachments">
           {tender.attachments?.length > 0 ? (
