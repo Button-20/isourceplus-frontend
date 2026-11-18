@@ -27,6 +27,7 @@ import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
 import { apiErrorMessage } from "@/services/lib/api-error";
 import ChatIssuerButton from "@/components/chat/ChatIssuerButton";
 import ItemThumbnail from "@/components/detail/ItemThumbnail";
+import EvaluationPanel from "@/components/procurement/EvaluationPanel";
 
 const RFxDetailPage = () => {
   const { authAxios, jobTitle } = useAuth();
@@ -257,6 +258,12 @@ const RFxDetailPage = () => {
             </p>
           )}
         </Section>
+
+        {isLeadBuyer && (
+          <Section title="Evaluation">
+            <EvaluationPanel kind="rfx" refNum={rfx.ref_num} />
+          </Section>
+        )}
 
         {(isSalesManager || isLeadBuyer) && (
           <DetailFooter>

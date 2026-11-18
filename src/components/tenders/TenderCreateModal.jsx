@@ -94,8 +94,64 @@ const UNITS = [
   { value: "gal", label: "Gallon (gal)" },
 ];
 
-const STEPS = ["Details", "Reach", "Items", "Attachments"];
+const STEPS = ["Details", "Reach", "Items", "Commercial", "Evaluation", "Attachments"];
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
+
+// Fallback only — live list comes from GET tender/type-choices/ (now Goods/…).
+const TENDER_TYPES = [
+  { value: "goods", label: "Goods" },
+  { value: "works", label: "Works" },
+  { value: "services", label: "Services" },
+  { value: "consultancy", label: "Consultancy" },
+  { value: "construction", label: "Construction" },
+  { value: "framework_agreement", label: "Framework Agreement" },
+  { value: "supply_installation", label: "Supply & Installation" },
+  { value: "lease", label: "Lease" },
+  { value: "transport_logistics", label: "Transport/Logistics" },
+  { value: "other", label: "Other" },
+];
+const PRICE_BASES = [
+  { value: "unit_price", label: "Unit price" },
+  { value: "total_price", label: "Total price" },
+  { value: "lump_sum", label: "Lump sum" },
+  { value: "rate_based", label: "Rate-based" },
+  { value: "milestone_based", label: "Milestone-based" },
+];
+const REQUIREMENT_TYPES = [
+  { value: "legal", label: "Legal" },
+  { value: "technical", label: "Technical" },
+  { value: "eligibility", label: "Eligibility" },
+  { value: "commercial", label: "Commercial" },
+  { value: "delivery", label: "Delivery" },
+  { value: "compliance", label: "Compliance" },
+  { value: "other", label: "Other" },
+];
+const SCORING_METHODS = [
+  { value: "manual", label: "Manual" },
+  { value: "automatic", label: "Automatic" },
+  { value: "band", label: "Band/Rule" },
+  { value: "historical", label: "Historical" },
+];
+const CONFIDENTIALITY_LEVELS = [
+  { value: "internal", label: "Internal" },
+  { value: "confidential", label: "Confidential" },
+  { value: "restricted", label: "Restricted" },
+];
+
+const emptyRequirement = () => ({
+  requirement_type: "eligibility",
+  description: "",
+  mandatory: false,
+  evidence_required: false,
+  validation_method: "",
+});
+const emptyCriterion = () => ({
+  name: "",
+  weight: "",
+  mandatory: false,
+  scoring_method: "manual",
+  minimum_score: "",
+});
 
 // Default unit for a new item: "pc" when the loaded list has it, else the
 // first loaded option.
@@ -124,6 +180,24 @@ const initialValues = (unit) => ({
   priority: "non urgent",
   procurement_type: "product",
   do_delivery: NO_DELIVERY, // null or "self" (see utils/delivery)
+  tender_type: "",
+  price_basis: "",
+  payment_terms: "",
+  bid_security: "",
+  performance_security: "",
+  retention: "",
+  advance_payment: "",
+  maximum_delivery_days: "",
+  partial_delivery: false,
+  installation_required: false,
+  commissioning_required: false,
+  training_required: false,
+  currency: "GHS",
+  confidentiality_level: "",
+  offer_validity_period: "",
+  expected_award_date: "",
+  expected_delivery_date: "",
+  clarification_deadline: "",
   start_datetime: new Date().toISOString().slice(0, 16),
   submission_datetime: new Date().toISOString().slice(0, 16),
   delivery_deadline: new Date().toISOString().slice(0, 16),
@@ -131,6 +205,8 @@ const initialValues = (unit) => ({
   region: "",
   district: "",
   items: [emptyItem(unit)],
+  requirements: [],
+  evaluation_criteria: [],
   attachments: [],
 });
 
@@ -153,7 +229,7 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
   const [procurementTypeChoices, setProcurementTypeChoices] =
     useState(PROCUREMENT_TYPES);
   const [priorityChoices, setPriorityChoices] = useState(PRIORITIES);
-  const [typeChoices, setTypeChoices] = useState(TYPES);
+  const [typeChoices, setTypeChoices] = useState(TENDER_TYPES);
   const [methodChoices, setMethodChoices] = useState(METHODS);
   const [procedureChoices, setProcedureChoices] = useState(PROCEDURES);
 
@@ -345,6 +421,16 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
       items[i] = { ...items[i], ...patch };
       return { ...v, items };
     });
+  const setList = (key, i, patch) =>
+    setValues((v) => {
+      const list = [...v[key]];
+      list[i] = { ...list[i], ...patch };
+      return { ...v, [key]: list };
+    });
+  const addList = (key, item) =>
+    setValues((v) => ({ ...v, [key]: [...v[key], item] }));
+  const removeList = (key, i) =>
+    setValues((v) => ({ ...v, [key]: v[key].filter((_, idx) => idx !== i) }));
 
   const reset = () => {
     setValues(initialValues(defaultUnit(unitChoices)));
@@ -412,7 +498,17 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
         }
       }
     }
-    if (step === 3) {
+    if (step === 4 && values.evaluation_criteria.length) {
+      const weights = values.evaluation_criteria.reduce(
+        (s, c) => s + (Number(c.weight) || 0),
+        0,
+      );
+      if (Math.round(weights) !== 100) {
+        toast.error("Evaluation weights must total exactly 100%.");
+        return false;
+      }
+    }
+    if (step === 5) {
       for (const a of values.attachments) {
         if (a.name && !a.file) {
           toast.error("Each named attachment needs a file");
@@ -447,12 +543,31 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
         "priority",
         "procurement_type",
         "note",
+        "tender_type",
+        "currency",
+        "confidentiality_level",
+        "offer_validity_period",
+        "price_basis",
+        "payment_terms",
+        "bid_security",
+        "performance_security",
+        "retention",
+        "advance_payment",
+        "maximum_delivery_days",
       ].forEach((k) => data.append(k, values[k]));
       data.append("do_delivery", deliveryFormValue(values.do_delivery));
       data.append("start_datetime", toIso(values.start_datetime));
       data.append("submission_datetime", toIso(values.submission_datetime));
       data.append("delivery_deadline", toIso(values.delivery_deadline));
       data.append("is_approved", values.is_approved);
+      ["partial_delivery", "installation_required", "commissioning_required", "training_required"].forEach((k) =>
+        data.append(k, values[k]),
+      );
+      ["expected_award_date", "expected_delivery_date"].forEach((k) => {
+        if (values[k]) data.append(k, values[k]);
+      });
+      if (values.clarification_deadline)
+        data.append("clarification_deadline", toIso(values.clarification_deadline));
 
       if (values.region) data.append("reach[region]", values.region);
       if (values.district) data.append("reach[district]", values.district);
@@ -475,6 +590,23 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
             h.handling_description,
           );
         });
+      });
+
+      values.requirements.forEach((r, i) => {
+        data.append(`requirements[${i}][requirement_type]`, r.requirement_type);
+        data.append(`requirements[${i}][description]`, r.description);
+        data.append(`requirements[${i}][mandatory]`, r.mandatory);
+        data.append(`requirements[${i}][evidence_required]`, r.evidence_required);
+        if (r.validation_method)
+          data.append(`requirements[${i}][validation_method]`, r.validation_method);
+      });
+      values.evaluation_criteria.forEach((c, i) => {
+        data.append(`evaluation_criteria[${i}][name]`, c.name);
+        data.append(`evaluation_criteria[${i}][weight]`, c.weight);
+        data.append(`evaluation_criteria[${i}][mandatory]`, c.mandatory);
+        data.append(`evaluation_criteria[${i}][scoring_method]`, c.scoring_method);
+        if (c.minimum_score !== "")
+          data.append(`evaluation_criteria[${i}][minimum_score]`, c.minimum_score);
       });
 
       values.attachments.forEach((a, index) => {
@@ -599,10 +731,10 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
                 </Select>
               </div>
               <div>
-                <label className={labelClass}>Type</label>
+                <label className={labelClass}>Tender Type</label>
                 <Select
-                  value={values.type}
-                  onValueChange={(v) => set({ type: v })}
+                  value={values.tender_type}
+                  onValueChange={(v) => set({ tender_type: v })}
                 >
                   <SelectTrigger className="h-10 w-full">
                     <SelectValue />
@@ -1014,6 +1146,267 @@ export default function TenderCreateModal({ open, onOpenChange, onCreated }) {
           )}
 
           {step === 3 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={labelClass}>Price basis</label>
+                  <Select
+                    value={values.price_basis}
+                    onValueChange={(v) => set({ price_basis: v })}
+                  >
+                    <SelectTrigger className="h-10 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRICE_BASES.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className={labelClass}>Maximum delivery days</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={values.maximum_delivery_days}
+                    onChange={(e) =>
+                      set({ maximum_delivery_days: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>Payment terms</label>
+                  <Textarea
+                    rows={2}
+                    value={values.payment_terms}
+                    onChange={(e) => set({ payment_terms: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Bid security</label>
+                  <Input
+                    value={values.bid_security}
+                    onChange={(e) => set({ bid_security: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Performance security</label>
+                  <Input
+                    value={values.performance_security}
+                    onChange={(e) => set({ performance_security: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Retention</label>
+                  <Input
+                    value={values.retention}
+                    onChange={(e) => set({ retention: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Advance payment</label>
+                  <Input
+                    value={values.advance_payment}
+                    onChange={(e) => set({ advance_payment: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {[
+                  "partial_delivery",
+                  "installation_required",
+                  "commissioning_required",
+                  "training_required",
+                ].map((k) => (
+                  <label key={k} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={values[k]}
+                      onChange={(e) => set({ [k]: e.target.checked })}
+                      className="h-4 w-4"
+                    />
+                    {k.replace(/_/g, " ")}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <p className="text-sm font-medium">
+                  Eligibility / technical requirements (optional)
+                </p>
+                {values.requirements.map((r, i) => (
+                  <div
+                    key={i}
+                    className="space-y-2 rounded-xl border border-border/70 p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">
+                        Requirement {i + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeList("requirements", i)}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label="Remove requirement"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <Select
+                      value={r.requirement_type}
+                      onValueChange={(v) =>
+                        setList("requirements", i, { requirement_type: v })
+                      }
+                    >
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REQUIREMENT_TYPES.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={r.description}
+                      onChange={(e) =>
+                        setList("requirements", i, { description: e.target.value })
+                      }
+                      placeholder="Requirement description"
+                    />
+                    <div className="flex flex-wrap gap-4 text-xs">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={r.mandatory}
+                          onChange={(e) =>
+                            setList("requirements", i, { mandatory: e.target.checked })
+                          }
+                          className="h-4 w-4"
+                        />
+                        Mandatory
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={r.evidence_required}
+                          onChange={(e) =>
+                            setList("requirements", i, {
+                              evidence_required: e.target.checked,
+                            })
+                          }
+                          className="h-4 w-4"
+                        />
+                        Evidence required
+                      </label>
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => addList("requirements", emptyRequirement())}
+                  className="w-full gap-1.5"
+                >
+                  <Plus className="h-4 w-4" /> Add requirement
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-medium">
+                  Evaluation criteria (weights must total 100%)
+                </p>
+                {values.evaluation_criteria.map((c, i) => (
+                  <div
+                    key={i}
+                    className="space-y-2 rounded-xl border border-border/70 p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">
+                        Criterion {i + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeList("evaluation_criteria", i)}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label="Remove criterion"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <Input
+                      value={c.name}
+                      onChange={(e) =>
+                        setList("evaluation_criteria", i, { name: e.target.value })
+                      }
+                      placeholder="Criterion name"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={c.weight}
+                        onChange={(e) =>
+                          setList("evaluation_criteria", i, { weight: e.target.value })
+                        }
+                        placeholder="Weight %"
+                      />
+                      <Select
+                        value={c.scoring_method}
+                        onValueChange={(v) =>
+                          setList("evaluation_criteria", i, { scoring_method: v })
+                        }
+                      >
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SCORING_METHODS.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={c.mandatory}
+                        onChange={(e) =>
+                          setList("evaluation_criteria", i, {
+                            mandatory: e.target.checked,
+                          })
+                        }
+                        className="h-4 w-4"
+                      />
+                      Mandatory (pass/fail)
+                    </label>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => addList("evaluation_criteria", emptyCriterion())}
+                  className="w-full gap-1.5"
+                >
+                  <Plus className="h-4 w-4" /> Add criterion
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 5 && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Optional — attach supporting documents (keep files under 1MB).

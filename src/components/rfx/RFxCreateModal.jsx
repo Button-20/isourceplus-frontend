@@ -91,7 +91,81 @@ const UNITS = [
   { value: "l", label: "Liter" },
 ];
 
-const STEPS = ["Details", "Reach", "Items", "Review"];
+const CONFIDENTIALITY_LEVELS = [
+  { value: "internal", label: "Internal" },
+  { value: "confidential", label: "Confidential" },
+  { value: "restricted", label: "Restricted" },
+];
+
+const SUBMISSION_METHODS = [
+  { value: "online", label: "Online" },
+  { value: "alternative", label: "Approved alternative" },
+];
+
+const QUESTION_CATEGORIES = [
+  { value: "capability", label: "Capability" },
+  { value: "technology", label: "Technology" },
+  { value: "product", label: "Product" },
+  { value: "delivery", label: "Delivery" },
+  { value: "market", label: "Market" },
+  { value: "cost", label: "Cost" },
+  { value: "risk", label: "Risk" },
+];
+const RESPONSE_TYPES = [
+  { value: "text", label: "Text" },
+  { value: "number", label: "Number" },
+  { value: "yes_no", label: "Yes/No" },
+  { value: "dropdown", label: "Dropdown" },
+  { value: "multi_select", label: "Multi-select" },
+  { value: "file", label: "File upload" },
+];
+const REQUIREMENT_TYPES = [
+  { value: "legal", label: "Legal" },
+  { value: "technical", label: "Technical" },
+  { value: "eligibility", label: "Eligibility" },
+  { value: "commercial", label: "Commercial" },
+  { value: "delivery", label: "Delivery" },
+  { value: "compliance", label: "Compliance" },
+  { value: "other", label: "Other" },
+];
+const SCORING_METHODS = [
+  { value: "manual", label: "Manual" },
+  { value: "automatic", label: "Automatic" },
+  { value: "band", label: "Band/Rule" },
+  { value: "historical", label: "Historical" },
+];
+
+const emptyQuestion = () => ({
+  question: "",
+  category: "capability",
+  response_type: "text",
+  required: false,
+  confidential: false,
+  priority: "medium",
+  guidance: "",
+});
+const emptyDeliverable = () => ({
+  description: "",
+  due_date: "",
+  acceptance_criteria: "",
+  payment_milestone: false,
+});
+const emptyRequirement = () => ({
+  requirement_type: "eligibility",
+  description: "",
+  mandatory: false,
+  evidence_required: false,
+  validation_method: "",
+});
+const emptyCriterion = () => ({
+  name: "",
+  weight: "",
+  mandatory: false,
+  scoring_method: "manual",
+  minimum_score: "",
+});
+
+const STEPS = ["Details", "Reach", "Items", "Requirements", "Review"];
 const REVIEW_STEP = STEPS.length - 1;
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
@@ -165,12 +239,24 @@ const initialValues = (unit) => ({
   do_delivery: NO_DELIVERY, // null or "self" (see utils/delivery)
   delivery_address: "",
   delivery_deadline: "",
+  currency: "GHS",
+  confidentiality_level: "",
+  submission_method: "online",
+  submission_instructions: "",
+  offer_validity_period: "",
+  expected_award_date: "",
+  expected_delivery_date: "",
+  clarification_deadline: "",
   start_datetime: new Date().toISOString().slice(0, 16),
   submission_datetime: new Date().toISOString().slice(0, 16),
   is_approved: true,
   region: "",
   district: "",
   items: [emptyItem(unit)],
+  questions: [],
+  deliverables: [],
+  requirements: [],
+  evaluation_criteria: [],
 });
 
 export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
@@ -198,6 +284,16 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
       items[i] = { ...items[i], ...patch };
       return { ...v, items };
     });
+  const setList = (key, i, patch) =>
+    setValues((v) => {
+      const list = [...v[key]];
+      list[i] = { ...list[i], ...patch };
+      return { ...v, [key]: list };
+    });
+  const addList = (key, item) =>
+    setValues((v) => ({ ...v, [key]: [...v[key], item] }));
+  const removeList = (key, i) =>
+    setValues((v) => ({ ...v, [key]: v[key].filter((_, idx) => idx !== i) }));
 
   // Load the backend enums (type, method, procedure, spend category,
   // procurement type, priority, delivery, unit) + regions once when the dialog
@@ -435,9 +531,28 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
     return true;
   };
 
+  const validateRequirements = () => {
+    if (values.type === "proposal" && values.evaluation_criteria.length) {
+      const weights = values.evaluation_criteria.reduce(
+        (sum, c) => sum + (Number(c.weight) || 0),
+        0,
+      );
+      if (Math.round(weights) !== 100) {
+        toast.error("Evaluation weights must total exactly 100%.");
+        return false;
+      }
+    }
+    return true;
+  };
+
   // The review step re-runs every earlier step's checks (stopping at the first
   // failure so only one toast shows) before the RFx is created.
-  const validators = [validateDetails, validateReach, validateItems];
+  const validators = [
+    validateDetails,
+    validateReach,
+    validateItems,
+    validateRequirements,
+  ];
   const validateStep = () =>
     step === REVIEW_STEP ? validators.every((v) => v()) : validators[step]();
 
@@ -462,8 +577,19 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
         "procurement_type",
         "priority",
         "delivery_address",
+        "currency",
+        "confidentiality_level",
+        "submission_method",
+        "submission_instructions",
+        "offer_validity_period",
       ].forEach((k) => data.append(k, values[k]));
       data.append("do_delivery", deliveryFormValue(values.do_delivery));
+      ["expected_award_date", "expected_delivery_date"].forEach((k) => {
+        if (values[k]) data.append(k, values[k]);
+      });
+      if (values.clarification_deadline) {
+        data.append("clarification_deadline", toISO(values.clarification_deadline));
+      }
       ["start_datetime", "submission_datetime", "delivery_deadline"].forEach(
         (k) => {
           const iso = toISO(values[k]);
@@ -496,6 +622,39 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
             h.handling_description,
           );
         });
+      });
+
+      values.questions.forEach((q, i) => {
+        data.append(`questions[${i}][question]`, q.question);
+        data.append(`questions[${i}][category]`, q.category);
+        data.append(`questions[${i}][response_type]`, q.response_type);
+        data.append(`questions[${i}][required]`, q.required);
+        data.append(`questions[${i}][confidential]`, q.confidential);
+        data.append(`questions[${i}][priority]`, q.priority);
+        if (q.guidance) data.append(`questions[${i}][guidance]`, q.guidance);
+      });
+      values.deliverables.forEach((d, i) => {
+        data.append(`deliverables[${i}][description]`, d.description);
+        if (d.due_date) data.append(`deliverables[${i}][due_date]`, d.due_date);
+        if (d.acceptance_criteria)
+          data.append(`deliverables[${i}][acceptance_criteria]`, d.acceptance_criteria);
+        data.append(`deliverables[${i}][payment_milestone]`, d.payment_milestone);
+      });
+      values.requirements.forEach((r, i) => {
+        data.append(`requirements[${i}][requirement_type]`, r.requirement_type);
+        data.append(`requirements[${i}][description]`, r.description);
+        data.append(`requirements[${i}][mandatory]`, r.mandatory);
+        data.append(`requirements[${i}][evidence_required]`, r.evidence_required);
+        if (r.validation_method)
+          data.append(`requirements[${i}][validation_method]`, r.validation_method);
+      });
+      values.evaluation_criteria.forEach((c, i) => {
+        data.append(`evaluation_criteria[${i}][name]`, c.name);
+        data.append(`evaluation_criteria[${i}][weight]`, c.weight);
+        data.append(`evaluation_criteria[${i}][mandatory]`, c.mandatory);
+        data.append(`evaluation_criteria[${i}][scoring_method]`, c.scoring_method);
+        if (c.minimum_score !== "")
+          data.append(`evaluation_criteria[${i}][minimum_score]`, c.minimum_score);
       });
 
       await authAxios.post("/rfxs/", data);
@@ -729,6 +888,97 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
                   value={values.delivery_address}
                   onChange={(e) => set({ delivery_address: e.target.value })}
                   placeholder="Where should items be delivered?"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Currency</label>
+                <Input
+                  value={values.currency}
+                  onChange={(e) => set({ currency: e.target.value })}
+                  placeholder="GHS"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Confidentiality</label>
+                <Select
+                  value={values.confidentiality_level}
+                  onValueChange={(v) => set({ confidentiality_level: v })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONFIDENTIALITY_LEVELS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className={labelClass}>Submission method</label>
+                <Select
+                  value={values.submission_method}
+                  onValueChange={(v) => set({ submission_method: v })}
+                >
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUBMISSION_METHODS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className={labelClass}>Offer validity (days)</label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={values.offer_validity_period}
+                  onChange={(e) =>
+                    set({ offer_validity_period: e.target.value })
+                  }
+                  placeholder="e.g. 30"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Expected award date</label>
+                <Input
+                  type="date"
+                  value={values.expected_award_date}
+                  onChange={(e) => set({ expected_award_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Expected delivery date</label>
+                <Input
+                  type="date"
+                  value={values.expected_delivery_date}
+                  onChange={(e) => set({ expected_delivery_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Clarification deadline</label>
+                <Input
+                  type="datetime-local"
+                  value={values.clarification_deadline}
+                  onChange={(e) => set({ clarification_deadline: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Submission instructions</label>
+                <Textarea
+                  rows={2}
+                  value={values.submission_instructions}
+                  onChange={(e) =>
+                    set({ submission_instructions: e.target.value })
+                  }
+                  placeholder="How suppliers should submit their responses"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -983,6 +1233,356 @@ export default function RFxCreateModal({ open, onOpenChange, onCreated }) {
               >
                 <Plus className="h-4 w-4" /> Add item
               </Button>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-6">
+              {values.type === "quotation" && (
+                <p className="text-sm text-muted-foreground">
+                  Quotations don&apos;t need additional requirements — continue
+                  to review.
+                </p>
+              )}
+
+              {values.type === "information" && (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">RFI questions (optional)</p>
+                  {values.questions.map((q, i) => (
+                    <div
+                      key={i}
+                      className="space-y-2 rounded-xl border border-border/70 p-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold">
+                          Question {i + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeList("questions", i)}
+                          className="text-muted-foreground hover:text-destructive"
+                          aria-label="Remove question"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <Input
+                        value={q.question}
+                        onChange={(e) =>
+                          setList("questions", i, { question: e.target.value })
+                        }
+                        placeholder="What do you need to know?"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select
+                          value={q.category}
+                          onValueChange={(v) =>
+                            setList("questions", i, { category: v })
+                          }
+                        >
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {QUESTION_CATEGORIES.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={q.response_type}
+                          onValueChange={(v) =>
+                            setList("questions", i, { response_type: v })
+                          }
+                        >
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {RESPONSE_TYPES.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Input
+                        value={q.guidance}
+                        onChange={(e) =>
+                          setList("questions", i, { guidance: e.target.value })
+                        }
+                        placeholder="Response guidance (optional)"
+                      />
+                      <label className="flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={q.required}
+                          onChange={(e) =>
+                            setList("questions", i, {
+                              required: e.target.checked,
+                            })
+                          }
+                          className="h-4 w-4"
+                        />
+                        Required response
+                      </label>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => addList("questions", emptyQuestion())}
+                    className="w-full gap-1.5"
+                  >
+                    <Plus className="h-4 w-4" /> Add question
+                  </Button>
+                </div>
+              )}
+
+              {values.type === "proposal" && (
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">
+                      Deliverables (optional)
+                    </p>
+                    {values.deliverables.map((d, i) => (
+                      <div
+                        key={i}
+                        className="space-y-2 rounded-xl border border-border/70 p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold">
+                            Deliverable {i + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeList("deliverables", i)}
+                            className="text-muted-foreground hover:text-destructive"
+                            aria-label="Remove deliverable"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <Input
+                          value={d.description}
+                          onChange={(e) =>
+                            setList("deliverables", i, {
+                              description: e.target.value,
+                            })
+                          }
+                          placeholder="Deliverable description"
+                        />
+                        <Input
+                          type="date"
+                          value={d.due_date}
+                          onChange={(e) =>
+                            setList("deliverables", i, { due_date: e.target.value })
+                          }
+                        />
+                        <Input
+                          value={d.acceptance_criteria}
+                          onChange={(e) =>
+                            setList("deliverables", i, {
+                              acceptance_criteria: e.target.value,
+                            })
+                          }
+                          placeholder="Acceptance criteria"
+                        />
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => addList("deliverables", emptyDeliverable())}
+                      className="w-full gap-1.5"
+                    >
+                      <Plus className="h-4 w-4" /> Add deliverable
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">
+                      Eligibility / technical requirements (optional)
+                    </p>
+                    {values.requirements.map((r, i) => (
+                      <div
+                        key={i}
+                        className="space-y-2 rounded-xl border border-border/70 p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold">
+                            Requirement {i + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeList("requirements", i)}
+                            className="text-muted-foreground hover:text-destructive"
+                            aria-label="Remove requirement"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <Select
+                          value={r.requirement_type}
+                          onValueChange={(v) =>
+                            setList("requirements", i, { requirement_type: v })
+                          }
+                        >
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {REQUIREMENT_TYPES.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={r.description}
+                          onChange={(e) =>
+                            setList("requirements", i, {
+                              description: e.target.value,
+                            })
+                          }
+                          placeholder="Requirement description"
+                        />
+                        <div className="flex flex-wrap gap-4 text-xs">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={r.mandatory}
+                              onChange={(e) =>
+                                setList("requirements", i, {
+                                  mandatory: e.target.checked,
+                                })
+                              }
+                              className="h-4 w-4"
+                            />
+                            Mandatory
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={r.evidence_required}
+                              onChange={(e) =>
+                                setList("requirements", i, {
+                                  evidence_required: e.target.checked,
+                                })
+                              }
+                              className="h-4 w-4"
+                            />
+                            Evidence required
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => addList("requirements", emptyRequirement())}
+                      className="w-full gap-1.5"
+                    >
+                      <Plus className="h-4 w-4" /> Add requirement
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">
+                      Evaluation criteria (weights must total 100%)
+                    </p>
+                    {values.evaluation_criteria.map((c, i) => (
+                      <div
+                        key={i}
+                        className="space-y-2 rounded-xl border border-border/70 p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold">
+                            Criterion {i + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeList("evaluation_criteria", i)}
+                            className="text-muted-foreground hover:text-destructive"
+                            aria-label="Remove criterion"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <Input
+                          value={c.name}
+                          onChange={(e) =>
+                            setList("evaluation_criteria", i, {
+                              name: e.target.value,
+                            })
+                          }
+                          placeholder="Criterion name (e.g. Technical)"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={c.weight}
+                            onChange={(e) =>
+                              setList("evaluation_criteria", i, {
+                                weight: e.target.value,
+                              })
+                            }
+                            placeholder="Weight %"
+                          />
+                          <Select
+                            value={c.scoring_method}
+                            onValueChange={(v) =>
+                              setList("evaluation_criteria", i, {
+                                scoring_method: v,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-9 w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SCORING_METHODS.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                  {o.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <label className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={c.mandatory}
+                            onChange={(e) =>
+                              setList("evaluation_criteria", i, {
+                                mandatory: e.target.checked,
+                              })
+                            }
+                            className="h-4 w-4"
+                          />
+                          Mandatory (pass/fail)
+                        </label>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        addList("evaluation_criteria", emptyCriterion())
+                      }
+                      className="w-full gap-1.5"
+                    >
+                      <Plus className="h-4 w-4" /> Add criterion
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
