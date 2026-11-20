@@ -177,15 +177,16 @@ const WaybillDetailPage = () => {
     ? String(waybill.receiving_company).split("/").filter(Boolean).pop()
     : null;
   const myEntityId = companyId || transporterId;
+  // Prefer the backend's authoritative flags; fall back to URL-parsing.
   const isReceivingParty =
-    Boolean(receivingCompanyId) && receivingCompanyId === myEntityId;
-  // The issuing organisation (buyer) can also mark arrival. `issuing_company`
-  // is a hyperlinked URL whose trailing path segment is the issuer's id
-  // (same pattern as receivingCompanyId above).
+    waybill.is_receiving_party ??
+    (Boolean(receivingCompanyId) && receivingCompanyId === myEntityId);
   const issuingCompanyId = waybill.issuing_company
     ? String(waybill.issuing_company).split("/").filter(Boolean).pop()
     : null;
-  const isIssuer = Boolean(issuingCompanyId) && issuingCompanyId === myEntityId;
+  const isIssuer =
+    waybill.is_issuer ??
+    (Boolean(issuingCompanyId) && issuingCompanyId === myEntityId);
   // Transporter/buyer delivery actions: directions any time; arrival once,
   // while the delivery is still open.
   const tracking = String(waybill.tracking_status || "").toUpperCase();
