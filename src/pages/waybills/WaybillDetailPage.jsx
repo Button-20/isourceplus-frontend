@@ -390,7 +390,7 @@ const WaybillDetailPage = () => {
           )}
         </Section>
 
-        {(isLogisticsManager || canCreateWaybill || isReceivingParty) && (
+        {(isLogisticsManager || canCreateWaybill || isReceivingParty || isIssuer) && (
           <DetailFooter>
             <Button variant="outline" onClick={() => navigate(backTo)}>
               Cancel
