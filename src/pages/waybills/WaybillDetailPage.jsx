@@ -179,11 +179,15 @@ const WaybillDetailPage = () => {
   const myEntityId = companyId || transporterId;
   const isReceivingParty =
     Boolean(receivingCompanyId) && receivingCompanyId === myEntityId;
-  // Transporter delivery actions: directions any time; arrival once, while
-  // the delivery is still open.
+  // The issuing organisation (buyer) can also mark arrival.
+  const isIssuer = waybill.issuing_company_ref?.id
+    ? String(waybill.issuing_company_ref.id) === String(myEntityId)
+    : false;
+  // Transporter/buyer delivery actions: directions any time; arrival once,
+  // while the delivery is still open.
   const tracking = String(waybill.tracking_status || "").toUpperCase();
   const canMarkArrival =
-    isReceivingParty &&
+    (isReceivingParty || isIssuer) &&
     !waybill.arrived_at &&
     !["DELIVERED", "CANCELLED"].includes(tracking);
 
