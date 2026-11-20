@@ -69,6 +69,22 @@ export async function markWaybillArrived(refNum, location) {
   };
 }
 
+// → { dispatch, message } where dispatch = { vehicle_number, driver_name,
+//   driver_phone }. POST waybills/<ref>/update-dispatch/.
+export async function updateWaybillDispatch(
+  refNum,
+  { vehicle_number, driver_name, driver_phone },
+) {
+  const { data } = await http.post(
+    `waybills/${encodeURIComponent(refNum)}/update-dispatch/`,
+    form({ vehicle_number, driver_name, driver_phone }),
+  );
+  return {
+    dispatch: data?.data ?? null,
+    message: data?.message ?? "",
+  };
+}
+
 export function waybillErrorMessage(err, fallback) {
   return apiErrorMessage(err, fallback);
 }

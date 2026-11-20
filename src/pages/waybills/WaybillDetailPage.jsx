@@ -10,6 +10,7 @@ import {
   Rocket,
   Trash2,
   Send,
+  Truck,
 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
@@ -42,6 +43,7 @@ import {
 import ArchiveButton from "@/components/archive/ArchiveButton";
 import WaybillDirectionsPanel from "@/components/waybills/WaybillDirectionsPanel";
 import MarkArrivalModal from "@/components/waybills/MarkArrivalModal";
+import UpdateDispatchModal from "@/components/waybills/UpdateDispatchModal";
 import RecipientStatusesPanel from "@/components/events/RecipientStatusesPanel";
 import { prettify } from "@/utils/choices";
 import {
@@ -67,6 +69,7 @@ const WaybillDetailPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [arrivalOpen, setArrivalOpen] = useState(false);
+  const [dispatchOpen, setDispatchOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const navigate = useNavigate();
   // Opened from somewhere else (e.g. Business Invitations)? Go back there.
@@ -194,6 +197,13 @@ const WaybillDetailPage = () => {
     (isReceivingParty || isIssuer) &&
     !waybill.arrived_at &&
     !["DELIVERED", "CANCELLED"].includes(tracking);
+  // In-house / self waybills show their dispatch (vehicle + driver) data.
+  const isSelfWaybill = String(waybill.do_delivery || "").toLowerCase() === "self";
+  // Only the issuer may update dispatch data.
+  const canUpdateDispatch = isIssuer;
+  const hasDispatchData = Boolean(
+    waybill.vehicle_number || waybill.driver_name || waybill.driver_phone,
+  );
 
   // The issuer (lead buyer / sales manager) publishes its own draft.
   const canPublish =
@@ -334,6 +344,35 @@ const WaybillDetailPage = () => {
           </DetailGrid>
         </Section>
 
+        {(isSelfWaybill || hasDispatchData) && (
+          <Section
+            title="Dispatch"
+            action={
+              canUpdateDispatch ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDispatchOpen(true)}
+                >
+                  <Truck className="mr-1.5 h-4 w-4" /> Update dispatch data
+                </Button>
+              ) : undefined
+            }
+          >
+            <DetailGrid>
+              <Row label="Vehicle number">
+                {waybill.vehicle_number || "Not provided"}
+              </Row>
+              <Row label="Driver name">
+                {waybill.driver_name || "Not provided"}
+              </Row>
+              <Row label="Driver phone">
+                {waybill.driver_phone || "Not provided"}
+              </Row>
+            </DetailGrid>
+          </Section>
+        )}
+
         <Section title="Items">
           {waybill.items?.length > 0 ? (
             <div className="overflow-x-auto rounded-xl border border-border/70">
@@ -438,6 +477,11 @@ const WaybillDetailPage = () => {
                 <MapPinCheck className="mr-1.5 h-4 w-4" /> Mark arrival
               </Button>
             )}
+            {canUpdateDispatch && (
+              <Button variant="outline" onClick={() => setDispatchOpen(true)}>
+                <Truck className="mr-1.5 h-4 w-4" /> Update dispatch data
+              </Button>
+            )}
             {isLogisticsManager && (
               <Button
                 onClick={handleSendOffer}
@@ -477,6 +521,20 @@ const WaybillDetailPage = () => {
               ? { ...prev, ...updated }
               : { ...prev, arrived_at: new Date().toISOString() },
           )
+        }
+      />
+
+      <UpdateDispatchModal
+        open={dispatchOpen}
+        onOpenChange={setDispatchOpen}
+        refNum={waybill.ref_num}
+        defaults={{
+          vehicle_number: waybill.vehicle_number,
+          driver_name: waybill.driver_name,
+          driver_phone: waybill.driver_phone,
+        }}
+        onUpdated={(dispatch) =>
+          setWaybill((prev) => ({ ...prev, ...dispatch }))
         }
       />
 
