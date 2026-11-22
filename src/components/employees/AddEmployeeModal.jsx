@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import AddExistingEmployeeModal from "@/components/employees/AddExistingEmployeeModal";
 import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
@@ -23,6 +24,7 @@ export default function AddEmployeeModal({ open, onOpenChange, onAdded }) {
   const [form, setForm] = useState({ email: "", password: "", confirm: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [showExisting, setShowExisting] = useState(false);
 
   const close = (o) => {
     onOpenChange(o);
@@ -56,16 +58,17 @@ export default function AddEmployeeModal({ open, onOpenChange, onAdded }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="font-montserrat sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add employee</DialogTitle>
-          <DialogDescription>
-            Create an account for a new team member. They&apos;ll sign in with
-            this email and password.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleAdd} className="space-y-4">
+    <>
+      <Dialog open={open} onOpenChange={close}>
+        <DialogContent className="font-montserrat sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add employee</DialogTitle>
+            <DialogDescription>
+              Create an account for a new team member. They&apos;ll sign in with
+              this email and password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAdd} className="space-y-4">
           <div>
             <label className={labelClass}>Work email</label>
             <Input
@@ -114,6 +117,19 @@ export default function AddEmployeeModal({ open, onOpenChange, onAdded }) {
               required
             />
           </div>
+          <div className="text-sm">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                close(false);
+                setShowExisting(true);
+              }}
+              className="font-medium text-brand hover:underline"
+            >
+              Add existing user instead
+            </a>
+          </div>
           <DialogFooter>
             <Button
               type="button"
@@ -139,6 +155,13 @@ export default function AddEmployeeModal({ open, onOpenChange, onAdded }) {
           </DialogFooter>
         </form>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      <AddExistingEmployeeModal
+        open={showExisting}
+        onOpenChange={setShowExisting}
+        onAdded={onAdded}
+      />
+    </>
   );
 }

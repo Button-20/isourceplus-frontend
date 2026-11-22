@@ -11,11 +11,9 @@ import {
   Mail,
   MessageSquare,
   Moon,
-  Plus,
   RefreshCw,
   Save,
   Smartphone,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,8 +26,6 @@ import {
   updateNotificationSettings,
 } from "@/services/api/notifications.service";
 import { useNotifications } from "@/services/context/notifications.context";
-
-const CATEGORY_MAX = 20;
 
 // "22:00:00" ↔ "22:00" for <input type="time">.
 const toInput = (t) => (t ? String(t).slice(0, 5) : "");
@@ -78,7 +74,7 @@ export default function NotificationSettings() {
   const ctx = useNotifications();
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState(fromSettings());
-  const [category, setCategory] = useState("");
+  const [availableCategories, setAvailableCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -90,6 +86,9 @@ export default function NotificationSettings() {
       const data = await getNotificationSettings();
       setSettings(data);
       setForm(fromSettings(data));
+      setAvailableCategories(
+        Array.isArray(data.available_categories) ? data.available_categories : [],
+      );
     } catch (err) {
       setError(
         notificationErrorMessage(
@@ -108,11 +107,13 @@ export default function NotificationSettings() {
 
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
 
-  const addCategory = () => {
-    const c = category.trim().slice(0, CATEGORY_MAX);
-    if (c && !form.categories.includes(c))
-      setForm((f) => ({ ...f, categories: [...f.categories, c] }));
-    setCategory("");
+  const toggleCategory = (value) => {
+    setForm((f) => ({
+      ...f,
+      categories: f.categories.includes(value)
+        ? f.categories.filter((c) => c !== value)
+        : [...f.categories, value],
+    }));
   };
 
   const quietPartial = Boolean(form.quietStart) !== Boolean(form.quietEnd);
@@ -263,58 +264,39 @@ export default function NotificationSettings() {
       <section className="p-5 sm:p-6">
         <h2 className="font-semibold">Categories</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Only notify me about these categories. Leave empty to receive
+          Only notify me about these categories. Leave all unchecked to receive
           everything.
         </p>
-        {form.categories.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {form.categories.map((c) => (
-              <span
-                key={c}
-                className="inline-flex items-center gap-1 rounded-full bg-brand/10 py-1 pl-3 pr-1.5 text-sm font-medium text-brand"
-              >
-                {c}
+        {availableCategories.length > 0 ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {availableCategories.map((c) => {
+              const selected = form.categories.includes(c.value);
+              return (
                 <button
+                  key={c.value}
                   type="button"
-                  onClick={() =>
-                    setForm((f) => ({
-                      ...f,
-                      categories: f.categories.filter((x) => x !== c),
-                    }))
-                  }
+                  role="checkbox"
+                  aria-checked={selected}
                   disabled={saving}
-                  aria-label={`Remove ${c}`}
-                  className="rounded-full p-0.5 hover:bg-brand/15"
+                  onClick={() => toggleCategory(c.value)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:opacity-50",
+                    selected
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-border bg-card text-muted-foreground hover:border-brand/40 hover:text-foreground",
+                  )}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  {selected && <span aria-hidden>✓</span>}
+                  {c.label}
                 </button>
-              </span>
-            ))}
+              );
+            })}
           </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">
+            No categories are available for your account type.
+          </p>
         )}
-        <div className="mt-3 flex max-w-sm gap-2">
-          <Input
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addCategory();
-              }
-            }}
-            maxLength={CATEGORY_MAX}
-            placeholder="e.g. rfx"
-            disabled={saving}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addCategory}
-            disabled={!category.trim() || saving}
-          >
-            <Plus className="mr-1 h-4 w-4" /> Add
-          </Button>
-        </div>
       </section>
 
       <div className="flex justify-end gap-2 p-5 sm:p-6">
