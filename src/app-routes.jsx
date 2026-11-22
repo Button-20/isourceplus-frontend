@@ -51,12 +51,15 @@ import AddExistingEmployeePage from "./pages/employees/AddExistingEmployeePage";
 import Employees from "./pages/employees/Employees";
 import CompanyEmployees from "./pages/employees/CompanyEmployees";
 import AllTransporterEmployees from "./pages/employees/TransporterEmployees";
+import EmployeeEditPage from "./pages/employees/EmployeeEditPage";
 
 // verification docs
 import AddBusinessDocs from "./pages/verification-docs/AddBusinessDocs";
 import ManageUserVerificationDocs from "./pages/verification-docs/ManageUserVerificationDocs";
 import ReviewsPage from "./pages/reviews/ReviewsPage";
 import SmsPage from "./pages/sms/SmsPage";
+import VirtualWalletPage from "./pages/wallet/VirtualWalletPage";
+import ReceiptsPage from "./pages/receipts/ReceiptsPage";
 
 // rfx
 import RFxDetailPage from "./pages/rfx/RFxDetailPage";
@@ -188,6 +191,7 @@ const fullRoutes = [
       { path: "branches/:id/edit", element: <EditBranch /> },
       { path: "employees", element: <Employees /> },
       { path: "employees/:id", element: <EmployeeDetailPage /> },
+      { path: "employees/:id/edit", element: <EmployeeEditPage /> },
       { path: "transporter/employees", element: <AllTransporterEmployees /> },
       { path: "company/employees", element: <CompanyEmployees /> },
       {
@@ -196,6 +200,8 @@ const fullRoutes = [
       },
       { path: "reviews", element: <ReviewsPage /> },
       { path: "sms", element: <SmsPage /> },
+      { path: "wallet", element: <VirtualWalletPage /> },
+      { path: "receipts", element: <ReceiptsPage /> },
       // RFx / waybill / tender lists: one page each with filter tabs
       // (Draft · Published · Expired); old per-filter URLs redirect.
       { path: "rfxs", element: <EventManagementPage key="rfx" kind="rfx" /> },

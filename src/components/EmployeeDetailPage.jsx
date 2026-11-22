@@ -9,6 +9,7 @@ import {
   Clock,
   Activity,
   Shield,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -100,13 +101,25 @@ const EmployeeDetailPage = () => {
               <p className="truncate text-sm text-white/85">{employee.email}</p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate(-1)}
-            className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
-          >
-            <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate(-1)}
+              className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
+            </Button>
+            <Button
+              onClick={() =>
+                navigate(`/dashboard/employees/${employee.id}/edit`, {
+                  state: { employee },
+                })
+              }
+              className="bg-white text-brand hover:bg-white/90"
+            >
+              <Pencil className="mr-1.5 h-4 w-4" /> Edit profile
+            </Button>
+          </div>
         </div>
       </div>
 
