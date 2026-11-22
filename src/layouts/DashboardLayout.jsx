@@ -388,6 +388,8 @@ export function DashboardLayout() {
         },
         { title: "Reviews", icon: Star, url: "/dashboard/reviews" },
         { title: "SMS", icon: MessageSquare, url: "/dashboard/sms" },
+        { title: "Virtual Wallet", icon: Wallet, url: "/dashboard/wallet" },
+        { title: "Receipts", icon: ReceiptText, url: "/dashboard/receipts" },
         {
           title: "Messages",
           icon: MessageCircle,

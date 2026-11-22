@@ -1,4 +1,5 @@
-// Payment receipt (GRA VAT receipt) lookup for the public verify page.
+// Payment receipt (GRA VAT receipt) lookup for the public verify page + the
+// signed-in "Receipts" list.
 import http from "@/services/lib/http";
 
 // GET payment-receipts/<receipt_number>/ — the receipt, including its GRA QR
@@ -9,3 +10,10 @@ export async function getPaymentReceipt(receiptNumber) {
   );
   return data;
 }
+
+// GET payment-receipts/ — the signed-in organisation's receipts (newest first).
+export async function listReceipts() {
+  const { data } = await http.get("payment-receipts/");
+  return Array.isArray(data) ? data : data?.results || [];
+}
+
