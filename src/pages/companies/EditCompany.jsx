@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { getCountryChoices } from "@/services/api/choices.service";
 import {
+  getBankCodeChoices,
   getCompanyTypeChoices,
   getIndustryChoices,
   getSubCategoryChoices,
@@ -59,6 +60,7 @@ const EMPTY_VALUES = {
   // Payment details (all optional).
   bank_account_name: "",
   bank_account_number: "",
+  bank_code: "",
   momo_number: "",
 };
 
@@ -218,6 +220,8 @@ const EditCompany = () => {
   const [typeLoading, setTypeLoading] = useState(false);
   const [supplierTypeChoices, setSupplierTypeChoices] = useState([]);
   const [supplierTypeLoading, setSupplierTypeLoading] = useState(false);
+  const [bankCodeChoices, setBankCodeChoices] = useState([]);
+  const [bankCodeLoading, setBankCodeLoading] = useState(false);
   const [industryChoices, setIndustryChoices] = useState([]);
   const [industryLoading, setIndustryLoading] = useState(false);
   const [subCategoryChoices, setSubCategoryChoices] = useState([]);
@@ -281,6 +285,7 @@ const EditCompany = () => {
           web_address: data.web_address || "",
           bank_account_name: data.bank_account_name || "",
           bank_account_number: data.bank_account_number || "",
+          bank_code: data.bank_code || "",
           momo_number: data.momo_number || "",
         });
         setLocation({
@@ -344,6 +349,18 @@ const EditCompany = () => {
       })
       .finally(() => {
         if (!cancelled) setSupplierTypeLoading(false);
+      });
+
+    setBankCodeLoading(true);
+    getBankCodeChoices()
+      .then((d) => {
+        if (!cancelled) setBankCodeChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setBankCodeChoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setBankCodeLoading(false);
       });
 
     setRegionLoading(true);
@@ -879,6 +896,20 @@ const EditCompany = () => {
                   placeholder="Account number"
                   autoComplete="off"
                 />
+              </div>
+              <div>
+                <label className={labelClass}>Bank</label>
+                <ChoiceSelect
+                  value={values.bank_code}
+                  onValueChange={(v) => handleSelectChange("bank_code", v)}
+                  options={withCurrent(bankCodeChoices, values.bank_code)}
+                  loading={bankCodeLoading}
+                  placeholder="Select your bank"
+                  emptyText="No banks available"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Your bank, used for payouts into this account.
+                </p>
               </div>
               <div>
                 <label className={labelClass}>Mobile money number</label>

@@ -267,7 +267,6 @@ const PurchaseOrderDetailPage = () => {
                 ? new Date(purchaseOrder.delivery_datetime).toLocaleString()
                 : "N/A"}
             </Row>
-            <Row label="VAT type">{purchaseOrder.vat_type || "N/A"}</Row>
             <Row label="Total sales value">
               {formatMoney(
                 purchaseOrder.total_sales_value ?? purchaseOrder.total_cost,
