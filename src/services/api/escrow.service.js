@@ -18,9 +18,10 @@ import { apiErrorMessage } from "@/services/lib/api-error";
 
 export const PAYMENT_METHODS = ["MoMo", "Bank", "Card"];
 
-// POST purchase-orders/<ref_num>/fund-escrow/ — confirm the buyer's deposit and
-// secure the escrow. Idempotent on an already-SECURED escrow (no duplicate
-// ledger CREDIT). Returns the EscrowTransaction (unwrapped from the envelope).
+// POST purchase-orders/<ref_num>/fund-escrow/ — initiate escrow funding via
+// Orchard Hosted Checkout. Returns { redirect_url, escrow } (unwrapped from the
+// envelope); the buyer is redirected to `redirect_url` and the escrow is only
+// secured when Orchard's callback confirms success.
 export async function fundPurchaseOrderEscrow(
   refNum,
   { payment_method, payment_ref } = {},
@@ -31,8 +32,8 @@ export async function fundPurchaseOrderEscrow(
     `purchase-orders/${refNum}/fund-escrow/`,
     body,
   );
-  // Success envelope is { success, message, data }; return the escrow itself,
-  // tolerating a bare escrow object too.
+  // Success envelope is { success, message, data }; return the payload itself,
+  // tolerating a bare object too.
   return data?.data ?? data;
 }
 
@@ -82,8 +83,9 @@ export async function payPurchaseOrderFromEscrow(refNum) {
 }
 
 // POST purchase-orders/<ref_num>/manual-pay/ { payment_method, payment_ref } —
-// step 10: no escrow, record a manual payment + receipt. Side effects as
-// escrow-pay. → the updated PurchaseOrder.
+// step 10: no escrow. Cash is recorded immediately; MoMo/Bank return a hosted
+// checkout `redirect_url` (payment is recorded + supplier paid on callback).
+// → { redirect_url } (gateway) or { grn, receipt } (cash).
 export async function payPurchaseOrderManually(
   refNum,
   { payment_method, payment_ref },

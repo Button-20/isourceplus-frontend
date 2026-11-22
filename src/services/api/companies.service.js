@@ -50,6 +50,12 @@ export async function getSupplierTypeChoices() {
   return data;
 }
 
+// GET bank-code-choices/ — Orchard Ghana bank codes (`bank_code` enum).
+export async function getBankCodeChoices() {
+  const { data } = await http.get("bank-code-choices/");
+  return data;
+}
+
 // GET supplier/sub-category-choices/?type=<type>&industry=<industry> —
 // `sub_category` enum (suppliers only; depends on the chosen industry).
 export async function getSubCategoryChoices(type, industry) {

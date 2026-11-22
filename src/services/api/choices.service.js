@@ -83,9 +83,15 @@ export async function getCurrencyChoices() {
   return data;
 }
 
-// GET vat/type-choices/ — proforma `vat_type` (exclusive / inclusive …).
+// GET vat-type-choices/ — company/transporter `vat_type` (INCLUSIVE / EXCLUSIVE).
 export async function getVatTypeChoices() {
-  const { data } = await http.get("vat/type-choices/");
+  const { data } = await http.get("vat-type-choices/");
+  return data;
+}
+
+// GET tax-type-choices/ — company/transporter `tax_type` (FLAT / STANDARD).
+export async function getTaxTypeChoices() {
+  const { data } = await http.get("tax-type-choices/");
   return data;
 }
 

@@ -267,7 +267,6 @@ const PurchaseOrderDetailPage = () => {
                 ? new Date(purchaseOrder.delivery_datetime).toLocaleString()
                 : "N/A"}
             </Row>
-            <Row label="VAT type">{purchaseOrder.vat_type || "N/A"}</Row>
             <Row label="Total sales value">
               {formatMoney(
                 purchaseOrder.total_sales_value ?? purchaseOrder.total_cost,
@@ -337,29 +336,31 @@ const PurchaseOrderDetailPage = () => {
         <EscrowPanel
           escrow={escrow}
           actions={
-            (canCancelEscrow || canRaiseDispute) && (
-              <>
-                {canRaiseDispute && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDisputeOpen(true)}
-                  >
-                    <Gavel className="mr-1.5 h-4 w-4" /> Raise dispute
-                  </Button>
-                )}
-                {canCancelEscrow && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCancelOpen(true)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <XCircle className="mr-1.5 h-4 w-4" /> Cancel escrow
-                  </Button>
-                )}
-              </>
-            )
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDisputeOpen(true)}
+                disabled={!canRaiseDispute}
+                title={
+                  !canRaiseDispute
+                    ? "Escrow must be funded before you can raise a dispute."
+                    : undefined
+                }
+              >
+                <Gavel className="mr-1.5 h-4 w-4" /> Raise dispute
+              </Button>
+              {canCancelEscrow && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCancelOpen(true)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <XCircle className="mr-1.5 h-4 w-4" /> Cancel escrow
+                </Button>
+              )}
+            </>
           }
         />
       ) : (

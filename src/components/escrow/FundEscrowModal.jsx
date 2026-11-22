@@ -46,12 +46,21 @@ export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured 
     if (!method) return toast.error("Choose a payment method.");
     setSaving(true);
     try {
-      const escrow = await fundPurchaseOrderEscrow(refNum, {
+      const result = await fundPurchaseOrderEscrow(refNum, {
         payment_method: method,
         payment_ref: reference.trim() || undefined,
       });
+      const redirectUrl = result?.redirect_url;
+      if (redirectUrl) {
+        // Hand the buyer to Orchard's hosted checkout. The escrow is secured
+        // server-side once their callback confirms success.
+        toast.success("Redirecting to complete escrow funding…");
+        window.location.href = redirectUrl;
+        return;
+      }
+      // No redirect (e.g. already secured) — reflect the escrow and close.
       toast.success("Escrow secured — funds lodged successfully.");
-      onSecured?.(escrow);
+      onSecured?.(result?.escrow ?? result);
       onOpenChange(false);
     } catch (err) {
       toast.error(
@@ -72,9 +81,9 @@ export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured 
             <ShieldCheck className="h-5 w-5 text-brand" /> Fund escrow
           </DialogTitle>
           <DialogDescription>
-            Confirm the channel and reference used to lodge funds into the
-            Isourceplus escrow account. Funds are held until the release
-            conditions are met.
+            You&apos;ll be redirected to a secure payment page to lodge funds
+            into the escrow account. Funds are held until the release conditions
+            are met.
           </DialogDescription>
         </DialogHeader>
 
@@ -125,8 +134,8 @@ export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured 
               maxLength={128}
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              The reference returned by your {method} deposit. Stored as the
-              bank confirmation on the escrow ledger.
+              Optional. Any reference for this deposit, stored on the escrow
+              ledger.
             </p>
           </div>
 
@@ -146,11 +155,11 @@ export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured 
             >
               {saving ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Securing…
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting…
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="mr-2 h-4 w-4" /> Confirm & secure
+                  <ShieldCheck className="mr-2 h-4 w-4" /> Continue to payment
                 </>
               )}
             </Button>

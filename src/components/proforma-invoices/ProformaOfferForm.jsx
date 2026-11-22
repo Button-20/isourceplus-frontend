@@ -18,7 +18,6 @@ import {
   getCurrencyChoices,
   getExtraValueChoices,
   getPriorityChoices,
-  getVatTypeChoices,
 } from "@/services/api/choices.service";
 import { normalizeChoices } from "@/utils/choices";
 import {
@@ -33,10 +32,6 @@ const labelClass = "mb-1 block text-sm font-medium text-foreground";
 // Fallbacks used when the backend choices endpoints are unreachable. These
 // match the values the backend spec confirms.
 const CURRENCY_FALLBACK = [{ value: "GHS", label: "GHS (Ghana Cedi)" }];
-const VAT_TYPE_FALLBACK = [
-  { value: "exclusive", label: "VAT exclusive" },
-  { value: "inclusive", label: "VAT inclusive" },
-];
 // Fallback only — the live list comes from GET priority-choices/.
 const PRIORITY_FALLBACK = [
   { value: "urgent", label: "Urgent" },
@@ -89,7 +84,7 @@ function appendToFormData(form, value, key) {
  *  - Common: name, title, description, notes, priority, currency,
  *    start_datetime, submission_datetime, items[].{name, description,
  *    unit_of_measure, quantity, unit_price, special_handles}.
- *  - Company-only: spend_category, do_delivery, vat_type, items[].{attachment,
+ *  - Company-only: spend_category, do_delivery, items[].{attachment,
  *    is_tax_exempt, discount, extra_value, extra_value_TnCs}.
  *  - Transporter-only: vehicle_number, driver_name, driver_phone, eta.
  */
@@ -105,7 +100,7 @@ export default function ProformaOfferForm({
   const location = useLocation();
   const navigate = useNavigate();
   // Transporter (waybill) offers are submitted by logistics managers. The
-  // backend spec marks spend_category / do_delivery / vat_type and the
+  // backend spec marks spend_category / do_delivery and the
   // company-only item fields as "N/A for transporters": they are hidden and
   // omitted from the payload, and the transporter block is shown instead.
   const isTransporter =
@@ -119,7 +114,6 @@ export default function ProformaOfferForm({
     priority: "urgent",
     currency: "GHS",
     do_delivery: NO_DELIVERY, // null or "self" (see utils/delivery)
-    vat_type: "exclusive",
     // Transporter-only
     vehicle_number: "",
     driver_name: "",
@@ -129,7 +123,6 @@ export default function ProformaOfferForm({
   });
   const [currencyChoices, setCurrencyChoices] = useState(CURRENCY_FALLBACK);
   const [priorityChoices, setPriorityChoices] = useState(PRIORITY_FALLBACK);
-  const [vatTypeChoices, setVatTypeChoices] = useState(VAT_TYPE_FALLBACK);
   // null = endpoint failed/empty -> fall back to a free-text input.
   const [extraValueChoices, setExtraValueChoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -163,20 +156,6 @@ export default function ProformaOfferForm({
       })
       .catch((error) => console.error("Fetch priority choices error:", error));
     if (!isTransporter) {
-      getVatTypeChoices()
-        .then((d) => {
-          const list = normalizeChoices(d);
-          if (cancelled || list.length === 0) return;
-          setVatTypeChoices(list);
-          setFormValues((prev) =>
-            list.some((c) => c.value === prev.vat_type)
-              ? prev
-              : { ...prev, vat_type: list[0].value },
-          );
-        })
-        .catch((error) =>
-          console.error("Fetch VAT type choices error:", error),
-        );
       getExtraValueChoices()
         .then((d) => {
           if (cancelled) return;
@@ -279,7 +258,6 @@ export default function ProformaOfferForm({
     } else {
       payload.spend_category = formValues.spend_category;
       payload.do_delivery = deliveryPayload(formValues.do_delivery);
-      payload.vat_type = formValues.vat_type;
     }
     return payload;
   };
@@ -496,24 +474,6 @@ export default function ProformaOfferForm({
                   </SelectTrigger>
                   <SelectContent>
                     {DELIVERY_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className={labelClass}>VAT type</label>
-                <Select
-                  value={formValues.vat_type}
-                  onValueChange={(v) => setField("vat_type", v)}
-                >
-                  <SelectTrigger className="h-10 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vatTypeChoices.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
                       </SelectItem>

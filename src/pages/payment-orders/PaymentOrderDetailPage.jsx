@@ -11,6 +11,7 @@ import {
   Save,
   Truck,
   CheckCircle2,
+  Gavel,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import QuestionsForum from "@/components/questions/QuestionsForum";
@@ -49,6 +50,9 @@ import {
 } from "@/components/detail/DetailShell";
 import { isDraftStatus, normalizeStatus } from "@/utils/status";
 import WaybillPanel from "@/components/waybills/WaybillPanel";
+import RaiseDisputeModal from "@/components/escrow/RaiseDisputeModal";
+import { canDisputeEscrow } from "@/services/api/escrow-dispute.service";
+import { isBuyerView } from "@/services/api/event-lists.service";
 import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
@@ -92,7 +96,7 @@ const PRIORITY_FALLBACK = [
 ];
 
 const PaymentOrderDetailPage = () => {
-  const { authAxios, jobTitle } = useAuth();
+  const { authAxios, jobTitle, viewMode, transporterId } = useAuth();
   const { refNum } = useParams();
   const navigate = useNavigate();
   const [paymentOrder, setPaymentOrder] = useState(null);
@@ -100,6 +104,7 @@ const PaymentOrderDetailPage = () => {
   const [modalLoading, setModalLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
   const [dispatching, setDispatching] = useState(false);
   const [dispatchForm, setDispatchForm] = useState(EMPTY_DISPATCH);
   const [dispatchErrors, setDispatchErrors] = useState({});
@@ -324,6 +329,19 @@ const PaymentOrderDetailPage = () => {
   const isDispatched = Boolean(paymentOrder.gdn || paymentOrder.wb);
   const canDispatch = canManage && isPublished && !isDispatched;
 
+  // Escrow dispute: the escrow rides the payment-order → sales-invoice →
+  // purchase-order chain. Any party to it (supplier / transporter / buyer) may
+  // raise a dispute, but only while funds are actually on hold.
+  const isTransporter =
+    Boolean(transporterId) || jobTitle === "logistics manager";
+  const party = isTransporter
+    ? "transporter"
+    : isBuyerView(jobTitle, viewMode)
+      ? "buyer"
+      : "supplier";
+  const escrow = paymentOrder?.escrow || null;
+  const canRaiseDispute = canDisputeEscrow(escrow);
+
   return (
     <DetailPage
       onBack={() => navigate("/dashboard/payment-orders/issued")}
@@ -427,6 +445,36 @@ const PaymentOrderDetailPage = () => {
             </div>
           </div>
         </Section>
+
+        {escrow && (
+          <Section title="Escrow">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  Status
+                  <StatusBadge label={escrow.escrow_status} tone="neutral" />
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {escrow.amount_on_hold ?? escrow.escrow_amount}{" "}
+                  {escrow.currency} on hold
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDisputeOpen(true)}
+                disabled={!canRaiseDispute}
+                title={
+                  !canRaiseDispute
+                    ? "Escrow must be funded before you can raise a dispute."
+                    : undefined
+                }
+              >
+                <Gavel className="mr-1.5 h-4 w-4" /> Raise dispute
+              </Button>
+            </div>
+          </Section>
+        )}
 
         <Section title="Items">
           {paymentOrder.items?.length > 0 ? (
@@ -655,6 +703,21 @@ const PaymentOrderDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RaiseDisputeModal
+        open={disputeOpen}
+        onOpenChange={setDisputeOpen}
+        escrow={escrow}
+        party={party}
+        onRaised={() => {
+          setDisputeOpen(false);
+          // Refresh so the escrow status reflects the frozen (DISPUTED) state.
+          authAxios
+            .get(`payment-orders/${refNum}/`)
+            .then((r) => setPaymentOrder(r.data))
+            .catch(() => {});
+        }}
+      />
 
       <QuestionsForum entity="payment-order" refNum={refNum} />
     </DetailPage>

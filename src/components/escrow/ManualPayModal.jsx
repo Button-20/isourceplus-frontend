@@ -40,15 +40,23 @@ export default function ManualPayModal({ open, onOpenChange, refNum, onPaid }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    const ref = reference.trim();
-    if (!ref) return toast.error("Please enter the payment reference.");
+    if (method !== "Cash" && !reference.trim())
+      return toast.error("Please enter the payment reference.");
     setSaving(true);
     try {
       const result = await payPurchaseOrderManually(refNum, {
         payment_method: method,
-        payment_ref: ref,
+        payment_ref: reference.trim(),
       });
-      toast.success(result?.message || "Payment recorded.");
+      const redirectUrl = result?.redirect_url;
+      if (redirectUrl) {
+        // Hosted checkout: the payment is recorded and the supplier paid
+        // automatically once Orchard's callback confirms success.
+        toast.success("Redirecting to complete payment…");
+        window.location.href = redirectUrl;
+        return;
+      }
+      toast.success("Payment recorded.");
       onPaid?.(result);
       onOpenChange(false);
     } catch (err) {
@@ -115,8 +123,13 @@ export default function ManualPayModal({ open, onOpenChange, refNum, onPaid }) {
               onChange={(e) => setReference(e.target.value)}
               placeholder={METHOD_META[method]?.hint}
               maxLength={128}
-              required
+              required={method === "Cash"}
             />
+            {method !== "Cash" && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Optional for card/mobile-money — you'll be redirected to pay.
+              </p>
+            )}
           </div>
 
           <DialogFooter>
@@ -130,7 +143,7 @@ export default function ManualPayModal({ open, onOpenChange, refNum, onPaid }) {
             </Button>
             <Button
               type="submit"
-              disabled={saving || !reference.trim()}
+              disabled={saving || (method === "Cash" && !reference.trim())}
               className="bg-brand-gradient text-brand-foreground hover:opacity-90"
             >
               {saving ? (

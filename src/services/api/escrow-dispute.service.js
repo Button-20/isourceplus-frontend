@@ -33,6 +33,16 @@ export const DISPUTE_REASONS = {
       label: "Partial acceptance refused",
     },
   ],
+  // Transporters dispute on the same terms as suppliers.
+  transporter: [
+    { value: "UNJUSTIFIED_REFUSAL", label: "Unjustified refusal" },
+    { value: "BUYER_STALLING", label: "Buyer stalling" },
+    { value: "FALSE_DAMAGE_CLAIM", label: "False damage claim" },
+    {
+      value: "PARTIAL_ACCEPTANCE_REFUSED",
+      label: "Partial acceptance refused",
+    },
+  ],
 };
 
 export const DISPUTE_STATUSES = [

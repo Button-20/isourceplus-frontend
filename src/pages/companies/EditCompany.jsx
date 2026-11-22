@@ -23,8 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getCountryChoices } from "@/services/api/choices.service";
 import {
+  getCountryChoices,
+  getTaxTypeChoices,
+  getVatTypeChoices,
+} from "@/services/api/choices.service";
+import {
+  getBankCodeChoices,
   getCompanyTypeChoices,
   getIndustryChoices,
   getSubCategoryChoices,
@@ -51,6 +56,8 @@ const EMPTY_VALUES = {
   supplier_type: "",
   industry: "",
   sub_category: "",
+  vat_type: "",
+  tax_type: "",
   bio: "",
   email: "",
   office_line: "",
@@ -59,6 +66,7 @@ const EMPTY_VALUES = {
   // Payment details (all optional).
   bank_account_name: "",
   bank_account_number: "",
+  bank_code: "",
   momo_number: "",
 };
 
@@ -71,7 +79,12 @@ const EMPTY_LOCATION = {
   street_address: "",
 };
 
-const SUPPLIER_ONLY_KEYS = ["supplier_type", "sub_category"];
+const SUPPLIER_ONLY_KEYS = [
+  "supplier_type",
+  "sub_category",
+  "vat_type",
+  "tax_type",
+];
 // Mobile money numbers are local Ghanaian format: leading 0 + 9 digits
 // (0241234567), never the +233 international prefix.
 const MOMO_RE = /^0\d{9}$/;
@@ -218,6 +231,12 @@ const EditCompany = () => {
   const [typeLoading, setTypeLoading] = useState(false);
   const [supplierTypeChoices, setSupplierTypeChoices] = useState([]);
   const [supplierTypeLoading, setSupplierTypeLoading] = useState(false);
+  const [vatTypeChoices, setVatTypeChoices] = useState([]);
+  const [vatTypeLoading, setVatTypeLoading] = useState(false);
+  const [taxTypeChoices, setTaxTypeChoices] = useState([]);
+  const [taxTypeLoading, setTaxTypeLoading] = useState(false);
+  const [bankCodeChoices, setBankCodeChoices] = useState([]);
+  const [bankCodeLoading, setBankCodeLoading] = useState(false);
   const [industryChoices, setIndustryChoices] = useState([]);
   const [industryLoading, setIndustryLoading] = useState(false);
   const [subCategoryChoices, setSubCategoryChoices] = useState([]);
@@ -274,6 +293,8 @@ const EditCompany = () => {
           supplier_type: toValue(data.supplier_type),
           industry: toValue(data.industry),
           sub_category: toValue(data.sub_category),
+          vat_type: toValue(data.vat_type),
+          tax_type: toValue(data.tax_type),
           bio: data.bio || "",
           email: data.email || "",
           office_line: data.office_line || "",
@@ -281,6 +302,7 @@ const EditCompany = () => {
           web_address: data.web_address || "",
           bank_account_name: data.bank_account_name || "",
           bank_account_number: data.bank_account_number || "",
+          bank_code: data.bank_code || "",
           momo_number: data.momo_number || "",
         });
         setLocation({
@@ -344,6 +366,42 @@ const EditCompany = () => {
       })
       .finally(() => {
         if (!cancelled) setSupplierTypeLoading(false);
+      });
+
+    setVatTypeLoading(true);
+    getVatTypeChoices()
+      .then((d) => {
+        if (!cancelled) setVatTypeChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setVatTypeChoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setVatTypeLoading(false);
+      });
+
+    setTaxTypeLoading(true);
+    getTaxTypeChoices()
+      .then((d) => {
+        if (!cancelled) setTaxTypeChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setTaxTypeChoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTaxTypeLoading(false);
+      });
+
+    setBankCodeLoading(true);
+    getBankCodeChoices()
+      .then((d) => {
+        if (!cancelled) setBankCodeChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setBankCodeChoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setBankCodeLoading(false);
       });
 
     setRegionLoading(true);
@@ -766,6 +824,36 @@ const EditCompany = () => {
                       emptyText="No sub-categories available"
                     />
                   </div>
+
+                  <div>
+                    <label className={labelClass}>VAT type</label>
+                    <ChoiceSelect
+                      value={values.vat_type}
+                      onValueChange={(v) => handleSelectChange("vat_type", v)}
+                      options={withCurrent(vatTypeChoices, values.vat_type)}
+                      loading={vatTypeLoading}
+                      placeholder="Select VAT type"
+                      emptyText="No VAT types available"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Optional. Leave empty for no VAT calculation.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Tax type</label>
+                    <ChoiceSelect
+                      value={values.tax_type}
+                      onValueChange={(v) => handleSelectChange("tax_type", v)}
+                      options={withCurrent(taxTypeChoices, values.tax_type)}
+                      loading={taxTypeLoading}
+                      placeholder="Select tax type"
+                      emptyText="No tax types available"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Optional. Sent to GRA as `taxType` (FLAT / STANDARD).
+                    </p>
+                  </div>
                 </>
               )}
 
@@ -879,6 +967,20 @@ const EditCompany = () => {
                   placeholder="Account number"
                   autoComplete="off"
                 />
+              </div>
+              <div>
+                <label className={labelClass}>Bank</label>
+                <ChoiceSelect
+                  value={values.bank_code}
+                  onValueChange={(v) => handleSelectChange("bank_code", v)}
+                  options={withCurrent(bankCodeChoices, values.bank_code)}
+                  loading={bankCodeLoading}
+                  placeholder="Select your bank"
+                  emptyText="No banks available"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Your bank, used for payouts into this account.
+                </p>
               </div>
               <div>
                 <label className={labelClass}>Mobile money number</label>
