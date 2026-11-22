@@ -171,6 +171,21 @@ const ReceiptsPage = () => {
                   {selected.amount_in_words}
                 </div>
               )}
+              {Array.isArray(selected?.charges) && selected.charges.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-border/60">
+                  <div className="border-b border-border/60 bg-muted/50 px-3 py-2 text-xs font-semibold text-muted-foreground">
+                    Charges
+                  </div>
+                  <ul className="divide-y divide-border/60">
+                    {selected.charges.map((c, i) => (
+                      <li key={i} className="flex justify-between px-3 py-2 text-xs">
+                        <span className="text-muted-foreground">{c.label || "Charge"}</span>
+                        <span>{formatMoney(c.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {selected?.line_items?.length > 0 && (
                 <div className="overflow-hidden rounded-lg border border-border/60">
                   <table className="min-w-full text-xs">
