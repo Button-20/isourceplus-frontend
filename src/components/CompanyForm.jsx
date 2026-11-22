@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   getCountryChoices,
   getVatTypeChoices,
+  getTaxTypeChoices,
 } from "@/services/api/choices.service";
 import {
   createCompany,
@@ -47,6 +48,7 @@ const EMPTY_VALUES = {
   industry: "",
   sub_category: "",
   vat_type: "",
+  tax_type: "",
   bio: "",
   email: "",
   office_line: "",
@@ -68,7 +70,7 @@ const EMPTY_LOCATION = {
   street_address: "",
 };
 
-const SUPPLIER_ONLY_KEYS = ["supplier_type", "sub_category", "vat_type"];
+const SUPPLIER_ONLY_KEYS = ["supplier_type", "sub_category", "vat_type", "tax_type"];
 // Mobile money numbers are local Ghanaian format: leading 0 + 9 digits
 // (0241234567), never the +233 international prefix.
 const MOMO_RE = /^0\d{9}$/;
@@ -215,6 +217,8 @@ const CompanyForm = () => {
   const [supplierTypeLoading, setSupplierTypeLoading] = useState(false);
   const [vatTypeChoices, setVatTypeChoices] = useState([]);
   const [vatTypeLoading, setVatTypeLoading] = useState(false);
+  const [taxTypeChoices, setTaxTypeChoices] = useState([]);
+  const [taxTypeLoading, setTaxTypeLoading] = useState(false);
   const [bankCodeChoices, setBankCodeChoices] = useState([]);
   const [bankCodeLoading, setBankCodeLoading] = useState(false);
   const [industryChoices, setIndustryChoices] = useState([]);
@@ -310,6 +314,18 @@ const CompanyForm = () => {
       })
       .finally(() => {
         if (!cancelled) setVatTypeLoading(false);
+      });
+
+    setTaxTypeLoading(true);
+    getTaxTypeChoices()
+      .then((d) => {
+        if (!cancelled) setTaxTypeChoices(normalizeChoices(d));
+      })
+      .catch(() => {
+        if (!cancelled) setTaxTypeChoices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTaxTypeLoading(false);
       });
 
     setBankCodeLoading(true);
@@ -734,6 +750,21 @@ const CompanyForm = () => {
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
                   Optional. Leave empty for no VAT calculation.
+                </p>
+              </div>
+
+              <div>
+                <label className={labelClass}>Tax type</label>
+                <ChoiceSelect
+                  value={values.tax_type}
+                  onValueChange={(v) => handleSelectChange("tax_type", v)}
+                  options={withCurrent(taxTypeChoices, values.tax_type)}
+                  loading={taxTypeLoading}
+                  placeholder="Select tax type"
+                  emptyText="No tax types available"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Optional. Sent to GRA as `taxType` (FLAT / STANDARD).
                 </p>
               </div>
             </>

@@ -54,6 +54,11 @@ function NavItem({ item, pathname }) {
           >
             <item.icon />
             <span className="truncate">{item.title}</span>
+            {typeof item.badge === "number" && item.badge > 0 && (
+              <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-white">
+                {item.badge > 99 ? "99+" : item.badge}
+              </span>
+            )}
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>

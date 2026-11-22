@@ -40,6 +40,7 @@ import { useAuth } from "@/services/context/app.context";
 import ViewModeToggle from "@/components/dashboard/ViewModeToggle";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { NotificationsProvider } from "@/services/context/notifications.context";
+import { useUnreadMessages } from "@/hooks/use-unread-messages";
 import { getCompany } from "@/services/api/companies.service";
 import { MdOutlineDocumentScanner, MdOutlinePeopleAlt } from "react-icons/md";
 
@@ -60,6 +61,9 @@ export function DashboardLayout() {
   } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  // Total unread messages across all conversations — drives the sidebar's
+  // "Messages" badge (mirrors the notification bell).
+  const { unread: unreadMessages } = useUnreadMessages(Boolean(user && token));
   const [profileVerified, setProfileVerified] = useState(null);
   // The company's switch flag + type. Companies (never transporters) carry
   // `type_switch`: true = switch-enabled (stays true after switching to buyer),
@@ -384,7 +388,12 @@ export function DashboardLayout() {
         },
         { title: "Reviews", icon: Star, url: "/dashboard/reviews" },
         { title: "SMS", icon: MessageSquare, url: "/dashboard/sms" },
-        { title: "Messages", icon: MessageCircle, url: "/dashboard/messages" },
+        {
+          title: "Messages",
+          icon: MessageCircle,
+          url: "/dashboard/messages",
+          badge: unreadMessages,
+        },
       ],
     },
   ];

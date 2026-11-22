@@ -111,6 +111,7 @@ import ConversationPage from "./pages/messaging/ConversationPage";
 import { SsoCallbackPage } from "./pages/auth/SsoCallbackPage";
 import { SocialCallbackPage } from "./pages/auth/SocialCallbackPage";
 import { UseCasesPage } from "./pages/public/UseCasesPage";
+import PaymentReceiptVerifyPage from "./pages/payment-receipts/PaymentReceiptVerifyPage";
 
 const fullRoutes = [
   { path: "/", element: <LandingPage /> },
@@ -124,6 +125,11 @@ const fullRoutes = [
   { path: "/faq", element: <FaqPage /> },
   { path: "/use-cases", element: <UseCasesPage /> },
   { path: "/subscription/callback", element: <SubscriptionCallbackPage /> },
+  // Public receipt verification (matches backend `verification_url`).
+  {
+    path: "/payment-receipts/verify/:receiptNumber",
+    element: <PaymentReceiptVerifyPage />,
+  },
   // The backend's SSO callback redirects to /sso/callback with a one-time
   // ?code= (or ?error=); /auth/sso/callback is kept as an alias.
   { path: "/sso/callback", element: <SsoCallbackPage /> },
@@ -402,6 +408,11 @@ const prelaunchRoutes = [
   { path: "/use-cases", element: <UseCasesPage /> },
   { path: "/terms", element: <TermsPage /> },
   { path: "/privacy", element: <PrivacyPage /> },
+  // Receipt verification must stay reachable even pre-launch.
+  {
+    path: "/payment-receipts/verify/:receiptNumber",
+    element: <PaymentReceiptVerifyPage />,
+  },
   { path: "*", element: <Navigate to="/" replace /> },
 ];
 

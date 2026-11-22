@@ -89,6 +89,12 @@ export async function getVatTypeChoices() {
   return data;
 }
 
+// GET tax-type-choices/ — company/transporter `tax_type` (FLAT / STANDARD).
+export async function getTaxTypeChoices() {
+  const { data } = await http.get("tax-type-choices/");
+  return data;
+}
+
 // GET purchase-order/type-choices/ — purchase order `type` (npo, …).
 export async function getPurchaseOrderTypeChoices() {
   const { data } = await http.get("purchase-order/type-choices/");
