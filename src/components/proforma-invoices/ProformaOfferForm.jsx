@@ -99,6 +99,10 @@ export default function ProformaOfferForm({
   const { authAxios, jobTitle } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  // When opened via an event's "Send offer", `backTo` is carried in router
+  // state so "Back"/"Cancel" return to where the user came from (e.g. the
+  // transporter's waybill invitations) instead of a hardcoded list.
+  const effectiveBackTo = location.state?.backTo || backTo;
   // Transporter (waybill) offers are submitted by logistics managers. The
   // backend spec marks spend_category / do_delivery and the
   // company-only item fields as "N/A for transporters": they are hidden and
@@ -307,7 +311,7 @@ export default function ProformaOfferForm({
           ? `Proforma invoice created. ${data.message}`
           : "Proforma invoice created successfully!",
       );
-      navigate(refNum ? `/dashboard/proforma-invoices/${refNum}` : backTo);
+      navigate(refNum ? `/dashboard/proforma-invoices/${refNum}` : effectiveBackTo);
     } catch (error) {
       toast.error(apiErrorMessage(error, "Failed to create proforma invoice."));
       console.error("Create proforma invoice error:", error);
@@ -327,7 +331,7 @@ export default function ProformaOfferForm({
           <Button
             variant="outline"
             className="mt-5"
-            onClick={() => navigate(backTo)}
+            onClick={() => navigate(effectiveBackTo)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> Back
           </Button>
@@ -358,7 +362,7 @@ export default function ProformaOfferForm({
           </div>
           <Button
             variant="outline"
-            onClick={() => navigate(backTo)}
+            onClick={() => navigate(effectiveBackTo)}
             className="border-white/40 bg-white/10 text-brand-foreground hover:bg-white/20"
           >
             <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
@@ -718,7 +722,7 @@ export default function ProformaOfferForm({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => navigate(backTo)}
+            onClick={() => navigate(effectiveBackTo)}
             disabled={submitting}
           >
             Cancel

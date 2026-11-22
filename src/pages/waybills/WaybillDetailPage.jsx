@@ -103,12 +103,16 @@ const WaybillDetailPage = () => {
       if (!url || !url.startsWith("/api/v1/proforma-invoices/create-offer/")) {
         throw new Error("Invalid redirect URL received.");
       }
-      navigate(url.replace("/api/v1", "/dashboard"));
+      navigate(url.replace("/api/v1", "/dashboard"), {
+        state: { backTo, backLabel },
+      });
     } catch (error) {
       if (error.response && error.response.status === 302) {
         const url = error.response.data.event_response_create_url;
         if (url?.startsWith("/api/v1/proforma-invoices/create-offer/")) {
-          navigate(url.replace("/api/v1", "/dashboard"));
+          navigate(url.replace("/api/v1", "/dashboard"), {
+            state: { backTo, backLabel },
+          });
           return;
         }
       }
