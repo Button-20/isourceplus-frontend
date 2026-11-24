@@ -345,8 +345,12 @@ export const AppProvider = ({ children }) => {
       /* clear locally regardless of network outcome */
     } finally {
       clearSession();
-      setLoading(false);
-      toast.success("Logout successful.", { duration: AUTH_TOAST_MS });
+      // Hard-navigate to the login page. A full page load is the only reliable
+      // way to clear the body-level locks the open dialogs leave behind (Radix
+      // scroll-lock, focus guards, invisible overlay) — an SPA navigation reused
+      // the same locked document and left the freshly-mounted login page
+      // unclickable until a manual refresh.
+      window.location.replace("/login");
     }
   };
 
@@ -360,10 +364,7 @@ export const AppProvider = ({ children }) => {
       /* clear locally regardless of network outcome */
     } finally {
       clearSession();
-      setLoading(false);
-      toast.success("Logged out of all devices.", {
-        duration: AUTH_TOAST_MS,
-      });
+      window.location.replace("/login");
     }
   };
 
