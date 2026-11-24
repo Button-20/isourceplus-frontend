@@ -24,6 +24,7 @@ import {
   fundWallet,
   payoutClient,
   withdrawWallet,
+  listWalletTransactions,
 } from "@/services/api/wallet.service";
 import { formatMoney } from "@/utils/money";
 import { apiErrorMessage } from "@/services/lib/api-error";
@@ -33,6 +34,7 @@ const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 const VirtualWalletPage = () => {
   const [wallet, setWallet] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fundOpen, setFundOpen] = useState(false);
   const [payoutOpen, setPayoutOpen] = useState(false);
@@ -41,6 +43,15 @@ const VirtualWalletPage = () => {
   const [fundForm, setFundForm] = useState({ amount: "", customer_number: "", network: "MTN" });
   const [payoutForm, setPayoutForm] = useState({ amount: "", client_number: "", network: "MTN" });
   const [withdrawForm, setWithdrawForm] = useState({ amount: "" });
+
+  const loadTransactions = useCallback(async () => {
+    try {
+      const rows = await listWalletTransactions();
+      setTransactions(rows);
+    } catch {
+      setTransactions([]);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -51,7 +62,8 @@ const VirtualWalletPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+    loadTransactions();
+  }, [loadTransactions]);
 
   useEffect(() => {
     load();
@@ -174,6 +186,53 @@ const VirtualWalletPage = () => {
         <Button variant="ghost" size="icon" onClick={load} title="Refresh">
           <RefreshCw className="h-4 w-4" />
         </Button>
+      </div>
+
+      {/* Transactions */}
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+        <div className="border-b border-border/60 px-5 py-3">
+          <h2 className="font-display text-sm font-semibold">Transactions</h2>
+        </div>
+        {transactions.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-muted-foreground">
+            No transactions yet
+          </p>
+        ) : (
+          <ul className="divide-y divide-border/60">
+            {transactions.map((t) => (
+              <li
+                key={t.id || t.exttrid}
+                className="flex items-center justify-between gap-4 px-5 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {t.purpose_display || t.purpose || "Transaction"}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {t.reference || t.exttrid} · {t.status}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p
+                    className={
+                      t.direction === "CTM"
+                        ? "text-sm font-semibold text-emerald-600"
+                        : "text-sm font-semibold text-rose-600"
+                    }
+                  >
+                    {t.direction === "CTM" ? "+" : "−"}
+                    {formatMoney(t.amount)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.created_at
+                      ? new Date(t.created_at).toLocaleDateString()
+                      : ""}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Fund wallet */}
