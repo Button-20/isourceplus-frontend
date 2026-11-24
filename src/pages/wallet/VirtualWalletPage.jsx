@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Wallet, ArrowDownToLine, Send, RefreshCw } from "lucide-react";
+import { Loader2, Wallet, ArrowDownToLine, ArrowUpToLine, Send, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   getWallet,
   fundWallet,
   payoutClient,
+  withdrawWallet,
 } from "@/services/api/wallet.service";
 import { formatMoney } from "@/utils/money";
 import { apiErrorMessage } from "@/services/lib/api-error";
@@ -35,9 +36,11 @@ const VirtualWalletPage = () => {
   const [loading, setLoading] = useState(true);
   const [fundOpen, setFundOpen] = useState(false);
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fundForm, setFundForm] = useState({ amount: "", customer_number: "", network: "MTN" });
   const [payoutForm, setPayoutForm] = useState({ amount: "", client_number: "", network: "MTN" });
+  const [withdrawForm, setWithdrawForm] = useState({ amount: "" });
 
   const load = useCallback(async () => {
     try {
@@ -96,6 +99,21 @@ const VirtualWalletPage = () => {
     }
   };
 
+  const handleWithdraw = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await withdrawWallet({ amount: withdrawForm.amount });
+      toast.success("Withdrawal initiated to your payout method.");
+      setWithdrawOpen(false);
+      load();
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Failed to start withdrawal."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -149,6 +167,9 @@ const VirtualWalletPage = () => {
         </Button>
         <Button variant="outline" onClick={() => setPayoutOpen(true)}>
           <Send className="mr-1.5 h-4 w-4" /> Pay client
+        </Button>
+        <Button variant="outline" onClick={() => setWithdrawOpen(true)}>
+          <ArrowUpToLine className="mr-1.5 h-4 w-4" /> Withdraw
         </Button>
         <Button variant="ghost" size="icon" onClick={load} title="Refresh">
           <RefreshCw className="h-4 w-4" />
@@ -255,6 +276,39 @@ const VirtualWalletPage = () => {
               <Button type="submit" disabled={saving || !payoutForm.amount || !payoutForm.client_number}
                 className="bg-brand-gradient text-brand-foreground hover:opacity-90">
                 {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Paying…</> : "Pay client"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw */}
+      <Dialog open={withdrawOpen} onOpenChange={(o) => !saving && setWithdrawOpen(o)}>
+        <DialogContent className="font-montserrat sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Withdraw</DialogTitle>
+            <DialogDescription>
+              Withdraw funds to your configured payout method (MoMo or Bank).
+              The payout charge is applied on the withdrawal.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleWithdraw} className="space-y-4">
+            <div>
+              <label className={labelClass}>Amount</label>
+              <Input
+                inputMode="decimal"
+                value={withdrawForm.amount}
+                onChange={(e) => setWithdrawForm((f) => ({ ...f, amount: e.target.value }))}
+                placeholder="0.00"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setWithdrawOpen(false)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving || !withdrawForm.amount}
+                className="bg-brand-gradient text-brand-foreground hover:opacity-90">
+                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Withdrawing…</> : "Withdraw"}
               </Button>
             </DialogFooter>
           </form>

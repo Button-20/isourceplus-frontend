@@ -26,3 +26,10 @@ export async function payoutClient({ amount, client_number, network }) {
   });
   return data;
 }
+
+// POST wallet/withdraw/ — withdraw own funds to the configured MoMo/Bank
+// payout method; returns { detail, exttrid }.
+export async function withdrawWallet({ amount }) {
+  const { data } = await http.post("wallet/withdraw/", { amount });
+  return data;
+}
