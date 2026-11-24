@@ -233,6 +233,7 @@ const CompanyForm = () => {
   const [districtLoading, setDistrictLoading] = useState(false);
 
   const isSupplier = values.type === "supplier";
+  const isBuyer = values.type === "buyer";
 
   const persistValues = (next) => storage.setJSON("companyFormValues", next);
   const persistLocation = (next) =>
@@ -920,6 +921,7 @@ const CompanyForm = () => {
           <PayoutMethodField
             value={values.payout_method}
             onChange={(v) => handleSelectChange("payout_method", v)}
+            showWalletOption={!isBuyer}
           />
         </div>
       </section>

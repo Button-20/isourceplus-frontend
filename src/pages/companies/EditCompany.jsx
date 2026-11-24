@@ -249,6 +249,7 @@ const EditCompany = () => {
   const [districtLoading, setDistrictLoading] = useState(false);
 
   const isSupplier = values.type === "supplier";
+  const isBuyer = values.type === "buyer";
 
   // Resolve companyId if it isn't in context yet.
   useEffect(() => {
@@ -1004,6 +1005,7 @@ const EditCompany = () => {
               <PayoutMethodField
                 value={values.payout_method}
                 onChange={(v) => handleSelectChange("payout_method", v)}
+                showWalletOption={!isBuyer}
               />
             </div>
           </section>
