@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -175,6 +175,20 @@ export function LoginPage() {
   const { login, loading, error } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Show the one-shot "Logout successful" toast that logout() left in
+  // sessionStorage before it hard-reloaded to /login.
+  useEffect(() => {
+    try {
+      const notice = window.sessionStorage.getItem("auth_logout_notice");
+      if (notice) {
+        window.sessionStorage.removeItem("auth_logout_notice");
+        toast.success(notice);
+      }
+    } catch {
+      /* sessionStorage unavailable — skip the toast */
+    }
+  }, []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
