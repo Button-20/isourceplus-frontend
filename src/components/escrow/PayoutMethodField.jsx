@@ -27,8 +27,20 @@ export const PAYOUT_METHOD_OPTIONS = [
 /**
  * Supplier payout-method selector (MoMo / Bank / wallet). `value` is "" when
  * unset; `onChange` receives "" | "MoMo" | "Bank".
+ *
+ * `showWalletOption` (default true) toggles the "Wallet (default)" entry.
+ * Buyers don't receive payouts, so the wallet fallback is hidden for them.
  */
-export default function PayoutMethodField({ value = "", onChange, className }) {
+export default function PayoutMethodField({
+  value = "",
+  onChange,
+  className,
+  showWalletOption = true,
+}) {
+  const options = showWalletOption
+    ? PAYOUT_METHOD_OPTIONS
+    : PAYOUT_METHOD_OPTIONS.filter((o) => o.value !== NONE);
+
   return (
     <div className={className}>
       <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -54,7 +66,7 @@ export default function PayoutMethodField({ value = "", onChange, className }) {
           <SelectValue placeholder="Select payout method" />
         </SelectTrigger>
         <SelectContent>
-          {PAYOUT_METHOD_OPTIONS.map((o) => (
+          {options.map((o) => (
             <SelectItem key={o.value} value={o.value}>
               {o.label}
             </SelectItem>
