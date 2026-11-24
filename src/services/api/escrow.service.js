@@ -38,7 +38,7 @@ export async function fundPurchaseOrderEscrow(
 }
 
 // Payment channels for a manual (non-escrow) payment.
-export const MANUAL_PAYMENT_METHODS = ["MoMo", "Bank", "Cash"];
+export const MANUAL_PAYMENT_METHODS = ["MoMo", "Card", "Cash"];
 
 // Multipart body from every field (empty strings are kept —
 // the receipt endpoint accepts gps_address="" when there's none).
@@ -83,7 +83,7 @@ export async function payPurchaseOrderFromEscrow(refNum) {
 }
 
 // POST purchase-orders/<ref_num>/manual-pay/ { payment_method, payment_ref } —
-// step 10: no escrow. Cash is recorded immediately; MoMo/Bank return a hosted
+// step 10: no escrow. Cash is recorded immediately; MoMo/Card return a hosted
 // checkout `redirect_url` (payment is recorded + supplier paid on callback).
 // → { redirect_url } (gateway) or { grn, receipt } (cash).
 export async function payPurchaseOrderManually(

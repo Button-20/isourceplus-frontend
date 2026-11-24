@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import PayoutMethodField from "@/components/escrow/PayoutMethodField";
 import {
   getCountryChoices,
   getVatTypeChoices,
@@ -59,6 +60,7 @@ const EMPTY_VALUES = {
   bank_account_number: "",
   bank_code: "",
   momo_number: "",
+  payout_method: "",
 };
 
 // Sent as bracketed keys: location[region], location[district], …
@@ -915,6 +917,10 @@ const CompanyForm = () => {
               Local format starting with 0 (10 digits), not +233.
             </p>
           </div>
+          <PayoutMethodField
+            value={values.payout_method}
+            onChange={(v) => handleSelectChange("payout_method", v)}
+          />
         </div>
       </section>
 
