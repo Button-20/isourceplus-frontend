@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Banknote, Landmark, Loader2, Smartphone, Wallet } from "lucide-react";
+import { Banknote, CreditCard, Loader2, Smartphone, Wallet } from "lucide-react";
 
 import {
   Dialog,
@@ -21,11 +21,11 @@ import {
 
 const METHOD_META = {
   MoMo: { icon: Smartphone, hint: "e.g. MTN ref 1234567890" },
-  Bank: { icon: Landmark, hint: "e.g. GCB/TXN/2026/10/0001234" },
+  Card: { icon: CreditCard, hint: "e.g. card transaction reference" },
   Cash: { icon: Banknote, hint: "e.g. receipt number RCPT-0042" },
 };
 
-// Record a manual payment for a purchase order without escrow (MoMo, bank or
+// Record a manual payment for a purchase order without escrow (MoMo, card or
 // cash, plus its reference). `onPaid(result)` runs on success.
 export default function ManualPayModal({ open, onOpenChange, refNum, onPaid }) {
   const [method, setMethod] = useState("MoMo");

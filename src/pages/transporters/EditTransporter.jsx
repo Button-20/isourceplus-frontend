@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import PayoutMethodField from "@/components/escrow/PayoutMethodField";
 import {
   Select,
   SelectContent,
@@ -29,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { normalizeChoices, prettify } from "@/utils/choices";
 import { compressImage } from "@/utils/compress-image";
 import { getCountryChoices } from "@/services/api/choices.service";
+import { getBankCodeChoices } from "@/services/api/companies.service";
 import VerifyOrganisation from "@/components/organisation/VerifyOrganisation";
 import {
   getDistrictChoices,
@@ -148,7 +150,9 @@ export default function EditTransporter() {
     country: "", // top-level per the API (not location[country])
     bank_account_name: "",
     bank_account_number: "",
+    bank_code: "",
     momo_number: "",
+    payout_method: "",
   });
   // TIN is verification-only (never PATCHed); `isVerified` drives the badge.
   const [tin, setTin] = useState("");
@@ -183,6 +187,8 @@ export default function EditTransporter() {
   const [regionChoices, setRegionChoices] = useState([]);
   const [districtChoices, setDistrictChoices] = useState([]);
   const [districtLoading, setDistrictLoading] = useState(false);
+  const [bankCodeChoices, setBankCodeChoices] = useState([]);
+  const [bankCodeLoading, setBankCodeLoading] = useState(false);
 
   // Type/mode/means/region options come from the backend (same source as the
   // create form) so saved values match an option and display correctly.
@@ -200,6 +206,11 @@ export default function EditTransporter() {
     getRegionChoices()
       .then((d) => !cancelled && setRegionChoices(normalizeChoices(d)))
       .catch(() => {});
+    setBankCodeLoading(true);
+    getBankCodeChoices()
+      .then((d) => !cancelled && setBankCodeChoices(normalizeChoices(d)))
+      .catch(() => {})
+      .finally(() => !cancelled && setBankCodeLoading(false));
     // Countries from /country-choices/, falling back to Ghana/Nigeria.
     getCountryChoices()
       .then((d) => {
@@ -340,7 +351,9 @@ export default function EditTransporter() {
             country: data.country || data.location?.country || "",
             bank_account_name: data.bank_account_name || "",
             bank_account_number: data.bank_account_number || "",
+            bank_code: data.bank_code || "",
             momo_number: data.momo_number || "",
+            payout_method: data.payout_method || "",
           });
           setTin(data.tin_number || data.tin || "");
           setIsVerified(Boolean(data.is_verified));
@@ -857,6 +870,35 @@ export default function EditTransporter() {
               />
             </div>
             <div>
+              <label className={labelClass}>Bank</label>
+              <Select
+                value={values.bank_code || undefined}
+                onValueChange={(v) =>
+                  setValues((prev) => ({ ...prev, bank_code: v }))
+                }
+              >
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue placeholder="Select your bank" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankCodeLoading && !bankCodeChoices.length ? (
+                    <div className="flex items-center justify-center py-2">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+                    </div>
+                  ) : (
+                    bankCodeChoices.map((choice) => (
+                      <SelectItem key={choice.value} value={choice.value}>
+                        {choice.label}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Required for bank payouts into this account.
+              </p>
+            </div>
+            <div>
               <label className={labelClass}>Mobile money number</label>
               <Input
                 type="tel"
@@ -872,6 +914,12 @@ export default function EditTransporter() {
                 Optional. Local format starting with 0 (10 digits), not +233.
               </p>
             </div>
+            <PayoutMethodField
+              value={values.payout_method}
+              onChange={(v) =>
+                setValues((prev) => ({ ...prev, payout_method: v }))
+              }
+            />
           </div>
         </section>
 

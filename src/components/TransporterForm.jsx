@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import PayoutMethodField from "@/components/escrow/PayoutMethodField";
 import { getCountryChoices } from "@/services/api/choices.service";
+import { getBankCodeChoices } from "@/services/api/companies.service";
 import {
   createTransporter as createTransporterRequest,
   getDistrictChoices,
@@ -59,7 +61,9 @@ const EMPTY_VALUES = {
   // Banking details (settlements / escrow payouts). Bank account is required.
   bank_account_name: "",
   bank_account_number: "",
+  bank_code: "",
   momo_number: "",
+  payout_method: "",
 };
 // Keys newer than older drafts — not required for a draft to be restored.
 const NEWER_DRAFT_KEYS = [
@@ -190,6 +194,8 @@ const TransporterForm = () => {
   const [regionLoading, setRegionLoading] = useState(false);
   const [districtChoices, setDistrictChoices] = useState([]);
   const [districtLoading, setDistrictLoading] = useState(false);
+  const [bankCodeChoices, setBankCodeChoices] = useState([]);
+  const [bankCodeLoading, setBankCodeLoading] = useState(false);
 
   // Restore any in-progress draft once on mount. (File objects can't be
   // persisted, so previews are restored but the files must be re-picked.)
@@ -268,6 +274,11 @@ const TransporterForm = () => {
   useEffect(
     () =>
       loadChoices(getRegionChoices, setRegionChoices, setRegionLoading, "regions"),
+    [],
+  );
+  useEffect(
+    () =>
+      loadChoices(getBankCodeChoices, setBankCodeChoices, setBankCodeLoading, "banks"),
     [],
   );
   // Countries come from /country-choices/; fall back to Ghana/Nigeria so the
@@ -818,6 +829,33 @@ const TransporterForm = () => {
             />
           </div>
           <div>
+            <label className={labelClass}>Bank</label>
+            <Select
+              value={values.bank_code || undefined}
+              onValueChange={(v) => setValue("bank_code", v)}
+            >
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="Select your bank" />
+              </SelectTrigger>
+              <SelectContent>
+                {bankCodeLoading && !bankCodeChoices.length ? (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+                  </div>
+                ) : (
+                  bankCodeChoices.map((choice) => (
+                    <SelectItem key={choice.value} value={choice.value}>
+                      {choice.label}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Required for bank payouts into this account.
+            </p>
+          </div>
+          <div>
             <label className={labelClass}>Mobile money number</label>
             <Input
               type="tel"
@@ -833,6 +871,16 @@ const TransporterForm = () => {
               Optional. Local format starting with 0 (10 digits), not +233.
             </p>
           </div>
+          <PayoutMethodField
+            value={values.payout_method}
+            onChange={(v) =>
+              setValues((prev) => {
+                const next = { ...prev, payout_method: v };
+                persist("transporterFormValues", next);
+                return next;
+              })
+            }
+          />
         </div>
       </section>
 

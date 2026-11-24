@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, Landmark, Smartphone, CreditCard } from "lucide-react";
+import { Loader2, ShieldCheck, Smartphone, CreditCard } from "lucide-react";
 
 import {
   Dialog,
@@ -24,7 +24,6 @@ const labelClass = "mb-1 block text-sm font-medium text-foreground";
 // Icon + helper text per payment channel.
 const METHOD_META = {
   MoMo: { icon: Smartphone, hint: "e.g. MTN ref 1234567890" },
-  Bank: { icon: Landmark, hint: "e.g. GCB/TXN/2026/09/0001234" },
   Card: { icon: CreditCard, hint: "e.g. PSP-AUTH-9f2c1b8a" },
 };
 

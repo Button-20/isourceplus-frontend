@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import VerifyOrganisation from "@/components/organisation/VerifyOrganisation";
 import { Textarea } from "@/components/ui/textarea";
+import PayoutMethodField from "@/components/escrow/PayoutMethodField";
 import {
   Select,
   SelectContent,
@@ -68,6 +69,7 @@ const EMPTY_VALUES = {
   bank_account_number: "",
   bank_code: "",
   momo_number: "",
+  payout_method: "",
 };
 
 // Sent as bracketed keys: location[region], location[district], …
@@ -304,6 +306,7 @@ const EditCompany = () => {
           bank_account_number: data.bank_account_number || "",
           bank_code: data.bank_code || "",
           momo_number: data.momo_number || "",
+          payout_method: data.payout_method || "",
         });
         setLocation({
           region: toValue(loc.region),
@@ -998,6 +1001,10 @@ const EditCompany = () => {
                   Local format starting with 0 (10 digits), not +233.
                 </p>
               </div>
+              <PayoutMethodField
+                value={values.payout_method}
+                onChange={(v) => handleSelectChange("payout_method", v)}
+              />
             </div>
           </section>
 

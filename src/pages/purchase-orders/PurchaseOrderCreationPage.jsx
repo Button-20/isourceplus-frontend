@@ -29,7 +29,7 @@ const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const FALLBACK_TYPES = [{ value: "npo", label: "NPO" }];
 const FALLBACK_PAYMENT_CHANNELS = [
   { value: "MoMo", label: "MoMo" },
-  { value: "Bank", label: "Bank" },
+  { value: "Card", label: "Card" },
 ];
 const FALLBACK_CURRENCIES = [
   { value: "GHS", label: "GHS" },

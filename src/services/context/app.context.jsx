@@ -5,7 +5,7 @@
 // only. The public shape of `useAuth()` is unchanged so existing pages keep
 // working (notably `authAxios`, which is now the single shared `http` client).
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import http, { registerLogoutHandler } from "@/services/lib/http";
@@ -76,6 +76,9 @@ export const AppProvider = ({ children }) => {
   );
   const [sidebarLoading, setSidebarLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  // Set true on logout so an in-flight token refresh can't silently re-arm the
+  // session (token back to "session") after the user has been signed out.
+  const loggedOutRef = useRef(false);
 
   // Design tokens still consumed by a few components.
   const tailwindValues = { secondary: "gray-600", primary: "indigo-600" };
@@ -85,6 +88,7 @@ export const AppProvider = ({ children }) => {
     "bg-card text-muted-foreground font-semibold py-[2vw] px-[4vw] sm:py-[1vw] sm:px-[3vw] md:py-4 md:px-8 rounded-md hover:scale-110! duration-300 text-[max(1.2vw,14px)] sm:text-[max(1.5vw,16px)] md:text-[1rem] lg:text-[1.2rem]";
 
   const clearSession = () => {
+    loggedOutRef.current = true;
     setBaseData(null);
     setUser(null);
     setToken(null);
@@ -152,6 +156,7 @@ export const AppProvider = ({ children }) => {
   }, [token]);
 
   const applySession = (data) => {
+    loggedOutRef.current = false;
     setBaseData(data);
     setUser(data.user_email);
     setUserProfileId(data.profile_id);
@@ -304,6 +309,9 @@ export const AppProvider = ({ children }) => {
 
   const refreshTokenFunction = async () => {
     await refreshSession();
+    // If the user logged out while the refresh was in flight, don't re-arm the
+    // session (setting token back to "session" would strand them half-signed-in).
+    if (loggedOutRef.current) return false;
     // Keep the session marked authenticated (a real bearer if one was stored).
     setToken((prev) => authStorage.getAccessToken() || prev || "session");
     return true;

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { getCurrencyChoices } from "@/services/api/choices.service";
 import { normalizeChoices } from "@/utils/choices";
+import PayoutMethodField from "@/components/escrow/PayoutMethodField";
 import { apiErrorMessage } from "@/services/lib/api-error";
 
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
@@ -72,6 +73,7 @@ const CreatePaymentOrderPage = () => {
     title: "",
     spend_category: "",
     currency: "GHS",
+    payout_method: "",
     note: "",
     items: [],
   });
@@ -139,6 +141,7 @@ const CreatePaymentOrderPage = () => {
     data.append("title", formData.title);
     data.append("spend_category", formData.spend_category);
     data.append("currency", formData.currency);
+    if (formData.payout_method) data.append("payout_method", formData.payout_method);
     data.append("note", formData.note);
     formData.items.forEach((item, i) => {
       ITEM_SCALAR_KEYS.forEach((key) => {
@@ -294,6 +297,13 @@ const CreatePaymentOrderPage = () => {
             rows={3}
           />
         </div>
+
+        <PayoutMethodField
+          value={formData.payout_method}
+          onChange={(v) =>
+            setFormData((prev) => ({ ...prev, payout_method: v }))
+          }
+        />
 
         <div>
           <h2 className="mb-3 flex items-center gap-2 font-display text-base font-semibold">

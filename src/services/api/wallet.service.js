@@ -7,6 +7,12 @@ export async function getWallet() {
   return data;
 }
 
+// GET wallet/transactions/ — the wallet's transaction history (newest first).
+export async function listWalletTransactions() {
+  const { data } = await http.get("wallet/transactions/");
+  return Array.isArray(data) ? data : [];
+}
+
 // POST wallet/fund/ — CTM hosted-checkout; returns { detail, redirect_url, exttrid }.
 export async function fundWallet({ amount, customer_number, network }) {
   const { data } = await http.post("wallet/fund/", {
@@ -24,5 +30,12 @@ export async function payoutClient({ amount, client_number, network }) {
     client_number,
     network,
   });
+  return data;
+}
+
+// POST wallet/withdraw/ — withdraw own funds to the configured MoMo/Bank
+// payout method; returns { detail, exttrid }.
+export async function withdrawWallet({ amount }) {
+  const { data } = await http.post("wallet/withdraw/", { amount });
   return data;
 }
