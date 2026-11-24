@@ -16,7 +16,7 @@
 import http from "@/services/lib/http";
 import { apiErrorMessage } from "@/services/lib/api-error";
 
-export const PAYMENT_METHODS = ["MoMo", "Card"];
+export const PAYMENT_METHODS = ["MoMo", "Card", "Wallet"];
 
 // POST purchase-orders/<ref_num>/fund-escrow/ — initiate escrow funding via
 // Orchard Hosted Checkout. Returns { redirect_url, escrow } (unwrapped from the

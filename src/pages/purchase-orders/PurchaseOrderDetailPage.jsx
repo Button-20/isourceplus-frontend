@@ -505,6 +505,7 @@ const PurchaseOrderDetailPage = () => {
         open={fundOpen}
         onOpenChange={setFundOpen}
         refNum={refNum}
+        preferredMethod={purchaseOrder.preferred_payment_channel}
         onSecured={(secured) => {
           setEscrow(secured);
           setPurchaseOrder((prev) =>
