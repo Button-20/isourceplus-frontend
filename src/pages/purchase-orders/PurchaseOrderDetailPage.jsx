@@ -55,6 +55,9 @@ const PurchaseOrderDetailPage = () => {
   const { authAxios, jobTitle, viewMode } = useAuth();
   // The side this company is on for the order (GRN list, dispute reasons).
   const party = isBuyerView(jobTitle, viewMode) ? "buyer" : "supplier";
+  // Buyer-side actions (fund/cancel/pay/confirm receipt) follow the same rule
+  // as `party`: a supplier company switched to buyer view acts as the buyer.
+  const isBuyer = party === "buyer";
   const { refNum } = useParams();
   const navigate = useNavigate();
   const [purchaseOrder, setPurchaseOrder] = useState(null);
@@ -143,11 +146,10 @@ const PurchaseOrderDetailPage = () => {
     }
   };
 
-  const backTo =
-    jobTitle === "lead buyer"
-      ? "/dashboard/purchase-orders?filter=draft"
-      : "/dashboard/purchase-orders";
-  const canArchive = jobTitle === "lead buyer";
+  const backTo = isBuyer
+    ? "/dashboard/purchase-orders?filter=draft"
+    : "/dashboard/purchase-orders";
+  const canArchive = isBuyer;
 
   // Escrow is a buyer action, and only relevant to POs that require it. Once the
   // escrow is secured (or beyond), funding is a no-op, so hide the CTA.
@@ -163,13 +165,11 @@ const PurchaseOrderDetailPage = () => {
       "FROZEN",
       "DISPUTED",
     ].includes(escrow.escrow_status);
-  const canFundEscrow =
-    jobTitle === "lead buyer" && escrowRequired && !escrowFunded;
+  const canFundEscrow = isBuyer && escrowRequired && !escrowFunded;
 
   // Buyer actions after funding: cancel the escrow before dispatch, inspect
   // the goods received note, then pay — from escrow when it holds the funds,
   // otherwise manually (no-escrow orders).
-  const isBuyer = jobTitle === "lead buyer";
   const escrowStatus = escrow?.escrow_status;
   const canCancelEscrow =
     isBuyer && Boolean(escrow) && ["CREATED", "SECURED"].includes(escrowStatus);
