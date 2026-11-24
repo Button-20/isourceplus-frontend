@@ -63,22 +63,22 @@ export function NavUser({ user }) {
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    try {
-      await logout();
-    } finally {
-      setLoggingOut(false);
-      setLogoutDialog(false);
-    }
+    // Close the confirm dialog BEFORE clearing the session. The dialog's Radix
+    // overlay locks the page (body scroll-lock, aria-hidden on the app root and
+    // an invisible fixed inset-0 backdrop) while it's open; if it's still open
+    // when logout() clears the session and the dashboard route unmounts to
+    // redirect to /login, that lock leaks and leaves the login page unclickable
+    // until a full reload.
+    setLogoutDialog(false);
+    await logout();
+    setLoggingOut(false);
   };
 
   const handleLogoutAll = async () => {
     setLoggingOutAll(true);
-    try {
-      await logoutAll();
-    } finally {
-      setLoggingOutAll(false);
-      setLogoutDialog(false);
-    }
+    setLogoutDialog(false);
+    await logoutAll();
+    setLoggingOutAll(false);
   };
 
   return (

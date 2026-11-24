@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, Smartphone, CreditCard } from "lucide-react";
+import { Loader2, ShieldCheck, Smartphone, CreditCard, Wallet } from "lucide-react";
 
 import {
   Dialog,
@@ -25,20 +25,29 @@ const labelClass = "mb-1 block text-sm font-medium text-foreground";
 const METHOD_META = {
   MoMo: { icon: Smartphone, hint: "e.g. MTN ref 1234567890" },
   Card: { icon: CreditCard, hint: "e.g. PSP-AUTH-9f2c1b8a" },
+  Wallet: { icon: Wallet, hint: "Paid from your available wallet balance" },
 };
 
 // Modal to lodge funds into escrow for a purchase order. `refNum` is the PO
 // reference; `onSecured(escrow)` receives the SECURED escrow on success.
-export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured }) {
+// `preferredMethod` (MoMo/Card) is the PO's configured channel and becomes the
+// default selection; the buyer can override it (including funding from Wallet).
+export default function FundEscrowModal({
+  open,
+  onOpenChange,
+  refNum,
+  onSecured,
+  preferredMethod,
+}) {
   const [method, setMethod] = useState("MoMo");
   const [reference, setReference] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setMethod("MoMo");
+    setMethod(PAYMENT_METHODS.includes(preferredMethod) ? preferredMethod : "MoMo");
     setReference("");
-  }, [open]);
+  }, [open, preferredMethod]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,8 +66,12 @@ export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured 
         window.location.href = redirectUrl;
         return;
       }
-      // No redirect (e.g. already secured) — reflect the escrow and close.
-      toast.success("Escrow secured — funds lodged successfully.");
+      // No redirect — funded straight from the wallet (or already secured).
+      toast.success(
+        result?.funded_from_wallet
+          ? "Escrow funded from your wallet."
+          : "Escrow secured — funds lodged successfully.",
+      );
       onSecured?.(result?.escrow ?? result);
       onOpenChange(false);
     } catch (err) {
@@ -80,9 +93,9 @@ export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured 
             <ShieldCheck className="h-5 w-5 text-brand" /> Fund escrow
           </DialogTitle>
           <DialogDescription>
-            You&apos;ll be redirected to a secure payment page to lodge funds
-            into the escrow account. Funds are held until the release conditions
-            are met.
+            {method === "Wallet"
+              ? "Fund the escrow straight from your available wallet balance. Funds are held until the release conditions are met."
+              : "You'll be redirected to a secure payment page to lodge funds into the escrow account. Funds are held until the release conditions are met."}
           </DialogDescription>
         </DialogHeader>
 
@@ -117,26 +130,28 @@ export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured 
             </div>
           </div>
 
-          {/* Payment reference */}
-          <div>
-            <label htmlFor="payment_ref" className={labelClass}>
-              Payment reference{" "}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
-            </label>
-            <Input
-              id="payment_ref"
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              placeholder={hint}
-              maxLength={128}
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Optional. Any reference for this deposit, stored on the escrow
-              ledger.
-            </p>
-          </div>
+          {/* Payment reference (not needed for wallet funding) */}
+          {method !== "Wallet" && (
+            <div>
+              <label htmlFor="payment_ref" className={labelClass}>
+                Payment reference{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </label>
+              <Input
+                id="payment_ref"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder={hint}
+                maxLength={128}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Optional. Any reference for this deposit, stored on the escrow
+                ledger.
+              </p>
+            </div>
+          )}
 
           <DialogFooter>
             <Button
@@ -155,6 +170,10 @@ export default function FundEscrowModal({ open, onOpenChange, refNum, onSecured 
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting…
+                </>
+              ) : method === "Wallet" ? (
+                <>
+                  <Wallet className="mr-2 h-4 w-4" /> Fund from wallet
                 </>
               ) : (
                 <>

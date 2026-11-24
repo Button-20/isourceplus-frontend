@@ -28,11 +28,18 @@ import {
 } from "@/services/api/wallet.service";
 import { formatMoney } from "@/utils/money";
 import { apiErrorMessage } from "@/services/lib/api-error";
+import { useAuth } from "@/services/context/app.context";
 
 const NETWORKS = ["MTN", "VOD", "AIR", "MAS", "VIS", "BNK"];
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 const VirtualWalletPage = () => {
+  const { jobTitle, transporterId } = useAuth();
+  const normalizedJob = String(jobTitle ?? "").toLowerCase().trim();
+  // Transporters only withdraw; buyers and suppliers fund + pay + withdraw.
+  const isTransporter =
+    Boolean(transporterId) || normalizedJob === "logistics manager";
+
   const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -171,15 +178,19 @@ const VirtualWalletPage = () => {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Button
-          className="bg-brand-gradient text-brand-foreground hover:opacity-90"
-          onClick={() => setFundOpen(true)}
-        >
-          <ArrowDownToLine className="mr-1.5 h-4 w-4" /> Fund wallet
-        </Button>
-        <Button variant="outline" onClick={() => setPayoutOpen(true)}>
-          <Send className="mr-1.5 h-4 w-4" /> Pay client
-        </Button>
+        {!isTransporter && (
+          <>
+            <Button
+              className="bg-brand-gradient text-brand-foreground hover:opacity-90"
+              onClick={() => setFundOpen(true)}
+            >
+              <ArrowDownToLine className="mr-1.5 h-4 w-4" /> Fund wallet
+            </Button>
+            <Button variant="outline" onClick={() => setPayoutOpen(true)}>
+              <Send className="mr-1.5 h-4 w-4" /> Pay client
+            </Button>
+          </>
+        )}
         <Button variant="outline" onClick={() => setWithdrawOpen(true)}>
           <ArrowUpToLine className="mr-1.5 h-4 w-4" /> Withdraw
         </Button>
