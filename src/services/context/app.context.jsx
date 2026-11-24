@@ -349,14 +349,9 @@ export const AppProvider = ({ children }) => {
       // way to clear the body-level locks the open dialogs leave behind (Radix
       // scroll-lock, focus guards, invisible overlay) — an SPA navigation reused
       // the same locked document and left the freshly-mounted login page
-      // unclickable until a manual refresh. A sessionStorage flag survives the
-      // reload so the login page can still show the confirmation toast.
-      try {
-        window.sessionStorage.setItem("auth_logout_notice", "Logout successful.");
-      } catch {
-        /* sessionStorage unavailable — skip the toast */
-      }
-      window.location.replace("/login");
+      // unclickable until a manual refresh. The query flag survives the reload
+      // so the login page can still show the confirmation toast.
+      window.location.replace("/login?logged_out=1");
     }
   };
 
@@ -370,15 +365,7 @@ export const AppProvider = ({ children }) => {
       /* clear locally regardless of network outcome */
     } finally {
       clearSession();
-      try {
-        window.sessionStorage.setItem(
-          "auth_logout_notice",
-          "Logged out of all devices.",
-        );
-      } catch {
-        /* sessionStorage unavailable — skip the toast */
-      }
-      window.location.replace("/login");
+      window.location.replace("/login?logged_out=all");
     }
   };
 

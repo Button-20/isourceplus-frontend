@@ -176,18 +176,18 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Show the one-shot "Logout successful" toast that logout() left in
-  // sessionStorage before it hard-reloaded to /login.
+  // Show the one-shot logout toast. logout() hard-redirects here with
+  // ?logged_out=1 (or =all), which survives the reload; strip it afterwards so
+  // a refresh doesn't re-toast.
   useEffect(() => {
-    try {
-      const notice = window.sessionStorage.getItem("auth_logout_notice");
-      if (notice) {
-        window.sessionStorage.removeItem("auth_logout_notice");
-        toast.success(notice);
-      }
-    } catch {
-      /* sessionStorage unavailable — skip the toast */
+    const flag = new URLSearchParams(window.location.search).get("logged_out");
+    if (flag) {
+      toast.success(
+        flag === "all" ? "Logged out of all devices." : "Logout successful.",
+      );
+      window.history.replaceState({}, "", "/login");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [email, setEmail] = useState("");
