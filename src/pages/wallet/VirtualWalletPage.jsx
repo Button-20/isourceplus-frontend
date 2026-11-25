@@ -30,7 +30,20 @@ import { formatMoney } from "@/utils/money";
 import { apiErrorMessage } from "@/services/lib/api-error";
 import { useAuth } from "@/services/context/app.context";
 
-const NETWORKS = ["MTN", "VOD", "AIR", "MAS", "VIS", "BNK"];
+// Funding (collection) can debit mobile-money wallets and cards only —
+// Orchard can't debit a bank account — so the fund form omits BNK.
+const FUND_NETWORKS = [
+  { value: "MTN", label: "MTN Mobile Money" },
+  { value: "VOD", label: "Vodafone Cash" },
+  { value: "AIR", label: "AirtelTigo Money" },
+  { value: "MAS", label: "Mastercard" },
+  { value: "VIS", label: "Visa" },
+];
+// Payout can also credit a bank account.
+const PAYOUT_NETWORKS = [
+  ...FUND_NETWORKS,
+  { value: "BNK", label: "Bank Transfer" },
+];
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
 
 const VirtualWalletPage = () => {
@@ -280,8 +293,8 @@ const VirtualWalletPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {NETWORKS.map((n) => (
-                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                  {FUND_NETWORKS.map((n) => (
+                    <SelectItem key={n.value} value={n.value}>{n.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -333,8 +346,8 @@ const VirtualWalletPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {NETWORKS.map((n) => (
-                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                  {PAYOUT_NETWORKS.map((n) => (
+                    <SelectItem key={n.value} value={n.value}>{n.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
