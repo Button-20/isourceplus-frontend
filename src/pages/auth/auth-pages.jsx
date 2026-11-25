@@ -181,12 +181,21 @@ export function LoginPage() {
   // a refresh doesn't re-toast.
   useEffect(() => {
     const flag = new URLSearchParams(window.location.search).get("logged_out");
-    if (flag) {
+    if (!flag) return undefined;
+
+    // Strip the one-shot param immediately so a refresh doesn't re-toast.
+    window.history.replaceState({}, "", "/login");
+
+    // Defer the toast: on the initial mount the sonner Toaster subscribes in
+    // its own effect, which runs after this one, so an immediate toast() would
+    // land in the store before any subscriber exists and never render.
+    const timer = setTimeout(() => {
       toast.success(
         flag === "all" ? "Logged out of all devices." : "Logout successful.",
       );
-      window.history.replaceState({}, "", "/login");
-    }
+    }, 0);
+
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
