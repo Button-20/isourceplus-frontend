@@ -30,18 +30,22 @@ import { formatMoney } from "@/utils/money";
 import { apiErrorMessage } from "@/services/lib/api-error";
 import { useAuth } from "@/services/context/app.context";
 
-// Funding (collection) can debit mobile-money wallets and cards only —
-// Orchard can't debit a bank account — so the fund form omits BNK.
-const FUND_NETWORKS = [
+const MOMO_NETWORKS = [
   { value: "MTN", label: "MTN Mobile Money" },
   { value: "VOD", label: "Vodafone Cash" },
   { value: "AIR", label: "AirtelTigo Money" },
+];
+// Funding (collection) can debit mobile-money wallets and cards, but Orchard
+// can't debit a bank account — so the fund form adds cards and omits BNK.
+const FUND_NETWORKS = [
+  ...MOMO_NETWORKS,
   { value: "MAS", label: "Mastercard" },
   { value: "VIS", label: "Visa" },
 ];
-// Payout can also credit a bank account.
+// Payout can credit mobile-money wallets and bank accounts, but Orchard can't
+// credit a card — so the pay-client form adds BNK and omits cards.
 const PAYOUT_NETWORKS = [
-  ...FUND_NETWORKS,
+  ...MOMO_NETWORKS,
   { value: "BNK", label: "Bank Transfer" },
 ];
 const labelClass = "mb-1 block text-sm font-medium text-foreground";
